@@ -22,3 +22,8 @@ channel_map.json
 channel_messages.json
 users.json
 credentials.json
+
+# Node/Frontend
+node_modules/
+dist/
+.DS_Store

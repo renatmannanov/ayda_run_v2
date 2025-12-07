@@ -35,6 +35,7 @@ class UserRole(str, Enum):
 class SportType(str, Enum):
     """Types of sports activities"""
     RUNNING = "running"
+    TRAIL = "trail"
     HIKING = "hiking"
     CYCLING = "cycling"
     OTHER = "other"
@@ -314,41 +315,31 @@ def get_db():
 
 # ============= HELPER FUNCTIONS =============
 
-def get_or_create_user(telegram_id: int, username: str = None, first_name: str = None) -> User:
+def get_or_create_user(db: Session, telegram_id: int, username: str = None, first_name: str = None) -> User:
     """
-    Get existing user or create new one
-    
-    Args:
-        telegram_id: Telegram user ID
-        username: Telegram username
-        first_name: User's first name
-        
-    Returns:
-        User object
+    Get existing user or create new one using provided session
     """
-    session = SessionLocal()
-    try:
-        user = session.query(User).filter(User.telegram_id == telegram_id).first()
-        if not user:
-            user = User(
-                telegram_id=telegram_id,
-                username=username,
-                first_name=first_name
-            )
-            session.add(user)
-            session.commit()
-            session.refresh(user)
-        else:
-            # Update user info if changed
-            if username and user.username != username:
-                user.username = username
-            if first_name and user.first_name != first_name:
-                user.first_name = first_name
-            user.updated_at = datetime.utcnow()
-            session.commit()
-        return user
-    finally:
-        session.close()
+    user = db.query(User).filter(User.telegram_id == telegram_id).first()
+    if not user:
+        user = User(
+            telegram_id=telegram_id,
+            username=username,
+            first_name=first_name
+        )
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+    else:
+        # Update user info if changed
+        # Note: In a real app we might want to be careful about auto-updating
+        if username and user.username != username:
+            user.username = username
+        if first_name and user.first_name != first_name:
+            user.first_name = first_name
+        user.updated_at = datetime.utcnow()
+        db.commit()
+        db.refresh(user)
+    return user
 
 def get_user_by_telegram_id(telegram_id: int) -> Optional[User]:
     """Get user by Telegram ID"""

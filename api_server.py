@@ -147,6 +147,25 @@ async def health_check():
     return {"status": "ok", "service": "Ayda Run API"}
 
 # ============================================================================
+# Users API
+# ============================================================================
+
+class UserResponse(BaseModel):
+    """Response model for user"""
+    model_config = {"from_attributes": True}
+    
+    id: int
+    telegram_id: int
+    username: Optional[str]
+    first_name: Optional[str]
+    created_at: datetime
+
+@app.get("/api/users/me", response_model=UserResponse)
+async def get_me(current_user: User = Depends(get_current_user)):
+    """Get current user profile"""
+    return current_user
+
+# ============================================================================
 # Activities API
 # ============================================================================
 

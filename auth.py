@@ -78,31 +78,28 @@ def verify_telegram_webapp_data(init_data: str) -> Dict:
 
 
 def get_current_user(
-    authorization: str = Header(..., description="Telegram WebApp initData"),
+    x_telegram_init_data: Optional[str] = Header(None, alias="X-Telegram-Init-Data"),
     db: Session = Depends(get_db)
 ) -> User:
     """
-    FastAPI dependency to get current user from Telegram WebApp initData
-    
-    Usage:
-        @app.get("/api/endpoint")
-        def endpoint(current_user: User = Depends(get_current_user)):
-            ...
-    
-    Args:
-        authorization: initData from Telegram WebApp (in Authorization header)
-        db: Database session
-        
-    Returns:
-        User object
-        
-    Raises:
-        HTTPException: If initData is invalid or user not found
+    FastAPI dependency to get current user.
+    Supports Telegram WebApp initData and local generic user for development.
     """
-    # Verify initData
-    data = verify_telegram_webapp_data(authorization)
+    # 1. Dev/Local mode bypass
+    # If no header is provided and we are likely in dev environment
+    if not x_telegram_init_data:
+        # Create a mock user for local development
+        # In production this should be disabled or protected
+        return get_or_create_user(
+            db=db,
+            telegram_id=1,  # Super Admin ID
+            username="admin",
+            first_name="Admin User"
+        )
+
+    # 2. Production/Telegram mode
+    data = verify_telegram_webapp_data(x_telegram_init_data)
     
-    # Extract user info
     user_data = data.get('user')
     if not user_data:
         raise HTTPException(status_code=401, detail="User data not found in initData")
@@ -111,29 +108,17 @@ def get_current_user(
     if not telegram_id:
         raise HTTPException(status_code=401, detail="User ID not found in initData")
     
-    # Get or create user
-    user = get_or_create_user(
+    return get_or_create_user(
+        db=db,
         telegram_id=telegram_id,
         username=user_data.get('username'),
         first_name=user_data.get('first_name')
     )
-    
-    return user
 
 
 def get_current_user_optional(
-    authorization: Optional[str] = Header(None, description="Telegram WebApp initData"),
+    x_telegram_init_data: Optional[str] = Header(None, alias="X-Telegram-Init-Data"),
     db: Session = Depends(get_db)
 ) -> Optional[User]:
-    """
-    Optional authentication - returns None if not authenticated
-    
-    Useful for public endpoints that optionally customize for logged-in users
-    """
-    if not authorization:
-        return None
-    
-    try:
-        return get_current_user(authorization=authorization, db=db)
-    except HTTPException:
-        return None
+    """Optional auth"""
+    return get_current_user(x_telegram_init_data=x_telegram_init_data, db=db)

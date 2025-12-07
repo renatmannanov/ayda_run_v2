@@ -1,36 +1,13 @@
 <!DOCTYPE html>
 <html lang="ru">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Telegram Mini App</title>
-    <link rel="stylesheet" href="/styles.css">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Ayda Run</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-</head>
-
-<body>
-    <div id="app" class="app">
-        <!-- Header -->
-        <div class="header">
-            <div class="header-title">TODO: Your App Name</div>
-        </div>
-
-        <!-- Body (Main Content) -->
-        <div class="body">
-            <!-- Content will be rendered here by app.js -->
-            <div id="content">
-                <div class="empty-state">
-                    <div class="empty-icon">🚀</div>
-                    <div class="empty-title">Telegram Mini App Template</div>
-                    <div class="empty-subtitle">Uses component-based architecture</div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Load modules -->
-    <script type="module" src="/app.js"></script>
-</body>
-
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
 </html>
