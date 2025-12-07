@@ -1,0 +1,24 @@
+# Core dependencies
+fastapi
+uvicorn
+python-telegram-bot
+python-dotenv
+sqlalchemy
+pydantic-settings
+
+# Production database (PostgreSQL)
+psycopg2-binary
+
+# Optional: Google Sheets integration
+# Uncomment if using Google Sheets
+# gspread
+# google-auth
+
+# Optional: MongoDB integration
+# Uncomment if using MongoDB
+# pymongo
+# motor  # for async MongoDB operations
+
+# Optional: Additional utilities
+# requests
+# aiohttp

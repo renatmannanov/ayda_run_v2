@@ -1,0 +1,24 @@
+*.pyc
+__pycache__/
+*.db
+*.log
+.env
+.venv/
+venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Project specific
+channel_map.json
+channel_messages.json
+users.json
+credentials.json

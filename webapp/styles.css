@@ -1,0 +1,219 @@
+/* ==========================================================================
+   Telegram Mini App - Minimal Design Template
+   Based on Ayda Think design system
+   ========================================================================== */
+
+:root {
+    /* --- Gray Scale --- */
+    --gray-200: #e5e7eb;
+    --gray-300: #d1d5db;
+    --gray-400: #9ca3af;
+    --gray-500: #6b7280;
+    --gray-600: #4b5563;
+    --gray-700: #374151;
+    --gray-800: #1f2937;
+    --gray-900: #111827;
+
+    /* --- Accent Colors --- */
+    --orange-500: #f97316;
+    --green-600: #16a34a;
+    --amber-600: #d97706;
+
+    /* TODO: Add your project-specific colors */
+    /* --primary-500: #3b82f6; */
+    /* --secondary-500: #8b5cf6; */
+
+    /* --- Semantic --- */
+    --border: var(--gray-200);
+    --text-primary: var(--gray-800);
+    --text-secondary: var(--gray-500);
+    --text-muted: var(--gray-400);
+    --overlay: rgba(0, 0, 0, 0.3);
+}
+
+/* ==========================================================================
+   Base
+   ========================================================================== */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    background: white;
+    color: var(--text-primary);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+}
+
+button {
+    font-family: inherit;
+    cursor: pointer;
+}
+
+/* ==========================================================================
+   Layout
+   ========================================================================== */
+.app {
+    min-height: 100vh;
+    background: white;
+    display: flex;
+    flex-direction: column;
+    max-width: 28rem;
+    /* max-w-md = 448px */
+    margin: 0 auto;
+    border-left: 1px solid var(--border);
+    border-right: 1px solid var(--border);
+}
+
+/* ==========================================================================
+   Header
+   ========================================================================== */
+.header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--border);
+    min-height: 52px;
+}
+
+.header-title {
+    font-size: 0.875rem;
+    color: var(--gray-700);
+    font-weight: 500;
+}
+
+/* ==========================================================================
+   Body (Main Content Area)
+   ========================================================================== */
+.body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 1rem;
+}
+
+/* Card Component */
+.card {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+    padding: 1rem;
+}
+
+.card-title {
+    font-size: 1rem;
+    font-weight: 500;
+    color: var(--gray-900);
+    margin-bottom: 0.5rem;
+}
+
+.card-text {
+    font-size: 0.875rem;
+    line-height: 1.625;
+    color: var(--gray-700);
+    white-space: pre-line;
+    word-wrap: break-word;
+}
+
+/* ==========================================================================
+   Buttons
+   ========================================================================== */
+.btn {
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+    border-radius: 0.25rem;
+    border: none;
+    transition: all 0.2s;
+}
+
+.btn-primary {
+    background: var(--gray-900);
+    color: white;
+}
+
+.btn-primary:hover {
+    background: var(--gray-700);
+}
+
+.btn-secondary {
+    background: var(--gray-200);
+    color: var(--gray-700);
+}
+
+.btn-secondary:hover {
+    background: var(--gray-300);
+}
+
+.btn-text {
+    background: none;
+    border: none;
+    padding: 0;
+    color: var(--gray-500);
+    font-size: 0.875rem;
+    transition: color 0.2s;
+}
+
+.btn-text:hover {
+    color: var(--gray-700);
+}
+
+/* ==========================================================================
+   Empty State
+   ========================================================================== */
+.empty-state {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 2rem;
+}
+
+.empty-icon {
+    font-size: 1.875rem;
+    margin-bottom: 0.75rem;
+}
+
+.empty-title {
+    font-size: 1rem;
+    font-weight: normal;
+    color: var(--gray-700);
+    margin-bottom: 0.25rem;
+}
+
+.empty-subtitle {
+    font-size: 0.875rem;
+    color: var(--gray-400);
+}
+
+/* ==========================================================================
+   Animations
+   ========================================================================== */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+/* ==========================================================================
+   Responsive
+   ========================================================================== */
+@media (max-width: 448px) {
+    .app {
+        border-left: none;
+        border-right: none;
+    }
+}
+
+/* ==========================================================================
+   TODO: Add your custom styles below
+   ========================================================================== */
