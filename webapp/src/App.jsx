@@ -34,8 +34,7 @@ function App() {
             }
 
             try {
-                const response = await api.get('/users/me')
-                const user = response.data
+                const user = await api.get('/users/me')
 
                 // Redirect to onboarding if not completed
                 if (!user.has_completed_onboarding) {
