@@ -1,12 +1,13 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { SportChips, Button } from '../components'
-import { tg } from '../api'
+import { tg, api } from '../api'
 
 export default function Onboarding() {
     const navigate = useNavigate()
     const [step, setStep] = useState(1)
     const [selectedSports, setSelectedSports] = useState([])
+    const [loading, setLoading] = useState(false)
 
     const user = tg.user || { first_name: 'Бегун' }
 
@@ -15,10 +16,23 @@ export default function Onboarding() {
     const inviteContext = null
 
     // Complete onboarding
-    const completeOnboarding = () => {
-        // TODO: Send selected sports to API if profile update supported
-        // await usersApi.update({ sports: selectedSports })
-        navigate('/')
+    const completeOnboarding = async () => {
+        setLoading(true)
+        try {
+            // Save onboarding data to backend
+            await api.patch('/users/me/onboarding', {
+                preferred_sports: selectedSports
+            })
+
+            // Navigate to home after successful onboarding
+            navigate('/')
+        } catch (error) {
+            console.error('Failed to complete onboarding:', error)
+            // Navigate anyway to not block the user
+            navigate('/')
+        } finally {
+            setLoading(false)
+        }
     }
 
     // Step 1: Welcome
@@ -95,8 +109,8 @@ export default function Onboarding() {
             )}
 
             <div className="w-full max-w-xs">
-                <Button onClick={completeOnboarding}>
-                    {inviteContext ? 'Перейти в клуб' : 'Перейти к тренировкам'}
+                <Button onClick={completeOnboarding} disabled={loading}>
+                    {loading ? 'Загрузка...' : (inviteContext ? 'Перейти в клуб' : 'Перейти к тренировкам')}
                 </Button>
             </div>
         </div>

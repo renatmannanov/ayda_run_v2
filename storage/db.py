@@ -78,11 +78,13 @@ class PaymentStatus(str, Enum):
 class User(Base):
     """User model - represents Telegram users"""
     __tablename__ = 'users'
-    
+
     id = Column(Integer, primary_key=True, autoincrement=True)
     telegram_id = Column(Integer, unique=True, nullable=False, index=True)
     username = Column(String(255), nullable=True)
     first_name = Column(String(255), nullable=True)
+    has_completed_onboarding = Column(Boolean, default=False, nullable=False)
+    preferred_sports = Column(Text, nullable=True)  # JSON array of sport IDs: ["running", "trail"]
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     

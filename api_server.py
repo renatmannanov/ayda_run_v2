@@ -149,16 +149,45 @@ async def health_check():
 class UserResponse(BaseModel):
     """Response model for user"""
     model_config = {"from_attributes": True}
-    
+
     id: int
     telegram_id: int
     username: Optional[str]
     first_name: Optional[str]
+    has_completed_onboarding: bool
+    preferred_sports: Optional[str]  # JSON string: '["running", "trail"]'
     created_at: datetime
 
 @app.get("/api/users/me", response_model=UserResponse)
 async def get_me(current_user: User = Depends(get_current_user)):
     """Get current user profile"""
+    return current_user
+
+
+class OnboardingData(BaseModel):
+    """Request model for completing onboarding"""
+    preferred_sports: Optional[list[str]] = None  # e.g., ["running", "trail"]
+
+
+@app.patch("/api/users/me/onboarding", response_model=UserResponse)
+async def complete_onboarding(
+    onboarding_data: OnboardingData,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Complete user onboarding and save preferences"""
+    import json
+
+    # Update onboarding status
+    current_user.has_completed_onboarding = True
+
+    # Save preferred sports as JSON string
+    if onboarding_data.preferred_sports:
+        current_user.preferred_sports = json.dumps(onboarding_data.preferred_sports)
+
+    db.commit()
+    db.refresh(current_user)
+
     return current_user
 
 # ============================================================================

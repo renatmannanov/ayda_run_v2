@@ -102,6 +102,23 @@ const transformMember = (m) => !m ? null : ({
 
 
 // ============================================================================
+// Generic API object (for direct endpoints access)
+// ============================================================================
+
+export const api = {
+    get: (endpoint) => apiFetch(endpoint),
+    post: (endpoint, data) => apiFetch(endpoint, {
+        method: 'POST',
+        body: JSON.stringify(data)
+    }),
+    patch: (endpoint, data) => apiFetch(endpoint, {
+        method: 'PATCH',
+        body: JSON.stringify(data)
+    }),
+    delete: (endpoint) => apiFetch(endpoint, { method: 'DELETE' })
+}
+
+// ============================================================================
 // Users API
 // ============================================================================
 
