@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ParticipantsSheet, LoadingScreen, ErrorScreen, Button } from '../components'
+import { ParticipantsSheet, LoadingScreen, ErrorScreen, Button, BottomNav } from '../components'
 import {
     useActivity,
     useActivityParticipants,
@@ -27,10 +27,12 @@ export default function ActivityDetail() {
 
     // Fetch participants
     const {
-        data: participants = [],
+        data: participantsData,
         loading: participantsLoading,
         refetch: refetchParticipants
     } = useActivityParticipants(id)
+
+    const participants = participantsData || []
 
     const { mutate: joinActivity, loading: joining } = useJoinActivity()
     const { mutate: leaveActivity, loading: leaving } = useLeaveActivity()
@@ -69,9 +71,9 @@ export default function ActivityDetail() {
     if (!activity) return <ErrorScreen message="Тренировка не найдена" />
 
     return (
-        <div className="min-h-screen bg-white flex flex-col">
+        <div className="h-screen bg-white flex flex-col relative">
             {/* Header */}
-            <div className="flex items-center justify-between px-4 py-4 border-b border-gray-200">
+            <div className="flex items-center justify-between px-4 py-4 border-b border-gray-200 sticky top-0 bg-white z-10">
                 <button
                     onClick={() => navigate(-1)}
                     className="text-gray-500 text-sm hover:text-gray-700"
@@ -89,7 +91,7 @@ export default function ActivityDetail() {
             </div>
 
             {/* Content */}
-            <div className="flex-1 overflow-auto px-4 py-4">
+            <div className="flex-1 overflow-y-auto px-4 py-4 pb-36">
                 <div className="border border-gray-200 rounded-xl p-4">
                     {/* Title */}
                     <div className="flex justify-between items-start mb-4">
@@ -235,27 +237,31 @@ export default function ActivityDetail() {
 
             {/* Bottom CTA */}
             {!isPast && (
-                <div className="px-4 pb-6 pt-2">
-                    {isJoined ? (
-                        <Button
-                            onClick={handleJoinToggle}
-                            variant="success"
-                            loading={joining || leaving}
-                        >
-                            <span>Иду ✓</span>
-                            <span className="text-green-400">·</span>
-                            <span className="text-green-500 font-normal">Отменить</span>
-                        </Button>
-                    ) : isFull ? (
-                        <Button disabled variant="secondary">Мест нет</Button>
-                    ) : (
-                        <Button
-                            onClick={handleJoinToggle}
-                            loading={joining || leaving}
-                        >
-                            Записаться
-                        </Button>
-                    )}
+                <div className="fixed bottom-20 left-0 right-0 max-w-md mx-auto px-4 pb-2 pt-2 z-30 pointer-events-none">
+                    <div className="pointer-events-auto shadow-lg rounded-xl overflow-hidden bg-white">
+                        {isJoined ? (
+                            <Button
+                                onClick={handleJoinToggle}
+                                variant="success"
+                                loading={joining || leaving}
+                                className="w-full rounded-none h-12"
+                            >
+                                <span>Иду ✓</span>
+                                <span className="text-green-400">·</span>
+                                <span className="text-green-500 font-normal">Отменить</span>
+                            </Button>
+                        ) : isFull ? (
+                            <Button disabled variant="secondary" className="w-full rounded-none h-12">Мест нет</Button>
+                        ) : (
+                            <Button
+                                onClick={handleJoinToggle}
+                                loading={joining || leaving}
+                                className="w-full rounded-none h-12"
+                            >
+                                Записаться
+                            </Button>
+                        )}
+                    </div>
                 </div>
             )}
 
@@ -268,6 +274,11 @@ export default function ActivityDetail() {
                 isPast={isPast}
                 attendedCount={attendedCount}
             />
+
+            {/* Bottom Navigation */}
+            <div className="fixed bottom-0 left-0 right-0 max-w-md mx-auto z-40">
+                <BottomNav onCreateClick={() => window.alert('Создание из деталей активности пока не поддерживается, перейдите на Главную')} />
+            </div>
         </div>
     )
 }

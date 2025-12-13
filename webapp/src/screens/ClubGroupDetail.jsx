@@ -1,13 +1,18 @@
 import React, { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { CreateMenu, ParticipantsSheet, ActivityCard, GroupCard, LoadingScreen, ErrorScreen, Button } from '../components'
+import { CreateMenu, ParticipantsSheet, ActivityCard, GroupCard, LoadingScreen, ErrorScreen, Button, BottomNav } from '../components'
 import {
     useClub,
     useGroup,
     useActivities,
     useJoinClub,
     useJoinGroup,
-    useGroups // To fetch groups for a club
+    useGroups, // To fetch groups for a club
+    useClubMembers,
+    useGroupMembers,
+    useDeleteClub,
+    useDeleteGroup,
+    tg // for confirmations
 } from '../hooks'
 import { pluralizeMembers, pluralizeGroups } from '../data/sample_data'
 
@@ -18,19 +23,21 @@ export default function ClubGroupDetail({ type = 'club' }) {
     const isClub = type === 'club'
 
     // Fetch item data
+    // ALWAYS call both hooks to respect React Rules of Hooks
+    // Pass null if not applicable (hooks in useApi.js are now guarded)
     const {
         data: clubData,
         loading: clubLoading,
         error: clubError,
         refetch: refetchClub
-    } = isClub ? useClub(id) : { data: null, loading: false }
+    } = useClub(isClub ? id : null)
 
     const {
         data: groupData,
         loading: groupLoading,
         error: groupError,
         refetch: refetchGroup
-    } = !isClub ? useGroup(id) : { data: null, loading: false }
+    } = useGroup(!isClub ? id : null)
 
     const item = isClub ? clubData : groupData
     const loading = isClub ? clubLoading : groupLoading
@@ -38,33 +45,34 @@ export default function ClubGroupDetail({ type = 'club' }) {
     const refetch = isClub ? refetchClub : refetchGroup
 
     // Fetch groups if it's a club (to show subgroups)
-    // Logic: if club, fetch groups passing clubId. API might support this.
-    // Assuming useGroups(clubId) works if we implemented it in useApi.js
-    // Let's verify usage in useApi.js: export function useGroups(clubId = null) { ... } -> Yes.
-    const { data: clubGroups = [] } = isClub ? useGroups(id) : { data: [] }
+    const { data: clubGroups = [] } = useGroups(isClub ? id : null)
 
     // Fetch activities for this club/group
-    // useActivities accepts filters { club_id: id } or { group_id: id }
     const filters = isClub ? { club_id: id } : { group_id: id }
     const {
-        data: activities = [],
+        data: activitiesData,
         loading: activitiesLoading
     } = useActivities(filters)
 
+    const activities = activitiesData || []
+
+    // Mutations
     const { mutate: joinClub, loading: joiningClub } = useJoinClub()
     const { mutate: joinGroup, loading: joiningGroup } = useJoinGroup()
+    const { mutate: deleteClub } = useDeleteClub()
+    const { mutate: deleteGroup } = useDeleteGroup()
 
     const [showParticipants, setShowParticipants] = useState(false)
     const [showCreateMenu, setShowCreateMenu] = useState(false)
+    const [showGearMenu, setShowGearMenu] = useState(false) // State for gear menu popup
 
-    // Participants list - usually separate endpoint but often included in light detail or we fetch separately
-    // For now assuming 'item' has 'members_list' or similar, OR we use a separate hook if needed.
-    // Sample data had 'members' as count, maybe 'participants' array.
-    // Let's assume we might need a useClubMembers hook later if list is large.
-    // For now, let's use what we have or sample data placeholder if data missing for list view.
-    // Actually, let's just show a placeholder or empty list if backend doesn't return list in get().
-    const participants = item?.members_list || []
-    // NOTE: If backend get() doesn't return members list, we might need useClubMembers(id)
+    // Fetch members
+    // Check if club or group, and use appropriate hook
+    const { data: clubMembers } = useClubMembers(isClub ? id : null)
+    const { data: groupMembers } = useGroupMembers(!isClub ? id : null)
+
+    // Combine list (only one will be populated)
+    const participants = (isClub ? clubMembers : groupMembers) || []
 
     const upcomingActivities = activities.filter(a => !a.isPast).slice(0, 3)
 
@@ -81,14 +89,80 @@ export default function ClubGroupDetail({ type = 'club' }) {
         }
     }
 
+    const handleDelete = async () => {
+        tg.showConfirm(`Вы действительно хотите удалить этот ${isClub ? 'клуб' : 'группу'}?`, async (confirmed) => {
+            if (confirmed) {
+                try {
+                    if (isClub) await deleteClub(id)
+                    else await deleteGroup(id)
+                    navigate('/clubs')
+                } catch (e) {
+                    console.error('Delete failed', e)
+                    // TODO: show alert
+                }
+            }
+        })
+    }
+
     const isAdmin = item?.isAdmin
 
     if (loading) return <LoadingScreen text={`Загружаем ${isClub ? 'клуб' : 'группу'}...`} />
     if (error) return <ErrorScreen message={error} onRetry={refetch} />
     if (!item) return <ErrorScreen message="Не найдено" />
 
+    // Gear Menu Popup (Sheet Style)
+    const GearMenu = () => (
+        <div
+            className="fixed inset-0 bg-black/30 z-50 flex items-end justify-center"
+            onClick={() => setShowGearMenu(false)}
+        >
+            <div
+                className="bg-white w-full max-w-md rounded-t-2xl p-6"
+                onClick={e => e.stopPropagation()}
+            >
+                <div className="flex items-center justify-between mb-6">
+                    <span className="text-xl font-medium text-gray-800">
+                        Управление
+                    </span>
+                    <button
+                        onClick={() => setShowGearMenu(false)}
+                        className="text-gray-400 hover:text-gray-600 text-xl"
+                    >
+                        ✕
+                    </button>
+                </div>
+
+                <div className="space-y-2">
+                    <button
+                        onClick={() => {
+                            setShowGearMenu(false)
+                            navigate(isClub ? `/club/${id}/edit` : `/group/${id}/edit`)
+                        }}
+                        className="w-full text-left p-4 bg-gray-50 hover:bg-gray-100 rounded-xl flex items-center gap-3 text-gray-700 transition-colors"
+                    >
+                        <span className="text-xl">✏️</span>
+                        <span className="font-medium">Редактировать</span>
+                    </button>
+
+                    <button
+                        onClick={() => {
+                            setShowGearMenu(false)
+                            handleDelete()
+                        }}
+                        className="w-full text-left p-4 bg-red-50 hover:bg-red-100 rounded-xl flex items-center gap-3 text-red-600 transition-colors"
+                    >
+                        <span className="text-xl">🗑️</span>
+                        <span className="font-medium">Удалить {isClub ? 'клуб' : 'группу'}</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    )
+
     return (
-        <div className="min-h-screen bg-white flex flex-col">
+        <div className="h-screen bg-white flex flex-col relative">
+            {showGearMenu && <GearMenu />}
+
             {/* Header */}
             <div className="flex items-center justify-between px-4 py-4 border-b border-gray-200 sticky top-0 bg-white z-10">
                 <button
@@ -99,22 +173,25 @@ export default function ClubGroupDetail({ type = 'club' }) {
                 </button>
 
                 {isAdmin && (
-                    <button className="text-sm text-gray-500 hover:text-gray-700">
+                    <button
+                        onClick={() => setShowGearMenu(true)}
+                        className="text-xl p-2 -mr-2 text-gray-500 hover:text-gray-700 active:scale-95 transition-transform"
+                    >
                         ⚙️
                     </button>
                 )}
             </div>
 
             {/* Content */}
-            <div className="flex-1 overflow-auto px-4 py-4">
+            <div className="flex-1 overflow-y-auto px-4 py-4 pb-24">
                 {/* Main Info Card */}
                 <div className="border border-gray-200 rounded-xl p-4 mb-4">
                     <div className="flex items-start justify-between mb-4">
                         <div className="flex-1 pr-3">
                             <h1 className="text-xl text-gray-800 font-medium mb-1">
                                 {item.name}
-                                {!isClub && item.parentClub && (
-                                    <span className="text-gray-400 font-normal"> / {item.parentClub}</span>
+                                {!isClub && (item.club_name || item.parentClub) && (
+                                    <span className="text-gray-400 font-normal"> / {item.club_name || item.parentClub}</span>
                                 )}
                             </h1>
                             <p className="text-sm text-gray-500">
@@ -130,13 +207,12 @@ export default function ClubGroupDetail({ type = 'club' }) {
                         </p>
                     )}
 
-                    <div className="border-t border-gray-200 pt-4">
+                    <div className="border-t border-gray-200 pt-4 flex items-center justify-between">
                         <button
                             onClick={() => setShowParticipants(true)}
                             className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 transition-colors"
                         >
                             <div className="flex -space-x-2">
-                                {/* Fallback to simple slice if participants field exists, else empty */}
                                 {participants.slice(0, 5).map((p, i) => (
                                     <span key={p.id || i} className="text-xl">{p.avatar || '👤'}</span>
                                 ))}
@@ -145,8 +221,22 @@ export default function ClubGroupDetail({ type = 'club' }) {
                                 {pluralizeMembers(item.members)}
                                 {isClub && item.groupsCount > 0 && ` · ${pluralizeGroups(item.groupsCount)}`}
                             </span>
-                            <span>→</span>
                         </button>
+
+                        {/* Inline Join/Member Status - NEW */}
+                        {item.isMember ? (
+                            <span className="text-sm font-medium text-green-600 bg-green-50 px-3 py-1 rounded-full">
+                                Участник ✓
+                            </span>
+                        ) : (
+                            <button
+                                onClick={toggleMembership}
+                                disabled={joiningClub || joiningGroup}
+                                className="text-sm font-medium text-blue-600 bg-blue-50 px-3 py-1 rounded-full hover:bg-blue-100 transition-colors"
+                            >
+                                {joiningClub || joiningGroup ? '...' : 'Вступить'}
+                            </button>
+                        )}
                     </div>
                 </div>
 
@@ -180,46 +270,6 @@ export default function ClubGroupDetail({ type = 'club' }) {
                         </button>
                     </div>
                 )}
-
-                {/* Admin actions */}
-                {isAdmin && (
-                    <div className="border border-gray-200 rounded-xl p-4 mb-4">
-                        <p className="text-sm text-gray-500 mb-3">Управление</p>
-                        <div className="space-y-2">
-                            <button className="w-full text-left py-2 text-sm text-gray-700 hover:text-gray-900 transition-colors">
-                                ✏️ Редактировать
-                            </button>
-                            <button className="w-full text-left py-2 text-sm text-gray-700 hover:text-gray-900 transition-colors">
-                                🔗 Ссылка приглашения
-                            </button>
-                            <button className="w-full text-left py-2 text-sm text-gray-700 hover:text-gray-900 transition-colors">
-                                👥 Управление участниками
-                            </button>
-                        </div>
-                    </div>
-                )}
-            </div>
-
-            {/* Bottom CTA */}
-            <div className="px-4 pb-6 pt-2 border-t border-gray-100">
-                {item.isMember ? (
-                    <Button
-                        onClick={toggleMembership}
-                        variant="secondary"
-                        loading={joiningClub || joiningGroup}
-                    >
-                        <span>Участник ✓</span>
-                        <span className="text-gray-400">·</span>
-                        <span className="text-gray-400 font-normal">Выйти</span>
-                    </Button>
-                ) : (
-                    <Button
-                        onClick={toggleMembership}
-                        loading={joiningClub || joiningGroup}
-                    >
-                        {isClub ? 'Вступить в клуб' : 'Вступить в группу'}
-                    </Button>
-                )}
             </div>
 
             {/* Participants sheet */}
@@ -236,6 +286,11 @@ export default function ClubGroupDetail({ type = 'club' }) {
                 onClose={() => setShowCreateMenu(false)}
                 context={isClub ? { clubId: item.id, name: item.name } : { groupId: item.id, name: item.name }}
             />
+
+            {/* Bottom Navigation */}
+            <div className="fixed bottom-0 left-0 right-0 max-w-md mx-auto z-40">
+                <BottomNav onCreateClick={() => setShowCreateMenu(true)} />
+            </div>
         </div>
     )
 }

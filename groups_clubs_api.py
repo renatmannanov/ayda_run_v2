@@ -16,6 +16,7 @@ from datetime import datetime
 from storage.db import (
     get_db, Club, Group, Membership, User, UserRole
 )
+from sqlalchemy.orm import joinedload
 from auth import get_current_user
 from permissions import (
     can_manage_club, can_manage_group,
@@ -93,6 +94,7 @@ class GroupResponse(BaseModel):
     members_count: int = 0
     is_member: bool = False
     user_role: Optional[UserRole] = None
+    club_name: Optional[str] = None
 
 
 class MembershipCreate(BaseModel):
@@ -336,6 +338,9 @@ def list_groups_endpoint(
     if club_id is not None:
         query = query.filter(Group.club_id == club_id)
     
+    # Eager load club to get name efficiently
+    query = query.options(joinedload(Group.club))
+    
     groups = query.offset(offset).limit(limit).all()
     
     result = []
@@ -354,6 +359,9 @@ def list_groups_endpoint(
             response.is_member = membership is not None
             response.user_role = membership.role if membership else None
         
+        if group.club:
+            response.club_name = group.club.name
+
         result.append(response)
     
     return result
@@ -382,6 +390,9 @@ def get_group_endpoint(
         response.is_member = membership is not None
         response.user_role = membership.role if membership else None
     
+    if group.club:
+        response.club_name = group.club.name
+
     return response
 
 

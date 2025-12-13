@@ -1,6 +1,6 @@
 import React from 'react'
 import { useNavigate } from 'react-router-dom'
-import { formatTime } from '../data/sample_data'
+import { formatTime, formatDate } from '../data/sample_data'
 
 export default function ActivityCard({ activity, onJoinToggle }) {
     const navigate = useNavigate()
@@ -64,7 +64,7 @@ export default function ActivityCard({ activity, onJoinToggle }) {
             </div>
 
             <p className="text-sm text-gray-500 mb-2">
-                {formatTime(activity.date)} · {activity.location}
+                {formatDate(activity.date)}, {formatTime(activity.date)} · {activity.location}
             </p>
 
             <p className="text-sm text-gray-400 mb-3">
@@ -74,6 +74,9 @@ export default function ActivityCard({ activity, onJoinToggle }) {
             <div className="flex justify-between items-center">
                 <span className="text-sm text-gray-500">
                     {activity.participants}/{activity.maxParticipants}
+                    {(activity.club || activity.group) && (
+                        <> · {activity.club || activity.group}</>
+                    )}
                 </span>
                 {renderActionButton()}
             </div>

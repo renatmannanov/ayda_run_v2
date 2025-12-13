@@ -1,12 +1,19 @@
-import React, { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { FormInput, FormTextarea, FormSelect, FormCheckbox, FormRadioGroup, Button } from '../components'
-import { useClubs, useCreateGroup } from '../hooks'
+import React, { useState, useEffect } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
+import { FormInput, FormTextarea, FormCheckbox, FormRadioGroup, Button, LoadingScreen, ErrorScreen } from '../components'
+import { useClubs, useCreateGroup, useUpdateGroup, useGroup } from '../hooks'
 
 export default function CreateGroup() {
+    const { id } = useParams()
+    const isEditMode = !!id
     const navigate = useNavigate()
+
     const { data: clubs = [] } = useClubs()
-    const { mutate: createGroup, loading } = useCreateGroup()
+    const { mutate: createGroup, loading: creating } = useCreateGroup()
+    const { mutate: updateGroup, loading: updating } = useUpdateGroup()
+
+    // Fetch group if in edit mode
+    const { data: existingGroup, loading: loadingGroup, error: errorGroup } = useGroup(isEditMode ? id : null)
 
     // Form state
     const [name, setName] = useState('')
@@ -19,9 +26,32 @@ export default function CreateGroup() {
     const [showClubPicker, setShowClubPicker] = useState(false)
     const [isCreated, setIsCreated] = useState(false)
     const [shareLink, setShareLink] = useState('')
+    const [createdId, setCreatedId] = useState(null)
+
+    // Populate form
+    useEffect(() => {
+        if (existingGroup) {
+            setName(existingGroup.name)
+            setDescription(existingGroup.description || '')
+            setTelegramChat(existingGroup.telegramChatId ? existingGroup.telegramChatId.toString() : '') // TODO
+
+            if (existingGroup.clubId) {
+                setSelectedClub(existingGroup.clubId.toString())
+                setIsIndependent(false)
+            } else {
+                setSelectedClub('')
+                setIsIndependent(true)
+            }
+
+            // Map backend 'is_open' to UI state
+            // If private (is_open=false), joinAccess is 'invite'
+            // If public (is_open=true), joinAccess is 'club' or whatever default is suitable for standalone
+            setJoinAccess(existingGroup.isOpen ? 'club' : 'invite')
+        }
+    }, [existingGroup])
 
     const joinAccessOptions = [
-        { id: 'club', label: 'Все участники клуба', description: 'Члены клуба могут вступить' },
+        { id: 'club', label: 'Открытая', description: 'Любой может вступить' }, // Changed label for clarity in standalone context too
         { id: 'invite', label: 'Только по приглашению', description: 'Нужна ссылка для вступления' }
     ]
 
@@ -57,19 +87,30 @@ export default function CreateGroup() {
     const handleSubmit = async () => {
         if (validate()) {
             try {
-                const result = await createGroup({
+                const payload = {
                     name,
                     description,
                     club_id: isIndependent || !selectedClub ? null : parseInt(selectedClub),
                     // telegram_chat_id: telegramChat, // Backend needs INT
-                    is_open: joinAccess !== 'invite' // Inverted logic: private means NOT open
-                })
+                    is_open: joinAccess !== 'invite' // Public if not invite-only
+                }
 
-                setShareLink('https://t.me/aydarun_bot?start=group_' + result.id)
-                setIsCreated(true)
+                if (isEditMode) {
+                    await updateGroup(id, payload)
+                    navigate(-1)
+                } else {
+                    const result = await createGroup(payload)
+                    setShareLink('https://t.me/aydarun_bot?start=group_' + result.id)
+                    setCreatedId(result.id)
+                    setIsCreated(true)
+                }
             } catch (e) {
-                console.error('Failed to create group', e)
-                alert('Ошибка при создании группы')
+                console.error('Failed to save group', e)
+                if (e.message && e.message.includes('Insufficient permissions')) {
+                    alert(isEditMode ? 'У вас нет прав на редактирование этой группы' : 'Только организатор клуба может создавать группы')
+                } else {
+                    alert(isEditMode ? 'Ошибка при сохранении' : 'Ошибка при создании группы')
+                }
             }
         }
     }
@@ -117,9 +158,11 @@ export default function CreateGroup() {
         </div>
     )
 
+    if (isEditMode && loadingGroup) return <LoadingScreen />
+    if (isEditMode && errorGroup) return <ErrorScreen message={errorGroup} />
+
     // Success screen
     if (isCreated) {
-        // ... (Same as CreateClub success but for group) ...
         return (
             <div className="min-h-screen bg-white flex flex-col">
                 <div className="flex-1 flex flex-col items-center justify-center px-6 text-center">
@@ -157,7 +200,7 @@ export default function CreateGroup() {
 
                 <div className="px-4 pb-6">
                     <button
-                        onClick={() => navigate('/clubs')}
+                        onClick={() => navigate(`/group/${createdId}`)}
                         className="w-full py-4 text-gray-500 text-sm hover:text-gray-700 transition-colors"
                     >
                         Перейти в группу →
@@ -177,7 +220,9 @@ export default function CreateGroup() {
                 >
                     ✕ Отмена
                 </button>
-                <span className="text-base font-medium text-gray-800">Новая группа</span>
+                <span className="text-base font-medium text-gray-800">
+                    {isEditMode ? 'Редактировать группу' : 'Новая группа'}
+                </span>
                 <div className="w-16" />
             </div>
 
@@ -207,7 +252,7 @@ export default function CreateGroup() {
                     <label className="text-sm text-gray-700 mb-2 block">Часть клуба?</label>
                     <button
                         onClick={() => !isIndependent && setShowClubPicker(true)}
-                        disabled={isIndependent}
+                        disabled={isIndependent} // Only disable interaction, don't hide
                         className={`w-full px-4 py-3 border rounded-xl text-sm text-left flex items-center justify-between transition-colors ${isIndependent
                             ? 'border-gray-100 bg-gray-50 text-gray-400'
                             : errors.club
@@ -254,9 +299,9 @@ export default function CreateGroup() {
             <div className="px-4 pb-6 pt-2 border-t border-gray-200">
                 <Button
                     onClick={handleSubmit}
-                    loading={loading}
+                    loading={creating || updating}
                 >
-                    Создать группу
+                    {isEditMode ? 'Сохранить изменения' : 'Создать группу'}
                 </Button>
             </div>
 

@@ -5,7 +5,7 @@ import { activitiesApi, clubsApi, groupsApi, tg } from '../api'
  * Generic hook for API calls with loading and error states
  */
 export function useApi(apiCall, deps = []) {
-    const [data, setData] = useState(null)
+    const [data, setData] = useState() // undefined to allow default values in destructuring
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState(null)
 
@@ -13,11 +13,14 @@ export function useApi(apiCall, deps = []) {
         try {
             setLoading(true)
             setError(null)
+            console.log('[API] Fetching...', { deps })
             const result = await apiCall()
+            console.log('[API] Success:', result)
             setData(result)
         } catch (err) {
+            console.error('[API] Error:', err)
             setError(err.message || 'Ошибка загрузки')
-            console.error('API Error:', err)
+            // Don't reset data on error, keep previous or undefined
         } finally {
             setLoading(false)
         }
@@ -53,11 +56,11 @@ export function useClubs() {
 }
 
 export function useClub(id) {
-    return useApi(() => clubsApi.get(id), [id])
+    return useApi(() => id ? clubsApi.get(id) : Promise.resolve(null), [id])
 }
 
 export function useClubMembers(id) {
-    return useApi(() => clubsApi.getMembers(id), [id])
+    return useApi(() => id ? clubsApi.getMembers(id) : Promise.resolve(null), [id])
 }
 
 /**
@@ -68,11 +71,11 @@ export function useGroups(clubId = null) {
 }
 
 export function useGroup(id) {
-    return useApi(() => groupsApi.get(id), [id])
+    return useApi(() => id ? groupsApi.get(id) : Promise.resolve(null), [id])
 }
 
 export function useGroupMembers(id) {
-    return useApi(() => groupsApi.getMembers(id), [id])
+    return useApi(() => id ? groupsApi.getMembers(id) : Promise.resolve(null), [id])
 }
 
 /**
@@ -127,6 +130,14 @@ export function useCreateClub() {
     return useMutation((data) => clubsApi.create(data))
 }
 
+export function useUpdateClub() {
+    return useMutation((id, data) => clubsApi.update(id, data))
+}
+
+export function useDeleteClub() {
+    return useMutation((id) => clubsApi.delete(id))
+}
+
 /**
  * Group actions
  */
@@ -136,4 +147,12 @@ export function useJoinGroup() {
 
 export function useCreateGroup() {
     return useMutation((data) => groupsApi.create(data))
+}
+
+export function useUpdateGroup() {
+    return useMutation((id, data) => groupsApi.update(id, data))
+}
+
+export function useDeleteGroup() {
+    return useMutation((id) => groupsApi.delete(id))
 }

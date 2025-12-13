@@ -27,7 +27,9 @@ function App() {
                 <Route path="/activity/create" element={<ActivityCreate />} />
                 <Route path="/clubs" element={<ClubsGroups />} />
                 <Route path="/club/:id" element={<ClubGroupDetail type="club" />} />
+                <Route path="/club/:id/edit" element={<CreateClub />} />
                 <Route path="/group/:id" element={<ClubGroupDetail type="group" />} />
+                <Route path="/group/:id/edit" element={<CreateGroup />} />
                 <Route path="/club/create" element={<CreateClub />} />
                 <Route path="/group/create" element={<CreateGroup />} />
                 <Route path="/profile" element={<Profile />} />

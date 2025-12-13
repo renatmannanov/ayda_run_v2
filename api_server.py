@@ -11,7 +11,7 @@ from fastapi import FastAPI, HTTPException, Depends, Query
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from typing import List, Optional
 from datetime import datetime
 
@@ -98,6 +98,8 @@ class ActivityResponse(BaseModel):
     created_at: datetime
     participants_count: int = 0
     is_joined: bool = False
+    club_name: Optional[str] = None
+    group_name: Optional[str] = None
 
 
 class ParticipantResponse(BaseModel):
@@ -260,13 +262,18 @@ async def list_activities(
     # Order by date
     query = query.order_by(Activity.date.asc())
     
+    # Eager load relationships
+    query = query.options(joinedload(Activity.club), joinedload(Activity.group))
+
     # Pagination
     activities = query.offset(offset).limit(limit).all()
     
     # Convert to response with participant counts
     result = []
+    print(f"[DEBUG] Processing {len(activities)} activities") 
     for activity in activities:
         response = ActivityResponse.model_validate(activity)
+        # ... (rest of loop)
         response.participants_count = db.query(Participation).filter(
             Participation.activity_id == activity.id,
             Participation.status.in_([ParticipationStatus.REGISTERED, ParticipationStatus.CONFIRMED])
@@ -279,6 +286,14 @@ async def list_activities(
             ).first()
             response.is_joined = participation is not None
         
+        # Populate names (eager loaded now)
+        if activity.club:
+            response.club_name = activity.club.name
+            print(f"[DEBUG] Activity {activity.id}: Set club_name='{activity.club.name}'")
+        if activity.group:
+            response.group_name = activity.group.name
+            print(f"[DEBUG] Activity {activity.id}: Set group_name='{activity.group.name}'")
+
         result.append(response)
     
     return result
@@ -309,6 +324,12 @@ async def get_activity(
             Participation.user_id == current_user.id
         ).first()
         response.is_joined = participation is not None
+    
+    # Populate names
+    if activity.club:
+        response.club_name = activity.club.name
+    if activity.group:
+        response.group_name = activity.group.name
     
     return response
 

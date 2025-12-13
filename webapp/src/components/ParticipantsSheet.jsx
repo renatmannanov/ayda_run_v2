@@ -27,7 +27,7 @@ export default function ParticipantsSheet({
             onClick={onClose}
         >
             <div
-                className="bg-white w-full max-w-md rounded-t-2xl max-h-[60vh] flex flex-col mb-16"
+                className="bg-white w-full max-w-md rounded-t-2xl max-h-[60vh] flex flex-col"
                 onClick={e => e.stopPropagation()}
             >
                 {/* Header */}

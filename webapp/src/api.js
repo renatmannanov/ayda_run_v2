@@ -56,6 +56,8 @@ const transformActivity = (a) => !a ? null : ({
     isJoined: a.is_joined,
     clubId: a.club_id,
     groupId: a.group_id,
+    club: a.club_name,
+    group: a.group_name,
     creatorId: a.creator_id,
     createdAt: a.created_at,
     isPast: new Date(a.date) < new Date(),
@@ -219,13 +221,32 @@ export const tg = {
     },
 
     showAlert(message) {
-        this.webApp?.showAlert(message)
+        if (this.webApp?.showAlert) {
+            this.webApp.showAlert(message)
+        } else {
+            alert(message)
+        }
     },
 
-    showConfirm(message) {
-        return new Promise(resolve => {
-            this.webApp?.showConfirm(message, resolve)
-        })
+    showConfirm(message, callback) {
+        // Support both callback and Promise
+        if (this.webApp?.showConfirm) {
+            // Check if version supports it, or just try/catch if possible, 
+            // but showConfirm doesn't return promise in older versions usually.
+            // However, the error says 'WebAppMethodUnsupported'.
+            try {
+                this.webApp.showConfirm(message, (confirmed) => {
+                    if (callback) callback(confirmed)
+                })
+            } catch (e) {
+                console.warn('Telegram showConfirm failed, falling back to window.confirm', e)
+                const confirmed = window.confirm(message)
+                if (callback) callback(confirmed)
+            }
+        } else {
+            const confirmed = window.confirm(message)
+            if (callback) callback(confirmed)
+        }
     },
 
     close() {

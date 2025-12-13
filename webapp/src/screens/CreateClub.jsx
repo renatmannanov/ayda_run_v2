@@ -1,11 +1,19 @@
-import React, { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { FormInput, FormTextarea, FormRadioGroup, SportChips, Button } from '../components'
-import { useCreateClub } from '../hooks'
+import React, { useState, useEffect } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
+import { FormInput, FormTextarea, FormRadioGroup, SportChips, Button, LoadingScreen, ErrorScreen } from '../components'
+import { useCreateClub, useUpdateClub, useClub } from '../hooks'
 
 export default function CreateClub() {
+    const { id } = useParams()
+    const isEditMode = !!id
     const navigate = useNavigate()
-    const { mutate: createClub, loading } = useCreateClub()
+
+    const { mutate: createClub, loading: creating } = useCreateClub()
+    const { mutate: updateClub, loading: updating } = useUpdateClub()
+
+    // Fetch club if in edit mode
+    // We pass id only if editing, else null to skip fetch
+    const { data: existingClub, loading: loadingClub, error: errorClub } = useClub(isEditMode ? id : null)
 
     // Form state
     const [name, setName] = useState('')
@@ -16,6 +24,18 @@ export default function CreateClub() {
     const [errors, setErrors] = useState({})
     const [isCreated, setIsCreated] = useState(false)
     const [shareLink, setShareLink] = useState('')
+    const [createdId, setCreatedId] = useState(null)
+
+    // Populate form when data loads
+    useEffect(() => {
+        if (existingClub) {
+            setName(existingClub.name)
+            setDescription(existingClub.description || '')
+            // setSelectedSports(existingClub.sport_types || [])
+            setTelegramChat(existingClub.telegramChatId ? existingClub.telegramChatId.toString() : '') // TODO: handle telegram integration
+            // setVisibility(existingClub.is_private ? 'private' : 'public')
+        }
+    }, [existingClub])
 
     const visibilityOptions = [
         { id: 'public', label: 'Публичный', description: 'Все могут найти и вступить' },
@@ -34,20 +54,27 @@ export default function CreateClub() {
     const handleSubmit = async () => {
         if (validate()) {
             try {
-                const result = await createClub({
+                const payload = {
                     name,
                     description,
                     // sport_types: selectedSports, // Not supported by backend yet
                     // telegram_chat_id: telegramChat, // Backend needs INT, not string username
                     // is_private: visibility === 'private' // Not supported by backend yet
-                })
+                }
 
-                // Assuming result contains share link or invite code
-                setShareLink('https://t.me/aydarun_bot?start=club_' + result.id)
-                setIsCreated(true)
+                if (isEditMode) {
+                    await updateClub(id, payload)
+                    navigate(-1) // Go back to detail
+                } else {
+                    const result = await createClub(payload)
+                    // Assuming result contains share link or invite code
+                    setShareLink('https://t.me/aydarun_bot?start=club_' + result.id)
+                    setCreatedId(result.id)
+                    setIsCreated(true)
+                }
             } catch (e) {
-                console.error('Failed to create club', e)
-                alert('Ошибка при создании клуба')
+                console.error('Failed to save club', e)
+                alert(isEditMode ? 'Ошибка при сохранении' : 'Ошибка при создании клуба')
             }
         }
     }
@@ -58,7 +85,10 @@ export default function CreateClub() {
         alert('Ссылка скопирована!')
     }
 
-    // Success screen
+    if (isEditMode && loadingClub) return <LoadingScreen />
+    if (isEditMode && errorClub) return <ErrorScreen message={errorClub} />
+
+    // Success screen (Create Only)
     if (isCreated) {
         return (
             <div className="min-h-screen bg-white flex flex-col">
@@ -97,7 +127,7 @@ export default function CreateClub() {
 
                 <div className="px-4 pb-6">
                     <button
-                        onClick={() => navigate('/clubs')}
+                        onClick={() => navigate(`/club/${createdId}`)}
                         className="w-full py-4 text-gray-500 text-sm hover:text-gray-700 transition-colors"
                     >
                         Перейти в клуб →
@@ -117,7 +147,9 @@ export default function CreateClub() {
                 >
                     ✕ Отмена
                 </button>
-                <span className="text-base font-medium text-gray-800">Новый клуб</span>
+                <span className="text-base font-medium text-gray-800">
+                    {isEditMode ? 'Редактировать клуб' : 'Новый клуб'}
+                </span>
                 <div className="w-16" />
             </div>
 
@@ -171,9 +203,9 @@ export default function CreateClub() {
             <div className="px-4 pb-6 pt-2 border-t border-gray-200">
                 <Button
                     onClick={handleSubmit}
-                    loading={loading}
+                    loading={creating || updating}
                 >
-                    Создать клуб
+                    {isEditMode ? 'Сохранить изменения' : 'Создать клуб'}
                 </Button>
             </div>
         </div>

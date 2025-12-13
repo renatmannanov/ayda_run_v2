@@ -43,7 +43,7 @@ export default function Profile() {
     const MiniClubCard = ({ club }) => (
         <button
             onClick={() => navigate(`/club/${club.id}`)}
-            className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-left hover:bg-gray-100 transition-colors min-w-[120px] max-w-[160px] flex-shrink-0"
+            className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-left hover:bg-gray-100 transition-colors w-full"
         >
             <div className="flex items-center gap-2 mb-1">
                 <span>🏆</span>
@@ -57,7 +57,7 @@ export default function Profile() {
     const MiniGroupCard = ({ group }) => (
         <button
             onClick={() => navigate(`/group/${group.id}`)}
-            className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-left hover:bg-gray-100 transition-colors min-w-[120px] max-w-[160px] flex-shrink-0"
+            className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-left hover:bg-gray-100 transition-colors w-full"
         >
             <div className="flex items-center gap-2 mb-1">
                 <span>👥</span>
@@ -129,14 +129,14 @@ export default function Profile() {
     )
 
     return (
-        <div className="min-h-screen bg-gray-50 flex flex-col pb-20">
+        <div className="h-screen bg-gray-50 flex flex-col">
             {/* Header */}
-            <div className="bg-white border-b border-gray-200 px-4 py-3">
+            <div className="bg-white border-b border-gray-200 px-4 py-3 flex-shrink-0">
                 <h1 className="text-base font-medium text-gray-800">Профиль</h1>
             </div>
 
             {/* Content */}
-            <div className="flex-1 overflow-auto px-4 py-4">
+            <div className="flex-1 overflow-y-auto px-4 py-4 pb-28">
                 {/* User Info Card */}
                 <div className="border border-gray-200 rounded-xl p-6 bg-white mb-4">
                     <div className="flex flex-col items-center text-center">
@@ -154,7 +154,7 @@ export default function Profile() {
                 {myClubs.length > 0 && (
                     <div className="border border-gray-200 rounded-xl p-4 bg-white mb-4">
                         <p className="text-sm text-gray-500 mb-3">Мои клубы ({myClubs.length})</p>
-                        <div className="flex gap-2 overflow-x-auto pb-1">
+                        <div className="grid grid-cols-2 gap-3">
                             {myClubs.map(club => (
                                 <MiniClubCard key={club.id} club={club} />
                             ))}
@@ -166,7 +166,7 @@ export default function Profile() {
                 {myGroups.length > 0 && (
                     <div className="border border-gray-200 rounded-xl p-4 bg-white mb-4">
                         <p className="text-sm text-gray-500 mb-3">Мои группы ({myGroups.length})</p>
-                        <div className="flex gap-2 overflow-x-auto pb-1">
+                        <div className="grid grid-cols-2 gap-3">
                             {myGroups.map(group => (
                                 <MiniGroupCard key={group.id} group={group} />
                             ))}
