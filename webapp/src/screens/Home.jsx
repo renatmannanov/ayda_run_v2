@@ -1,12 +1,16 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { BottomNav, CreateMenu, ActivityCard, Loading, ErrorMessage, EmptyState } from '../components'
 import { useActivities, useJoinActivity } from '../hooks'
-import { dayNames, isToday } from '../data/sample_data'
+import { dayNames, isToday, getWeekStart, getWeekEnd, getWeekNumber, isPastDate } from '../data/sample_data'
 
 export default function Home() {
     const [mode, setMode] = useState('all') // 'my' | 'all'
-    const [showPast, setShowPast] = useState(false)
     const [showCreateMenu, setShowCreateMenu] = useState(false)
+    const [weeksToShow, setWeeksToShow] = useState(1) // Number of weeks to display
+    const [expandedDays, setExpandedDays] = useState({}) // Track which past days are expanded
+
+    const observerRef = useRef(null)
+    const loadMoreRef = useRef(null)
 
     // Fetch activities
     const { data: activities = [], loading, error, refetch } = useActivities()
@@ -14,65 +18,100 @@ export default function Home() {
     // Join/Leave mutation
     const { mutate: joinActivity } = useJoinActivity()
 
-    // Filter activities
-    const getFilteredActivities = () => {
+    // Group activities by week and day
+    const groupActivitiesByWeekAndDay = useCallback(() => {
         if (!activities) return []
-        const upcoming = activities.filter(a => !a.isPast)
+
+        // Filter based on mode
+        let filtered = activities
         if (mode === 'my') {
-            return upcoming.filter(a => a.isJoined)
+            filtered = activities.filter(a => a.isJoined)
         }
-        return upcoming
-    }
 
-    const getPastActivities = () => {
-        if (!activities) return []
-        const past = activities.filter(a => a.isPast)
-        if (mode === 'my') {
-            return past.filter(a => a.isJoined)
-        }
-        return past
-    }
+        // Group by week number
+        const weekMap = {}
+        const today = new Date()
 
-    const filteredActivities = getFilteredActivities()
-    const pastActivities = getPastActivities()
+        filtered.forEach(activity => {
+            const activityDate = new Date(activity.date)
+            const weekNum = getWeekNumber(activityDate, today)
 
-    // Group by day of week (Mon-Sun order)
-    const groupByDay = (acts) => {
-        const days = [1, 2, 3, 4, 5, 6, 0] // Mon to Sun
-        const grouped = {}
+            if (!weekMap[weekNum]) {
+                weekMap[weekNum] = {
+                    weekNumber: weekNum,
+                    weekStart: getWeekStart(activityDate),
+                    weekEnd: getWeekEnd(activityDate),
+                    days: {}
+                }
+            }
 
-        days.forEach(day => {
-            // API returns day_of_week or calculate from date
-            // Assuming backend parses date or we do it here.
-            // For now, let's assume 'dayOfWeek' is available or date string can be parsed
-            // sample_data had dayOfWeek property. Real API might send ISO string.
-            // Let's rely on a helper if needed, but for now assuming data structure match or sample_data helper will be used on backend data
-            // Actually, let's fix this safely:
-            const dayMap = {}
-            acts.forEach(a => {
-                const d = new Date(a.date)
-                const day = d.getDay() // 0-6 (Sun-Sat)
-                if (!dayMap[day]) dayMap[day] = []
-                dayMap[day].push(a)
-            })
-            grouped[day] = dayMap[day] || []
+            const dayOfWeek = activityDate.getDay()
+            if (!weekMap[weekNum].days[dayOfWeek]) {
+                weekMap[weekNum].days[dayOfWeek] = []
+            }
+
+            weekMap[weekNum].days[dayOfWeek].push(activity)
         })
 
-        // Remap to Mon-Sun array if needed, but object keys are enough
-        return grouped
-    }
+        // Sort activities within each day by time
+        Object.values(weekMap).forEach(week => {
+            Object.values(week.days).forEach(dayActivities => {
+                dayActivities.sort((a, b) => new Date(a.date) - new Date(b.date))
+            })
+        })
 
-    const groupedActivities = groupByDay(filteredActivities)
+        // Convert to array and sort by week number
+        const weeks = Object.values(weekMap).sort((a, b) => a.weekNumber - b.weekNumber)
+
+        return weeks
+    }, [activities, mode])
+
+    const allWeeks = groupActivitiesByWeekAndDay()
+    const displayedWeeks = allWeeks.slice(0, weeksToShow)
+
+    // Infinite scroll - load more weeks
+    useEffect(() => {
+        if (loading) return
+
+        const observer = new IntersectionObserver(
+            (entries) => {
+                if (entries[0].isIntersecting && weeksToShow < allWeeks.length) {
+                    setWeeksToShow(prev => prev + 1)
+                }
+            },
+            { threshold: 0.1 }
+        )
+
+        observerRef.current = observer
+
+        if (loadMoreRef.current) {
+            observer.observe(loadMoreRef.current)
+        }
+
+        return () => {
+            if (observerRef.current) {
+                observerRef.current.disconnect()
+            }
+        }
+    }, [loading, weeksToShow, allWeeks.length])
 
     // Toggle join
     const handleJoinToggle = async (activityId) => {
         try {
-            // Optimistic update could go here, but for now simple refetch
             await joinActivity(activityId)
             refetch()
         } catch (e) {
             console.error('Failed to toggle join', e)
         }
+    }
+
+    // Toggle day expansion
+    const toggleDayExpansion = (weekNum, dayOfWeek) => {
+        const key = `${weekNum}-${dayOfWeek}`
+        setExpandedDays(prev => ({
+            ...prev,
+            [key]: !prev[key]
+        }))
     }
 
     // Toggle component
@@ -101,42 +140,112 @@ export default function Home() {
     )
 
     // Day Section component
-    const DaySection = ({ dayOfWeek, activities }) => {
-        const today = isToday(dayOfWeek)
+    const DaySection = ({ weekNumber, dayOfWeek, activities }) => {
         const hasActivities = activities && activities.length > 0
 
-        // Skip empty days for 'all' mode to reduce clutter? Or keep to show schedule slots? 
-        // Protocol said: "filter by day...". 
-        // If no activities, we can skip rendering the day header to clean up UI, 
-        // unless it's Today.
-        if (!hasActivities && !today) return null
+        const now = new Date()
+
+        // Check if this is today
+        const isTodayDay = isToday(dayOfWeek)
+
+        // For current week (weekNumber === 0), check if the day has passed
+        // Only past days in current week should be collapsed
+        const isCurrentWeek = weekNumber === 0
+        const currentDayOfWeek = now.getDay()
+
+        // Convert to Mon-Sun order for comparison (Mon=1, Tue=2, ..., Sun=7)
+        const dayOrder = dayOfWeek === 0 ? 7 : dayOfWeek
+        const currentDayOrder = currentDayOfWeek === 0 ? 7 : currentDayOfWeek
+
+        // A day is past only if:
+        // 1. It's in the current week (weekNumber === 0)
+        // 2. AND the day of week is before current day of week (in Mon-Sun order)
+        const isPastDay = isCurrentWeek && dayOrder < currentDayOrder
+
+        // Check which activities are actually past (time has passed)
+        const pastActivities = hasActivities ? activities.filter(a => new Date(a.date) < now) : []
+        const futureActivities = hasActivities ? activities.filter(a => new Date(a.date) >= now) : []
+        const allPast = hasActivities && pastActivities.length === activities.length
+
+        const expandKey = `${weekNumber}-${dayOfWeek}`
+        const isExpanded = expandedDays[expandKey] || false
+
+        // Count activities for this day
+        const activityCount = hasActivities ? activities.length : 0
 
         return (
             <div className="mb-4">
+                {/* Day Header */}
                 <div className="flex items-center gap-2 mb-3">
-                    <span className={`text-sm font-medium ${today ? 'text-gray-800' : 'text-gray-500'}`}>
-                        {today ? `Сегодня, ${dayNames[dayOfWeek].toLowerCase()}` : dayNames[dayOfWeek]}
-                    </span>
+                    {isPastDay ? (
+                        <button
+                            onClick={() => toggleDayExpansion(weekNumber, dayOfWeek)}
+                            className="flex items-center gap-2 text-sm text-gray-400 hover:text-gray-600 transition-colors"
+                        >
+                            <span>{dayNames[dayOfWeek]}</span>
+                            <span className={`text-xs transition-transform ${isExpanded ? 'rotate-180' : ''}`}>
+                                ▾
+                            </span>
+                        </button>
+                    ) : (
+                        <span className={`text-sm font-medium ${isTodayDay ? 'text-gray-800' : 'text-gray-500'}`}>
+                            {isTodayDay ? `Сегодня, ${dayNames[dayOfWeek].toLowerCase()}` : dayNames[dayOfWeek]}
+                        </span>
+                    )}
                     <div className="flex-1 border-b border-gray-200" />
+                    <span className="text-xs text-gray-400">{activityCount}</span>
                 </div>
 
-                {hasActivities ? (
-                    activities.map(activity => (
-                        <ActivityCard
-                            key={activity.id}
-                            activity={activity}
-                            onJoinToggle={handleJoinToggle}
-                        />
-                    ))
+                {/* Activities */}
+                {isPastDay ? (
+                    isExpanded && (
+                        hasActivities ? (
+                            <div className="space-y-3">
+                                {activities.map(activity => {
+                                    const isPast = new Date(activity.date) < now
+                                    return (
+                                        <div key={activity.id} className={isPast ? 'opacity-50' : ''}>
+                                            <ActivityCard
+                                                activity={activity}
+                                                onJoinToggle={handleJoinToggle}
+                                            />
+                                        </div>
+                                    )
+                                })}
+                            </div>
+                        ) : (
+                            <p className="text-sm text-gray-300 mb-3 pl-1">В этот день нет активностей</p>
+                        )
+                    )
                 ) : (
-                    <p className="text-sm text-gray-300 mb-3 pl-1">нет тренировок</p>
+                    hasActivities ? (
+                        <div className="space-y-3">
+                            {activities.map(activity => {
+                                const isPast = new Date(activity.date) < now
+                                return (
+                                    <div key={activity.id} className={isPast ? 'opacity-50' : ''}>
+                                        <ActivityCard
+                                            activity={activity}
+                                            onJoinToggle={handleJoinToggle}
+                                        />
+                                    </div>
+                                )
+                            })}
+                        </div>
+                    ) : (
+                        <p className="text-sm text-gray-300 mb-3 pl-1">В этот день нет активностей</p>
+                    )
                 )}
             </div>
         )
     }
 
-    const upcomingCount = filteredActivities.length
-    const hasUpcoming = upcomingCount > 0
+    // Calculate total activities count for header
+    const totalCount = allWeeks.reduce((sum, week) => {
+        return sum + Object.values(week.days).reduce((daySum, dayActivities) => daySum + dayActivities.length, 0)
+    }, 0)
+
+    const hasActivities = totalCount > 0
 
     if (loading) return <div className="min-h-screen bg-gray-50 pt-12"><Loading text="Загружаем тренировки..." /></div>
     if (error) return <div className="min-h-screen bg-gray-50 pt-12"><ErrorMessage message={error} onRetry={refetch} /></div>
@@ -146,51 +255,35 @@ export default function Home() {
             {/* Header */}
             <div className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between sticky top-0 z-10">
                 <Toggle />
-                <span className="text-sm text-gray-400">{upcomingCount}</span>
+                <span className="text-sm text-gray-400">{totalCount}</span>
             </div>
 
             {/* Content */}
             <div className="flex-1 overflow-auto px-4 py-4">
-                {hasUpcoming ? (
+                {hasActivities ? (
                     <>
-                        {/* Week days: Sort order - Today -> +6 days */}
-                        {/* Simplification: Just iterating 1 (Mon) to 0 (Sun) might be confusing if today is Wed. 
-                Ideally, show Today first. 
-                Let's stick to Mon-Sun for consistency with calendar or strictly sorted by date.
-                Current groupByDay is simple Mon-Sun.
-            */}
-                        {[1, 2, 3, 4, 5, 6, 0].map(day => (
-                            <DaySection
-                                key={day}
-                                dayOfWeek={day}
-                                activities={groupedActivities[day]}
-                            />
+                        {/* Display weeks */}
+                        {displayedWeeks.map((week, weekIndex) => (
+                            <div key={week.weekNumber} className="mb-6">
+                                {/* Render days in Mon-Sun order */}
+                                {[1, 2, 3, 4, 5, 6, 0].map(dayOfWeek => (
+                                    <DaySection
+                                        key={`${week.weekNumber}-${dayOfWeek}`}
+                                        weekNumber={week.weekNumber}
+                                        dayOfWeek={dayOfWeek}
+                                        activities={week.days[dayOfWeek]}
+                                    />
+                                ))}
+                            </div>
                         ))}
 
-                        {/* Past activities */}
-                        {pastActivities.length > 0 && (
-                            <div className="mt-6">
-                                <button
-                                    onClick={() => setShowPast(!showPast)}
-                                    className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 transition-colors mb-3"
-                                >
-                                    <span>Прошедшие ({pastActivities.length})</span>
-                                    <span className={`transition-transform ${showPast ? 'rotate-180' : ''}`}>
-                                        ▾
-                                    </span>
-                                </button>
-
-                                {showPast && (
-                                    <div className="space-y-3">
-                                        {pastActivities.map(activity => (
-                                            <ActivityCard
-                                                key={activity.id}
-                                                activity={activity}
-                                                onJoinToggle={handleJoinToggle}
-                                            />
-                                        ))}
-                                    </div>
-                                )}
+                        {/* Load more trigger */}
+                        {weeksToShow < allWeeks.length && (
+                            <div
+                                ref={loadMoreRef}
+                                className="py-4 text-center text-sm text-gray-400"
+                            >
+                                Загрузка...
                             </div>
                         )}
                     </>

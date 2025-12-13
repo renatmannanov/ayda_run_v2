@@ -42,7 +42,7 @@ export default function ActivityDetail() {
 
     // Derived state
     const isPast = activity?.isPast
-    const isFull = activity ? activity.participants >= activity.maxParticipants : false
+    const isFull = activity ? (activity.maxParticipants !== null && activity.participants >= activity.maxParticipants) : false
     const isJoined = activity?.isJoined
 
     // Toggle join
@@ -171,7 +171,9 @@ export default function ActivityDetail() {
                         <p className="text-sm text-gray-500 mb-3">
                             Участники · {isPast
                                 ? `${attendedCount} из ${participants.length} были`
-                                : `${activity.participants}/${activity.maxParticipants}`
+                                : activity.maxParticipants !== null
+                                    ? `${activity.participants}/${activity.maxParticipants}`
+                                    : `${activity.participants}`
                             }
                         </p>
 

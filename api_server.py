@@ -105,11 +105,12 @@ class ActivityResponse(BaseModel):
 class ParticipantResponse(BaseModel):
     """Response model for participant"""
     model_config = {"from_attributes": True}
-    
+
     user_id: int
     telegram_id: int
     username: Optional[str]
     first_name: Optional[str]
+    name: str  # Display name for frontend
     status: ParticipationStatus
     attended: bool
     registered_at: datetime
@@ -122,22 +123,15 @@ class ParticipantResponse(BaseModel):
 @app.get("/")
 async def root():
     """Serve the main webapp page"""
-    return FileResponse("webapp/index.html")
+    return FileResponse("webapp/dist/index.html")
 
-@app.get("/styles.css")
-async def get_styles():
-    """Serve CSS file"""
-    return FileResponse("webapp/styles.css")
+# Serve all static files from dist folder
+from fastapi.staticfiles import StaticFiles
+import os
 
-@app.get("/app.js")
-async def get_app_js():
-    """Serve main JS file"""
-    return FileResponse("webapp/app.js")
-
-@app.get("/api.js")
-async def get_api_js():
-    """Serve API wrapper JS file"""
-    return FileResponse("webapp/api.js")
+# Mount static files directory
+if os.path.exists("webapp/dist"):
+    app.mount("/assets", StaticFiles(directory="webapp/dist/assets"), name="assets")
 
 # ============================================================================
 # Health Check
@@ -483,16 +477,20 @@ async def get_participants(
     
     result = []
     for participation, user in participations:
+        # Create display name from first_name or username
+        display_name = user.first_name or user.username or f"User {user.telegram_id}"
+
         result.append(ParticipantResponse(
             user_id=user.id,
             telegram_id=user.telegram_id,
             username=user.username,
             first_name=user.first_name,
+            name=display_name,
             status=participation.status,
             attended=participation.attended,
             registered_at=participation.registered_at
         ))
-    
+
     return result
 
 # ============================================================================

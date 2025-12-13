@@ -4,7 +4,7 @@ import { formatTime, formatDate } from '../data/sample_data'
 
 export default function ActivityCard({ activity, onJoinToggle }) {
     const navigate = useNavigate()
-    const isFull = activity.participants >= activity.maxParticipants
+    const isFull = activity.maxParticipants !== null && activity.participants >= activity.maxParticipants
 
     const handleCardClick = () => {
         navigate(`/activity/${activity.id}`)
@@ -73,7 +73,9 @@ export default function ActivityCard({ activity, onJoinToggle }) {
 
             <div className="flex justify-between items-center">
                 <span className="text-sm text-gray-500">
-                    {activity.participants}/{activity.maxParticipants}
+                    {activity.maxParticipants !== null
+                        ? `${activity.participants}/${activity.maxParticipants}`
+                        : `${activity.participants}`}
                     {(activity.club || activity.group) && (
                         <> · {activity.club || activity.group}</>
                     )}

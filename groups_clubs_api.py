@@ -114,6 +114,7 @@ class MemberResponse(BaseModel):
     telegram_id: int
     username: Optional[str]
     first_name: Optional[str]
+    name: str  # Display name for frontend
     role: UserRole
     joined_at: datetime
 
@@ -549,15 +550,19 @@ def get_club_members_endpoint(
     
     result = []
     for membership, user in memberships:
+        # Create display name from first_name or username
+        display_name = user.first_name or user.username or f"User {user.telegram_id}"
+
         result.append(MemberResponse(
             user_id=user.id,
             telegram_id=user.telegram_id,
             username=user.username,
             first_name=user.first_name,
+            name=display_name,
             role=membership.role,
             joined_at=membership.joined_at
         ))
-    
+
     return result
 
 
@@ -579,15 +584,19 @@ def get_group_members_endpoint(
     
     result = []
     for membership, user in memberships:
+        # Create display name from first_name or username
+        display_name = user.first_name or user.username or f"User {user.telegram_id}"
+
         result.append(MemberResponse(
             user_id=user.id,
             telegram_id=user.telegram_id,
             username=user.username,
             first_name=user.first_name,
+            name=display_name,
             role=membership.role,
             joined_at=membership.joined_at
         ))
-    
+
     return result
 
 

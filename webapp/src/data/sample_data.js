@@ -88,3 +88,60 @@ export const pluralizeMembers = (count = 0) => {
 export const pluralizeGroups = (count = 0) => {
     return `${count} ${pluralize(count, 'группа', 'группы', 'групп')}`
 }
+
+/**
+ * Get the start of the week (Monday) for a given date
+ */
+export const getWeekStart = (date) => {
+    const d = new Date(date)
+    const day = d.getDay()
+    const diff = day === 0 ? -6 : 1 - day // Adjust for Monday as first day
+    const monday = new Date(d)
+    monday.setDate(d.getDate() + diff)
+    monday.setHours(0, 0, 0, 0)
+    return monday
+}
+
+/**
+ * Get the end of the week (Sunday) for a given date
+ */
+export const getWeekEnd = (date) => {
+    const monday = getWeekStart(date)
+    const sunday = new Date(monday)
+    sunday.setDate(monday.getDate() + 6)
+    sunday.setHours(23, 59, 59, 999)
+    return sunday
+}
+
+/**
+ * Get week bounds (Monday to Sunday) for a given date
+ */
+export const getWeekBounds = (date) => {
+    return {
+        start: getWeekStart(date),
+        end: getWeekEnd(date)
+    }
+}
+
+/**
+ * Get the week number relative to a reference date
+ * Week 0 is the current week, 1 is next week, -1 is last week, etc.
+ */
+export const getWeekNumber = (date, referenceDate = new Date()) => {
+    const weekStart = getWeekStart(date)
+    const refWeekStart = getWeekStart(referenceDate)
+    const diffTime = weekStart.getTime() - refWeekStart.getTime()
+    const diffWeeks = Math.floor(diffTime / (7 * 24 * 60 * 60 * 1000))
+    return diffWeeks
+}
+
+/**
+ * Check if a date is in the past (before today)
+ */
+export const isPastDate = (date) => {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const checkDate = new Date(date)
+    checkDate.setHours(0, 0, 0, 0)
+    return checkDate < today
+}

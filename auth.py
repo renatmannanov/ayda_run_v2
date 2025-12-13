@@ -94,7 +94,7 @@ def get_current_user(
             db=db,
             telegram_id=1,  # Super Admin ID
             username="admin",
-            first_name="Admin User"
+            first_name="Ренат"
         )
 
     # 2. Production/Telegram mode
