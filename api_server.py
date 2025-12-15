@@ -8,18 +8,16 @@ Provides REST API for:
 """
 
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, HTTPException, Depends, Query
+from fastapi import FastAPI, Depends
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field
-from sqlalchemy.orm import Session, joinedload
-from typing import List, Optional
-from datetime import datetime
+from pydantic import BaseModel
+from sqlalchemy.orm import Session
+from typing import Optional
 import logging
 
-from storage.db import init_db, Activity, Participation, User
-from app.core.dependencies import get_db, get_current_user, get_current_user_optional
-from permissions import can_create_activity_in_club, can_create_activity_in_group, require_activity_owner
+from storage.db import init_db, User
+from app.core.dependencies import get_db, get_current_user
 from config import settings
 
 # Logger setup (needed before lifespan)
@@ -65,7 +63,6 @@ from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 from fastapi.requests import Request
 from fastapi.responses import JSONResponse
-from config import settings
 
 limiter = Limiter(
     key_func=get_remote_address,
@@ -91,19 +88,9 @@ async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
     )
 
 # ============================================================================
-# Schemas
+# Schemas (only what's needed in api_server.py)
 # ============================================================================
-from schemas.common import (
-    SportType, Difficulty, ActivityVisibility, ActivityStatus,
-    ParticipationStatus, PaymentStatus, UserRole
-)
-from schemas.activity import ActivityCreate, ActivityUpdate, ActivityResponse
-from schemas.club import ClubCreate, ClubUpdate, ClubResponse
-from schemas.group import (
-    GroupCreate, GroupUpdate, GroupResponse,
-    MembershipUpdate, MemberResponse
-)
-from schemas.user import UserResponse, ParticipantResponse
+from schemas.user import UserResponse
 
 # Import time and middleware for logging
 import time
@@ -170,12 +157,6 @@ from app.routers import activities, clubs, groups
 app.include_router(activities.router)
 app.include_router(clubs.router)
 app.include_router(groups.router)
-
-class OnboardingData(BaseModel):
-    """Request model for completing onboarding"""
-    preferred_sports: Optional[list[str]] = None  # e.g., ["running", "trail"]
-
-
 
 # ============================================================================
 # Static File Serving
