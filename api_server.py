@@ -165,9 +165,11 @@ app.add_middleware(LoggingMiddleware)
 # ============================================================================
 # Include Routers
 # ============================================================================
-from app.routers import activities
+from app.routers import activities, clubs, groups
 
 app.include_router(activities.router)
+app.include_router(clubs.router)
+app.include_router(groups.router)
 
 class OnboardingData(BaseModel):
     """Request model for completing onboarding"""
@@ -241,164 +243,7 @@ async def complete_onboarding(
 
 # Activities API moved to app/routers/activities.py
 
-# ============================================================================
-# Groups & Clubs API
-# ============================================================================
-
-from groups_clubs_api import (
-    # Clubs endpoints
-    create_club_endpoint, list_clubs_endpoint, get_club_endpoint,
-    update_club_endpoint, delete_club_endpoint,
-    # Groups endpoints
-    create_group_endpoint, list_groups_endpoint, get_group_endpoint,
-    update_group_endpoint, delete_group_endpoint,
-    # Membership endpoints
-    join_club_endpoint, join_group_endpoint,
-    get_club_members_endpoint, get_group_members_endpoint,
-    update_member_role_endpoint
-)
-
-# Clubs
-@app.post("/api/clubs", response_model=ClubResponse, status_code=201)
-async def create_club(
-    club_data: ClubCreate,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    """Create a new club"""
-    return create_club_endpoint(club_data, current_user, db)
-
-@app.get("/api/clubs", response_model=List[ClubResponse])
-async def list_clubs(
-    limit: int = 50,
-    offset: int = 0,
-    current_user: Optional[User] = Depends(get_current_user_optional),
-    db: Session = Depends(get_db)
-):
-    """List all clubs"""
-    return list_clubs_endpoint(limit, offset, current_user, db)
-
-@app.get("/api/clubs/{club_id}", response_model=ClubResponse)
-async def get_club(
-    club_id: int,
-    current_user: Optional[User] = Depends(get_current_user_optional),
-    db: Session = Depends(get_db)
-):
-    """Get club details"""
-    return get_club_endpoint(club_id, current_user, db)
-
-@app.patch("/api/clubs/{club_id}", response_model=ClubResponse)
-async def update_club(
-    club_id: int,
-    club_data: ClubUpdate,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    """Update club"""
-    return update_club_endpoint(club_id, club_data, current_user, db)
-
-@app.delete("/api/clubs/{club_id}", status_code=204)
-async def delete_club(
-    club_id: int,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    """Delete club"""
-    return delete_club_endpoint(club_id, current_user, db)
-
-@app.post("/api/clubs/{club_id}/join", status_code=201)
-async def join_club(
-    club_id: int,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    """Join a club"""
-    return join_club_endpoint(club_id, current_user, db)
-
-@app.get("/api/clubs/{club_id}/members", response_model=List[MemberResponse])
-async def get_club_members(
-    club_id: int,
-    db: Session = Depends(get_db)
-):
-    """Get club members"""
-    return get_club_members_endpoint(club_id, db)
-
-@app.patch("/api/clubs/{club_id}/members/{user_id}")
-async def update_member_role(
-    club_id: int,
-    user_id: int,
-    role_data: MembershipUpdate,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    """Update member role"""
-    return update_member_role_endpoint(club_id, user_id, role_data, current_user, db)
-
-# Groups
-@app.post("/api/groups", response_model=GroupResponse, status_code=201)
-async def create_group(
-    group_data: GroupCreate,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    """Create a new group"""
-    return create_group_endpoint(group_data, current_user, db)
-
-@app.get("/api/groups", response_model=List[GroupResponse])
-async def list_groups(
-    club_id: Optional[int] = None,
-    limit: int = 50,
-    offset: int = 0,
-    current_user: Optional[User] = Depends(get_current_user_optional),
-    db: Session = Depends(get_db)
-):
-    """List groups"""
-    return list_groups_endpoint(club_id, limit, offset, current_user, db)
-
-@app.get("/api/groups/{group_id}", response_model=GroupResponse)
-async def get_group(
-    group_id: int,
-    current_user: Optional[User] = Depends(get_current_user_optional),
-    db: Session = Depends(get_db)
-):
-    """Get group details"""
-    return get_group_endpoint(group_id, current_user, db)
-
-@app.patch("/api/groups/{group_id}", response_model=GroupResponse)
-async def update_group(
-    group_id: int,
-    group_data: GroupUpdate,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    """Update group"""
-    return update_group_endpoint(group_id, group_data, current_user, db)
-
-@app.delete("/api/groups/{group_id}", status_code=204)
-async def delete_group(
-    group_id: int,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    """Delete group"""
-    return delete_group_endpoint(group_id, current_user, db)
-
-@app.post("/api/groups/{group_id}/join", status_code=201)
-async def join_group(
-    group_id: int,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    """Join a group"""
-    return join_group_endpoint(group_id, current_user, db)
-
-@app.get("/api/groups/{group_id}/members", response_model=List[MemberResponse])
-async def get_group_members(
-    group_id: int,
-    db: Session = Depends(get_db)
-):
-    """Get group members"""
-    return get_group_members_endpoint(group_id, db)
+# Groups & Clubs API moved to app/routers/clubs.py and app/routers/groups.py
 
 # ============================================================================
 # Server Startup

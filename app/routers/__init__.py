@@ -1,5 +1,5 @@
 """API Routers"""
 
-from . import activities
+from . import activities, clubs, groups
 
-__all__ = ["activities"]
+__all__ = ["activities", "clubs", "groups"]
