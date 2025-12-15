@@ -1,18 +1,17 @@
 // Barrel export for components
+
+// Layout components
 export { default as BottomNav } from './BottomNav'
 export { default as CreateMenu } from './CreateMenu'
-export { default as ActivityCard } from './ActivityCard'
-export { default as ClubCard } from './ClubCard'
-export { default as GroupCard } from './GroupCard'
-export { default as SportChips } from './SportChips'
 export { default as ParticipantsSheet } from './ParticipantsSheet'
-export {
-    FormInput,
-    FormTextarea,
-    FormSelect,
-    FormCheckbox,
-    FormRadioGroup
-} from './FormInput'
+
+// Shared domain components
+export { default as ActivityCard } from './shared/ActivityCard'
+export { default as ClubCard } from './shared/ClubCard'
+export { default as GroupCard } from './shared/GroupCard'
+export { default as SportChips } from './shared/SportChips'
+
+// UI components
 export {
     Loading,
     LoadingScreen,
@@ -22,3 +21,15 @@ export {
     Button,
     Toast
 } from './ui'
+
+export {
+    FormInput,
+    FormTextarea,
+    FormSelect,
+    FormCheckbox,
+    FormRadioGroup
+} from './ui/FormInput'
+
+// Home components
+export { DaySection } from './home/DaySection'
+export { ModeToggle } from './home/ModeToggle'

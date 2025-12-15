@@ -1,6 +1,6 @@
 import React from 'react'
 import { useNavigate } from 'react-router-dom'
-import { formatTime, formatDate } from '../data/sample_data'
+import { formatTime, formatDate } from '../../data/sample_data'
 
 export default function ActivityCard({ activity, onJoinToggle }) {
     const navigate = useNavigate()

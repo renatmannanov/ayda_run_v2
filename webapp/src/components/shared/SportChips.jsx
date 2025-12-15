@@ -1,5 +1,5 @@
 import React from 'react'
-import { sportTypes } from '../data/sample_data'
+import { sportTypes } from '../../data/sample_data'
 
 export default function SportChips({
     selected = [],

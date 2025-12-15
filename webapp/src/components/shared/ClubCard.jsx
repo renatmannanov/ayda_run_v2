@@ -1,6 +1,6 @@
 import React from 'react'
 import { useNavigate } from 'react-router-dom'
-import { pluralizeMembers, pluralizeGroups } from '../data/sample_data'
+import { pluralizeMembers, pluralizeGroups } from '../../data/sample_data'
 
 export default function ClubCard({ club, showJoinButton = false, onJoin }) {
     const navigate = useNavigate()
