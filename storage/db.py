@@ -220,33 +220,33 @@ class RecurringTemplate(Base):
 class Activity(Base):
     """Activity model - sports activities/events"""
     __tablename__ = 'activities'
-    
+
     id = Column(Integer, primary_key=True, autoincrement=True)
     title = Column(String(255), nullable=False)
     description = Column(Text, nullable=True)
     date = Column(DateTime, nullable=False, index=True)
     location = Column(String(500), nullable=True)
-    
+
     # Relationships
     club_id = Column(Integer, ForeignKey('clubs.id'), nullable=True, index=True)
     group_id = Column(Integer, ForeignKey('groups.id'), nullable=True, index=True)
-    creator_id = Column(Integer, ForeignKey('users.id'), nullable=False)
+    creator_id = Column(Integer, ForeignKey('users.id'), nullable=False, index=True)
     recurring_template_id = Column(Integer, ForeignKey('recurring_templates.id'), nullable=True)
-    
+
     # Activity details
-    sport_type = Column(SQLEnum(SportType), default=SportType.RUNNING, nullable=False)
+    sport_type = Column(SQLEnum(SportType), default=SportType.RUNNING, nullable=False, index=True)
     difficulty = Column(SQLEnum(Difficulty), default=Difficulty.MEDIUM, nullable=False)
     distance = Column(Float, nullable=True)  # in km
     duration = Column(Integer, nullable=True)  # in minutes
     max_participants = Column(Integer, nullable=True)
-    
+
     # Visibility
     visibility = Column(SQLEnum(ActivityVisibility), default=ActivityVisibility.INVITE_ONLY, nullable=False, index=True)
-    
+
     # GPX file storage (in Telegram channel)
     gpx_file_channel_id = Column(Integer, nullable=True)
     gpx_file_message_id = Column(Integer, nullable=True)
-    
+
     # Status
     status = Column(SQLEnum(ActivityStatus), default=ActivityStatus.UPCOMING, nullable=False, index=True)
     
