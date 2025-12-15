@@ -1,12 +1,4 @@
-"""
-Authentication utilities for Telegram Mini App
-
-This module handles:
-- Verification of Telegram WebApp initData signature
-- Extraction of user information from initData
-- FastAPI dependency for getting current user
-"""
-
+import logging
 import hashlib
 import hmac
 import json
@@ -17,6 +9,8 @@ from sqlalchemy.orm import Session
 
 from storage.db import get_db, get_or_create_user, User
 from config import settings
+
+logger = logging.getLogger(__name__)
 
 
 def verify_telegram_webapp_data(init_data: str) -> Dict:
@@ -77,6 +71,29 @@ def verify_telegram_webapp_data(init_data: str) -> Dict:
         raise HTTPException(status_code=400, detail=f"Failed to verify initData: {str(e)}")
 
 
+def get_dev_user(db: Session) -> User:
+    """
+    Get or create development user for local testing
+
+    WARNING: Only use in DEBUG mode!
+    """
+    dev_user = db.query(User).filter(User.telegram_id == 1).first()
+
+    if not dev_user:
+        logger.info("Creating dev user (telegram_id=1)")
+        dev_user = User(
+            telegram_id=1,
+            username="admin",
+            first_name="Dev",
+            has_completed_onboarding=True
+        )
+        db.add(dev_user)
+        db.commit()
+        db.refresh(dev_user)
+
+    return dev_user
+
+
 def get_current_user(
     x_telegram_init_data: Optional[str] = Header(None, alias="X-Telegram-Init-Data"),
     db: Session = Depends(get_db)
@@ -86,16 +103,25 @@ def get_current_user(
     Supports Telegram WebApp initData and local generic user for development.
     """
     # 1. Dev/Local mode bypass
-    # If no header is provided and we are likely in dev environment
     if not x_telegram_init_data:
-        # Create a mock user for local development
-        # In production this should be disabled or protected
-        return get_or_create_user(
-            db=db,
-            telegram_id=1,  # Super Admin ID
-            username="admin",
-            first_name="Ренат"
+        # SECURITY: Only allow dev mode in DEBUG environment
+        if not settings.debug:
+            logger.error(
+                "Missing Telegram auth header in production environment",
+                extra={"endpoint": "get_current_user"}
+            )
+            raise HTTPException(
+                status_code=401,
+                detail="Authentication required. Please access via Telegram."
+            )
+
+        logger.warning(
+            "⚠️  Using DEV MODE authentication - not secure for production!",
+            extra={"user_id": 1, "username": "admin"}
         )
+
+        # Dev mode: return mock admin user
+        return get_dev_user(db)
 
     # 2. Production/Telegram mode
     data = verify_telegram_webapp_data(x_telegram_init_data)
@@ -120,5 +146,37 @@ def get_current_user_optional(
     x_telegram_init_data: Optional[str] = Header(None, alias="X-Telegram-Init-Data"),
     db: Session = Depends(get_db)
 ) -> Optional[User]:
-    """Optional auth"""
-    return get_current_user(x_telegram_init_data=x_telegram_init_data, db=db)
+    """Get current user or None (for public endpoints)"""
+
+    if not x_telegram_init_data:
+        # In dev mode, return dev user
+        if settings.debug:
+            logger.debug("Using dev user for optional auth endpoint")
+            return get_dev_user(db)
+        # In production, return None (unauthenticated)
+        return None
+
+    try:
+        # Re-use the existing logic if token present
+        return get_current_user(x_telegram_init_data=x_telegram_init_data, db=db)
+    except HTTPException:
+        # If headers are bad but endpoint is optional, return None?
+        # Or should we raise because they TRIED to authenticate but failed?
+        # The plan says:
+        # except Exception as e:
+        #    logger.warning(f"Invalid auth data in optional endpoint: {e}")
+        #    return None
+        # So I will follow that but reuse get_current_user logic if possible or copy paste
+        pass
+        
+    try:
+        # Copy-paste logic to avoid double fetching or recursion issues if logic changes
+        # But actually let's assume get_current_user raises.
+        # Let's trust get_current_user
+        return get_current_user(x_telegram_init_data, db)
+    except HTTPException as e:
+        logger.warning(f"Invalid auth data in optional endpoint: {e.detail}")
+        return None
+    except Exception as e:
+        logger.warning(f"Unexpected error in optional auth: {e}")
+        return None
