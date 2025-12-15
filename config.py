@@ -57,6 +57,12 @@ class Settings(BaseSettings):
         default="INFO",
         description="Logging level"
     )
+
+    # === Rate Limiting ===
+    rate_limit_enabled: bool = Field(default=True, description="Enable rate limiting")
+    rate_limit_global: str = Field(default="200/minute", description="Global rate limit")
+    rate_limit_create: str = Field(default="10/minute", description="Create endpoints limit")
+    rate_limit_read: str = Field(default="100/minute", description="Read endpoints limit")
     
     @field_validator('database_url')
     @classmethod

@@ -34,6 +34,39 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Rate Limiting
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
+from fastapi.requests import Request
+from fastapi.responses import JSONResponse
+from config import settings
+
+limiter = Limiter(
+    key_func=get_remote_address,
+    default_limits=[settings.rate_limit_global]
+)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_middleware(SlowAPIMiddleware)
+
+@app.exception_handler(RateLimitExceeded)
+async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
+    """Custom rate limit error response"""
+    return JSONResponse(
+        status_code=429,
+        content={
+            "error": "Too Many Requests",
+            "message": "Вы превысили лимит запросов. Пожалуйста, попробуйте позже.",
+            "retry_after": str(exc.limit) 
+        }, # exc.detail sometimes is not what we expect in some versions, using exc.limit or generic message is safer, but plan suggests exc.detail check if it works.
+        headers={
+            "Retry-After": "60" # Default fallback
+        }
+    )
+
+
 # Initialize database on startup
 @app.on_event("startup")
 async def startup_event():
@@ -195,7 +228,9 @@ async def complete_onboarding(
 # ============================================================================
 
 @app.post("/api/activities", response_model=ActivityResponse, status_code=201)
+@limiter.limit(settings.rate_limit_create)
 async def create_activity(
+    request: Request,
     activity_data: ActivityCreate,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -242,7 +277,9 @@ async def create_activity(
 
 
 @app.get("/api/activities", response_model=List[ActivityResponse])
+@limiter.limit(settings.rate_limit_read)
 async def list_activities(
+    request: Request,
     club_id: Optional[int] = Query(None),
     group_id: Optional[int] = Query(None),
     sport_type: Optional[SportType] = Query(None),
