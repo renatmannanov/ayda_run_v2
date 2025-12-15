@@ -20,11 +20,13 @@ class GroupResponse(BaseResponse):
     description: Optional[str]
     club_id: Optional[int]
     telegram_chat_id: Optional[str]
-    creator_id: int
+    telegram_chat_id: Optional[str]
     
     # Computed
     members_count: int = 0
     is_member: bool = False
+    club_name: Optional[str] = None
+    user_role: Optional[str] = None
 
 class MembershipUpdate(BaseModel):
     """Schema for updating member role"""

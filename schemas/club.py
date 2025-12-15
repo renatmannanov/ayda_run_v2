@@ -37,5 +37,6 @@ class ClubResponse(BaseResponse):
 
     # Computed
     members_count: int = 0
+    groups_count: int = 0
     is_member: bool = False
     user_role: Optional[str] = None

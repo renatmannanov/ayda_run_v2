@@ -18,10 +18,11 @@ class Difficulty(str, Enum):
     HARD = "hard"
 
 class ActivityVisibility(str, Enum):
-    PUBLIC = "public"
-    CLUB_ONLY = "club_only"
-    GROUP_ONLY = "group_only"
-    INVITE_ONLY = "invite_only"
+    PRIVATE_GROUP = "private_group"     # Only group members
+    PRIVATE_CLUB = "private_club"       # Only club members
+    INVITE_ONLY = "invite_only"         # Only by link
+    TELEGRAM_GROUP = "telegram_group"   # Telegram group members
+    PUBLIC = "public"                   # Everyone
 
 class ActivityStatus(str, Enum):
     UPCOMING = "upcoming"
