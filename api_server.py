@@ -17,10 +17,8 @@ from typing import List, Optional
 from datetime import datetime
 import logging
 
-from storage.db import (
-    init_db, get_db, Activity, Participation, User
-)
-from auth import get_current_user, get_current_user_optional
+from storage.db import init_db, Activity, Participation, User
+from app.core.dependencies import get_db, get_current_user, get_current_user_optional
 from permissions import can_create_activity_in_club, can_create_activity_in_group, require_activity_owner
 from config import settings
 

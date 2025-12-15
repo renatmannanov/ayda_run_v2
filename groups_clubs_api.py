@@ -13,11 +13,9 @@ from sqlalchemy.orm import Session
 from typing import List, Optional
 from datetime import datetime
 
-from storage.db import (
-    get_db, Club, Group, Membership, User
-)
+from storage.db import Club, Group, Membership, User
 from sqlalchemy.orm import joinedload
-from auth import get_current_user
+from app.core.dependencies import get_db, get_current_user
 from permissions import (
     can_manage_club, can_manage_group,
     require_club_permission, require_group_permission
