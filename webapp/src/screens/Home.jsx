@@ -6,11 +6,8 @@ import { dayNames, isToday, getWeekStart, getWeekEnd, getWeekNumber, isPastDate 
 export default function Home() {
     const [mode, setMode] = useState('all') // 'my' | 'all'
     const [showCreateMenu, setShowCreateMenu] = useState(false)
-    const [weeksToShow, setWeeksToShow] = useState(1) // Number of weeks to display
+    const [currentWeekIndex, setCurrentWeekIndex] = useState(null) // Index of currently displayed week
     const [expandedDays, setExpandedDays] = useState({}) // Track which past days are expanded
-
-    const observerRef = useRef(null)
-    const loadMoreRef = useRef(null)
 
     // Fetch activities
     const { data: activities = [], loading, error, refetch } = useActivities()
@@ -67,33 +64,35 @@ export default function Home() {
     }, [activities, mode])
 
     const allWeeks = groupActivitiesByWeekAndDay()
-    const displayedWeeks = allWeeks.slice(0, weeksToShow)
 
-    // Infinite scroll - load more weeks
+    // Set initial week to current week (weekNumber === 0) on first load
     useEffect(() => {
-        if (loading) return
-
-        const observer = new IntersectionObserver(
-            (entries) => {
-                if (entries[0].isIntersecting && weeksToShow < allWeeks.length) {
-                    setWeeksToShow(prev => prev + 1)
-                }
-            },
-            { threshold: 0.1 }
-        )
-
-        observerRef.current = observer
-
-        if (loadMoreRef.current) {
-            observer.observe(loadMoreRef.current)
+        if (currentWeekIndex === null && allWeeks.length > 0) {
+            const currentWeekIdx = allWeeks.findIndex(w => w.weekNumber === 0)
+            setCurrentWeekIndex(currentWeekIdx >= 0 ? currentWeekIdx : 0)
         }
+    }, [allWeeks, currentWeekIndex])
 
-        return () => {
-            if (observerRef.current) {
-                observerRef.current.disconnect()
-            }
+    // Get currently displayed week
+    const displayedWeek = currentWeekIndex !== null && allWeeks[currentWeekIndex]
+        ? allWeeks[currentWeekIndex]
+        : null
+
+    // Navigation handlers
+    const goToPreviousWeek = () => {
+        if (currentWeekIndex > 0) {
+            setCurrentWeekIndex(currentWeekIndex - 1)
         }
-    }, [loading, weeksToShow, allWeeks.length])
+    }
+
+    const goToNextWeek = () => {
+        if (currentWeekIndex < allWeeks.length - 1) {
+            setCurrentWeekIndex(currentWeekIndex + 1)
+        }
+    }
+
+    const canGoPrevious = currentWeekIndex > 0
+    const canGoNext = currentWeekIndex < allWeeks.length - 1
 
     // Toggle join
     const handleJoinToggle = async (activityId) => {
@@ -149,18 +148,19 @@ export default function Home() {
         const isTodayDay = isToday(dayOfWeek)
 
         // For current week (weekNumber === 0), check if the day has passed
-        // Only past days in current week should be collapsed
+        // For past weeks (weekNumber < 0), ALL days should be collapsed
         const isCurrentWeek = weekNumber === 0
+        const isPastWeek = weekNumber < 0
         const currentDayOfWeek = now.getDay()
 
         // Convert to Mon-Sun order for comparison (Mon=1, Tue=2, ..., Sun=7)
         const dayOrder = dayOfWeek === 0 ? 7 : dayOfWeek
         const currentDayOrder = currentDayOfWeek === 0 ? 7 : currentDayOfWeek
 
-        // A day is past only if:
-        // 1. It's in the current week (weekNumber === 0)
-        // 2. AND the day of week is before current day of week (in Mon-Sun order)
-        const isPastDay = isCurrentWeek && dayOrder < currentDayOrder
+        // A day should be collapsed if:
+        // 1. It's in a past week (weekNumber < 0) - ALL days collapsed
+        // 2. OR it's in the current week (weekNumber === 0) AND the day of week is before current day
+        const isPastDay = isPastWeek || (isCurrentWeek && dayOrder < currentDayOrder)
 
         // Check which activities are actually past (time has passed)
         const pastActivities = hasActivities ? activities.filter(a => new Date(a.date) < now) : []
@@ -240,12 +240,25 @@ export default function Home() {
         )
     }
 
-    // Calculate total activities count for header
-    const totalCount = allWeeks.reduce((sum, week) => {
-        return sum + Object.values(week.days).reduce((daySum, dayActivities) => daySum + dayActivities.length, 0)
-    }, 0)
+    // Calculate total activities count for the current week only
+    const totalCount = displayedWeek
+        ? Object.values(displayedWeek.days).reduce((sum, dayActivities) => sum + dayActivities.length, 0)
+        : 0
 
     const hasActivities = totalCount > 0
+
+    // Format week range for display
+    const getWeekRangeText = (week) => {
+        if (!week) return ''
+        const start = week.weekStart
+        const end = week.weekEnd
+
+        const formatDay = (date) => {
+            return date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })
+        }
+
+        return `${formatDay(start)} - ${formatDay(end)}`
+    }
 
     if (loading) return <div className="min-h-screen bg-gray-50 pt-12"><Loading text="Загружаем тренировки..." /></div>
     if (error) return <div className="min-h-screen bg-gray-50 pt-12"><ErrorMessage message={error} onRetry={refetch} /></div>
@@ -258,35 +271,50 @@ export default function Home() {
                 <span className="text-sm text-gray-400">{totalCount}</span>
             </div>
 
+            {/* Week Navigation */}
+            {displayedWeek && (
+                <div className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between sticky top-[52px] z-10">
+                    <button
+                        onClick={goToPreviousWeek}
+                        disabled={!canGoPrevious}
+                        className={`text-2xl ${canGoPrevious ? 'text-gray-700 hover:text-gray-900' : 'text-gray-300'}`}
+                    >
+                        ‹
+                    </button>
+                    <div className="text-center">
+                        <div className="text-sm font-medium text-gray-900">
+                            {displayedWeek.weekNumber === 0 ? 'Текущая неделя' :
+                                displayedWeek.weekNumber > 0 ? `+${displayedWeek.weekNumber} неделя` :
+                                    `${displayedWeek.weekNumber} неделя`}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                            {getWeekRangeText(displayedWeek)}
+                        </div>
+                    </div>
+                    <button
+                        onClick={goToNextWeek}
+                        disabled={!canGoNext}
+                        className={`text-2xl ${canGoNext ? 'text-gray-700 hover:text-gray-900' : 'text-gray-300'}`}
+                    >
+                        ›
+                    </button>
+                </div>
+            )}
+
             {/* Content */}
             <div className="flex-1 overflow-auto px-4 py-4">
-                {hasActivities ? (
-                    <>
-                        {/* Display weeks */}
-                        {displayedWeeks.map((week, weekIndex) => (
-                            <div key={week.weekNumber} className="mb-6">
-                                {/* Render days in Mon-Sun order */}
-                                {[1, 2, 3, 4, 5, 6, 0].map(dayOfWeek => (
-                                    <DaySection
-                                        key={`${week.weekNumber}-${dayOfWeek}`}
-                                        weekNumber={week.weekNumber}
-                                        dayOfWeek={dayOfWeek}
-                                        activities={week.days[dayOfWeek]}
-                                    />
-                                ))}
-                            </div>
+                {hasActivities && displayedWeek ? (
+                    <div className="mb-6">
+                        {/* Render days in Mon-Sun order */}
+                        {[1, 2, 3, 4, 5, 6, 0].map(dayOfWeek => (
+                            <DaySection
+                                key={`${displayedWeek.weekNumber}-${dayOfWeek}`}
+                                weekNumber={displayedWeek.weekNumber}
+                                dayOfWeek={dayOfWeek}
+                                activities={displayedWeek.days[dayOfWeek]}
+                            />
                         ))}
-
-                        {/* Load more trigger */}
-                        {weeksToShow < allWeeks.length && (
-                            <div
-                                ref={loadMoreRef}
-                                className="py-4 text-center text-sm text-gray-400"
-                            >
-                                Загрузка...
-                            </div>
-                        )}
-                    </>
+                    </div>
                 ) : (
                     <EmptyState
                         icon="📅"

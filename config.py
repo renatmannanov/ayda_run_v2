@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     
     # === Core Settings ===
     bot_token: str = Field(..., alias="TELEGRAM_BOT_TOKEN", description="Telegram Bot Token")
-    app_url: Optional[str] = Field(None, description="Public URL of the app")
+    app_url: Optional[str] = Field(None, alias="WEB_APP_URL", description="Public URL of the app")
     
     # === Database ===
     database_url: str = Field(
