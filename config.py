@@ -62,7 +62,30 @@ class Settings(BaseSettings):
     rate_limit_enabled: bool = Field(default=True, description="Enable rate limiting")
     rate_limit_global: str = Field(default="200/minute", description="Global rate limit")
     rate_limit_create: str = Field(default="10/minute", description="Create endpoints limit")
+    rate_limit_create: str = Field(default="10/minute", description="Create endpoints limit")
     rate_limit_read: str = Field(default="100/minute", description="Read endpoints limit")
+
+    # === CORS ===
+    cors_origins: list[str] = Field(
+        default_factory=lambda: ["http://localhost:5173", "http://localhost:3000"],
+        description="Allowed CORS origins"
+    )
+
+    @field_validator('cors_origins')
+    @classmethod
+    def validate_cors_origins(cls, v: list[str], info) -> list[str]:
+        """Validate CORS origins - no wildcards in production"""
+        # Get debug value from config - accessing model context if possible or assuming default.
+        # info.data contains other fields already validated?
+        # Pydantic v2: info.data is available
+        debug = info.data.get('debug', False)
+
+        if "*" in v and not debug:
+            raise ValueError(
+                "Wildcard CORS origins (*) are not allowed in production. "
+                "Please specify exact origins."
+            )
+        return v
     
     @field_validator('database_url')
     @classmethod

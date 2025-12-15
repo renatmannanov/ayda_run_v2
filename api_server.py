@@ -16,22 +16,22 @@ from typing import List, Optional
 from datetime import datetime
 
 from storage.db import (
-    init_db, get_db, Activity, Participation, User,
-    SportType, Difficulty, ActivityVisibility, ActivityStatus,
-    ParticipationStatus, PaymentStatus
+    init_db, get_db, Activity, Participation, User
 )
 from auth import get_current_user, get_current_user_optional
 from permissions import can_create_activity_in_club, can_create_activity_in_group, require_activity_owner
+from config import settings
 
 app = FastAPI(title="Ayda Run API", version="1.0.0")
 
-# CORS middleware for local development
+# CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, specify allowed origins
+    allow_origins=settings.cors_origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PATCH", "DELETE", "PUT"],
+    allow_headers=["Content-Type", "X-Telegram-Init-Data"],
+    max_age=600,
 )
 
 # Rate Limiting
@@ -75,78 +75,25 @@ async def startup_event():
     print("[SUCCESS] Database initialized")
 
 # ============================================================================
-# Pydantic Models (Request/Response)
+# Schemas
 # ============================================================================
+from schemas.common import (
+    SportType, Difficulty, ActivityVisibility, ActivityStatus,
+    ParticipationStatus, PaymentStatus, UserRole
+)
+from schemas.activity import ActivityCreate, ActivityUpdate, ActivityResponse
+from schemas.club import ClubCreate, ClubUpdate, ClubResponse
+from schemas.group import (
+    GroupCreate, GroupUpdate, GroupResponse,
+    MembershipUpdate, MemberResponse
+)
+from schemas.user import UserResponse, ParticipantResponse
 
-class ActivityCreate(BaseModel):
-    """Request model for creating activity"""
-    title: str = Field(..., min_length=1, max_length=255)
-    description: Optional[str] = None
-    date: datetime
-    location: Optional[str] = Field(None, max_length=500)
-    club_id: Optional[int] = None
-    group_id: Optional[int] = None
-    sport_type: SportType = SportType.RUNNING
-    difficulty: Difficulty = Difficulty.MEDIUM
-    distance: Optional[float] = Field(None, gt=0)
-    duration: Optional[int] = Field(None, gt=0)
-    max_participants: Optional[int] = Field(None, gt=0)
-    visibility: ActivityVisibility = ActivityVisibility.INVITE_ONLY
+# Request model for completing onboarding
+class OnboardingData(BaseModel):
+    """Request model for completing onboarding"""
+    preferred_sports: Optional[list[str]] = None  # e.g., ["running", "trail"]
 
-
-class ActivityUpdate(BaseModel):
-    """Request model for updating activity"""
-    title: Optional[str] = Field(None, min_length=1, max_length=255)
-    description: Optional[str] = None
-    date: Optional[datetime] = None
-    location: Optional[str] = Field(None, max_length=500)
-    sport_type: Optional[SportType] = None
-    difficulty: Optional[Difficulty] = None
-    distance: Optional[float] = Field(None, gt=0)
-    duration: Optional[int] = Field(None, gt=0)
-    max_participants: Optional[int] = Field(None, gt=0)
-    visibility: Optional[ActivityVisibility] = None
-    status: Optional[ActivityStatus] = None
-
-
-class ActivityResponse(BaseModel):
-    """Response model for activity"""
-    model_config = {"from_attributes": True}
-    
-    id: int
-    title: str
-    description: Optional[str]
-    date: datetime
-    location: Optional[str]
-    club_id: Optional[int]
-    group_id: Optional[int]
-    creator_id: int
-    sport_type: SportType
-    difficulty: Difficulty
-    distance: Optional[float]
-    duration: Optional[int]
-    max_participants: Optional[int]
-    visibility: ActivityVisibility
-    status: ActivityStatus
-    created_at: datetime
-    participants_count: int = 0
-    is_joined: bool = False
-    club_name: Optional[str] = None
-    group_name: Optional[str] = None
-
-
-class ParticipantResponse(BaseModel):
-    """Response model for participant"""
-    model_config = {"from_attributes": True}
-
-    user_id: int
-    telegram_id: int
-    username: Optional[str]
-    first_name: Optional[str]
-    name: str  # Display name for frontend
-    status: ParticipationStatus
-    attended: bool
-    registered_at: datetime
 
 
 # ============================================================================
@@ -179,17 +126,7 @@ async def health_check():
 # Users API
 # ============================================================================
 
-class UserResponse(BaseModel):
-    """Response model for user"""
-    model_config = {"from_attributes": True}
-
-    id: int
-    telegram_id: int
-    username: Optional[str]
-    first_name: Optional[str]
-    has_completed_onboarding: bool
-    preferred_sports: Optional[str]  # JSON string: '["running", "trail"]'
-    created_at: datetime
+# UserResponse imported from schemas
 
 @app.get("/api/users/me", response_model=UserResponse)
 async def get_me(current_user: User = Depends(get_current_user)):
@@ -564,10 +501,6 @@ async def get_participants(
 # ============================================================================
 
 from groups_clubs_api import (
-    # Models
-    ClubCreate, ClubUpdate, ClubResponse,
-    GroupCreate, GroupUpdate, GroupResponse,
-    MembershipUpdate, MemberResponse,
     # Clubs endpoints
     create_club_endpoint, list_clubs_endpoint, get_club_endpoint,
     update_club_endpoint, delete_club_endpoint,

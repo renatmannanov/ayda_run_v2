@@ -14,7 +14,7 @@ from typing import List, Optional
 from datetime import datetime
 
 from storage.db import (
-    get_db, Club, Group, Membership, User, UserRole
+    get_db, Club, Group, Membership, User
 )
 from sqlalchemy.orm import joinedload
 from auth import get_current_user
@@ -24,99 +24,14 @@ from permissions import (
 )
 
 # ============================================================================
-# Pydantic Models (Request/Response)
+# Schemas
 # ============================================================================
-
-class ClubCreate(BaseModel):
-    """Request model for creating club"""
-    name: str = Field(..., min_length=1, max_length=255)
-    description: Optional[str] = None
-    is_paid: bool = False
-    price_per_activity: Optional[float] = Field(None, gt=0)
-    telegram_chat_id: Optional[int] = None
-
-
-class ClubUpdate(BaseModel):
-    """Request model for updating club"""
-    name: Optional[str] = Field(None, min_length=1, max_length=255)
-    description: Optional[str] = None
-    is_paid: Optional[bool] = None
-    price_per_activity: Optional[float] = Field(None, gt=0)
-    telegram_chat_id: Optional[int] = None
-
-
-class ClubResponse(BaseModel):
-    """Response model for club"""
-    model_config = {"from_attributes": True}
-    
-    id: int
-    name: str
-    description: Optional[str]
-    creator_id: int
-    is_paid: bool
-    price_per_activity: Optional[float]
-    telegram_chat_id: Optional[int]
-    created_at: datetime
-    groups_count: int = 0
-    members_count: int = 0
-    is_member: bool = False
-    user_role: Optional[UserRole] = None
-
-
-class GroupCreate(BaseModel):
-    """Request model for creating group"""
-    name: str = Field(..., min_length=1, max_length=255)
-    description: Optional[str] = None
-    club_id: Optional[int] = None  # NULL = standalone group
-    telegram_chat_id: Optional[int] = None
-    is_open: bool = True
-
-
-class GroupUpdate(BaseModel):
-    """Request model for updating group"""
-    name: Optional[str] = Field(None, min_length=1, max_length=255)
-    description: Optional[str] = None
-    telegram_chat_id: Optional[int] = None
-    is_open: Optional[bool] = None
-
-
-class GroupResponse(BaseModel):
-    """Response model for group"""
-    model_config = {"from_attributes": True}
-    
-    id: int
-    name: str
-    description: Optional[str]
-    club_id: Optional[int]
-    telegram_chat_id: Optional[int]
-    is_open: bool
-    created_at: datetime
-    members_count: int = 0
-    is_member: bool = False
-    user_role: Optional[UserRole] = None
-    club_name: Optional[str] = None
-
-
-class MembershipCreate(BaseModel):
-    """Request model for adding member"""
-    user_id: int
-    role: UserRole = UserRole.MEMBER
-
-
-class MembershipUpdate(BaseModel):
-    """Request model for updating membership"""
-    role: UserRole
-
-
-class MemberResponse(BaseModel):
-    """Response model for member"""
-    user_id: int
-    telegram_id: int
-    username: Optional[str]
-    first_name: Optional[str]
-    name: str  # Display name for frontend
-    role: UserRole
-    joined_at: datetime
+from schemas.common import UserRole
+from schemas.club import ClubCreate, ClubUpdate, ClubResponse
+from schemas.group import (
+    GroupCreate, GroupUpdate, GroupResponse,
+    MembershipUpdate, MemberResponse
+)
 
 
 # ============================================================================
