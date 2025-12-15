@@ -1,7 +1,7 @@
 import os
 from typing import Optional
 from pydantic_settings import BaseSettings
-from pydantic import Field, field_validator
+from pydantic import Field, field_validator, ConfigDict
 
 class Settings(BaseSettings):
     """
@@ -62,7 +62,6 @@ class Settings(BaseSettings):
     rate_limit_enabled: bool = Field(default=True, description="Enable rate limiting")
     rate_limit_global: str = Field(default="200/minute", description="Global rate limit")
     rate_limit_create: str = Field(default="10/minute", description="Create endpoints limit")
-    rate_limit_create: str = Field(default="10/minute", description="Create endpoints limit")
     rate_limit_read: str = Field(default="100/minute", description="Read endpoints limit")
 
     # === Logging ===
@@ -100,7 +99,7 @@ class Settings(BaseSettings):
         if v.startswith("postgres://"):
             return v.replace("postgres://", "postgresql://", 1)
         return v
-    
+
     @field_validator('google_sheets_credentials')
     @classmethod
     def validate_credentials(cls, v: Optional[str]) -> Optional[str]:
@@ -110,11 +109,12 @@ class Settings(BaseSettings):
             if not v.strip().startswith('{') and not os.path.exists(v):
                 print(f"Warning: Credentials file not found at: {v}")
         return v
-    
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
-        case_sensitive = False
+
+    model_config = ConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        case_sensitive=False
+    )
 
 # Initialize settings
 settings = Settings()

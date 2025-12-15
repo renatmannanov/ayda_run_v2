@@ -7,6 +7,7 @@ Provides REST API for:
 - Static file serving for webapp
 """
 
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, Depends, Query
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -14,6 +15,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session, joinedload
 from typing import List, Optional
 from datetime import datetime
+import logging
 
 from storage.db import (
     init_db, get_db, Activity, Participation, User
@@ -22,9 +24,31 @@ from auth import get_current_user, get_current_user_optional
 from permissions import can_create_activity_in_club, can_create_activity_in_group, require_activity_owner
 from config import settings
 
-app = FastAPI(title="Ayda Run API", version="1.0.0")
+# Logger setup (needed before lifespan)
+logging.basicConfig(
+    level=getattr(logging, settings.log_level.upper()),
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler(),
+        logging.FileHandler('app.log')
+    ]
+)
+logger = logging.getLogger(__name__)
 
-app = FastAPI(title="Ayda Run API", version="1.0.0")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Lifespan context manager for startup/shutdown events"""
+    # Startup
+    init_db()
+    logger.info("[SUCCESS] Database initialized")
+    yield
+    # Shutdown (if needed in future)
+
+app = FastAPI(
+    title="Ayda Run API",
+    version="1.0.0",
+    lifespan=lifespan
+)
 
 # CORS middleware
 app.add_middleware(
@@ -68,14 +92,6 @@ async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
         }
     )
 
-
-# Initialize database on startup
-@app.on_event("startup")
-async def startup_event():
-    """Initialize database tables"""
-    init_db()
-    logger.info("[SUCCESS] Database initialized")
-
 # ============================================================================
 # Schemas
 # ============================================================================
@@ -91,21 +107,9 @@ from schemas.group import (
 )
 from schemas.user import UserResponse, ParticipantResponse
 
-# Configure logging
-import logging
+# Import time and middleware for logging
 import time
 from starlette.middleware.base import BaseHTTPMiddleware
-
-logging.basicConfig(
-    level=getattr(logging, settings.log_level.upper()),
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.StreamHandler(),  # Console
-        logging.FileHandler('app.log')  # File
-    ]
-)
-
-logger = logging.getLogger(__name__)
 
 class LoggingMiddleware(BaseHTTPMiddleware):
     """Middleware to log all HTTP requests"""

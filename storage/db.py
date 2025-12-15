@@ -10,11 +10,10 @@ Architecture supports:
 """
 
 from sqlalchemy import (
-    create_engine, Column, Integer, String, DateTime, 
+    create_engine, Column, Integer, String, DateTime,
     Boolean, Float, Enum as SQLEnum, ForeignKey, Text
 )
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker, relationship
+from sqlalchemy.orm import sessionmaker, relationship, declarative_base
 from datetime import datetime
 from typing import Optional
 from enum import Enum
