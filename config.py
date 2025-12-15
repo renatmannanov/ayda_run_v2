@@ -65,6 +65,12 @@ class Settings(BaseSettings):
     rate_limit_create: str = Field(default="10/minute", description="Create endpoints limit")
     rate_limit_read: str = Field(default="100/minute", description="Read endpoints limit")
 
+    # === Logging ===
+    log_level: str = Field(
+        default="INFO",
+        description="Logging level (DEBUG, INFO, WARNING, ERROR)"
+    )
+
     # === CORS ===
     cors_origins: list[str] = Field(
         default_factory=lambda: ["http://localhost:5173", "http://localhost:3000"],

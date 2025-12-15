@@ -12,10 +12,13 @@ def test_rate_limit_on_create_activity(client, monkeypatch):
     from auth import settings as auth_settings
     monkeypatch.setattr(auth_settings, "debug", True)
 
+    from datetime import datetime, timedelta
     activity_data = {
         "title": "Test Activity",
-        "date": "2025-12-20T10:00:00",
+        "date": (datetime.now() + timedelta(days=1)).isoformat(),
         "sport_type": "running", 
+        "location": "Test Location",
+        "difficulty": "easy"
     }
 
     # 2. Don't send auth headers (triggers dev mode)

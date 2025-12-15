@@ -24,6 +24,8 @@ from config import settings
 
 app = FastAPI(title="Ayda Run API", version="1.0.0")
 
+app = FastAPI(title="Ayda Run API", version="1.0.0")
+
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
@@ -72,7 +74,7 @@ async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
 async def startup_event():
     """Initialize database tables"""
     init_db()
-    print("[SUCCESS] Database initialized")
+    logger.info("[SUCCESS] Database initialized")
 
 # ============================================================================
 # Schemas
@@ -89,7 +91,75 @@ from schemas.group import (
 )
 from schemas.user import UserResponse, ParticipantResponse
 
-# Request model for completing onboarding
+# Configure logging
+import logging
+import time
+from starlette.middleware.base import BaseHTTPMiddleware
+
+logging.basicConfig(
+    level=getattr(logging, settings.log_level.upper()),
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler(),  # Console
+        logging.FileHandler('app.log')  # File
+    ]
+)
+
+logger = logging.getLogger(__name__)
+
+class LoggingMiddleware(BaseHTTPMiddleware):
+    """Middleware to log all HTTP requests"""
+
+    async def dispatch(self, request, call_next):
+        # Start timer
+        start_time = time.time()
+
+        # Log request
+        logger.info(
+            f"Request started",
+            extra={
+                "method": request.method,
+                "path": request.url.path,
+                "client": request.client.host if request.client else None
+            }
+        )
+
+        # Process request
+        try:
+            response = await call_next(request)
+
+            # Calculate duration
+            process_time = time.time() - start_time
+
+            # Log response
+            logger.info(
+                f"Request completed",
+                extra={
+                    "method": request.method,
+                    "path": request.url.path,
+                    "status_code": response.status_code,
+                    "duration_ms": round(process_time * 1000, 2)
+                }
+            )
+
+            return response
+
+        except Exception as e:
+            # Log error
+            logger.error(
+                f"Request failed: {str(e)}",
+                extra={
+                    "method": request.method,
+                    "path": request.url.path,
+                    "error": str(e)
+                },
+                exc_info=True
+            )
+            raise
+
+# Add logging middleware
+app.add_middleware(LoggingMiddleware)
+
 class OnboardingData(BaseModel):
     """Request model for completing onboarding"""
     preferred_sports: Optional[list[str]] = None  # e.g., ["running", "trail"]
@@ -267,7 +337,7 @@ async def list_activities(
     
     # Convert to response with participant counts
     result = []
-    print(f"[DEBUG] Processing {len(activities)} activities") 
+    logger.debug(f"Processing {len(activities)} activities") 
     for activity in activities:
         response = ActivityResponse.model_validate(activity)
         # ... (rest of loop)
@@ -286,10 +356,10 @@ async def list_activities(
         # Populate names (eager loaded now)
         if activity.club:
             response.club_name = activity.club.name
-            print(f"[DEBUG] Activity {activity.id}: Set club_name='{activity.club.name}'")
+            logger.debug(f"Activity {activity.id}: Set club_name='{activity.club.name}'")
         if activity.group:
             response.group_name = activity.group.name
-            print(f"[DEBUG] Activity {activity.id}: Set group_name='{activity.group.name}'")
+            logger.debug(f"Activity {activity.id}: Set group_name='{activity.group.name}'")
 
         result.append(response)
     
@@ -663,5 +733,5 @@ if __name__ == "__main__":
     import uvicorn
     import os
     port = int(os.getenv("PORT", 8000))
-    print(f"Starting Ayda Run API on port {port}")
+    logger.info(f"Starting Ayda Run API on port {port}")
     uvicorn.run(app, host="0.0.0.0", port=port)
