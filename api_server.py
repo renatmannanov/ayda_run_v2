@@ -118,12 +118,15 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
     )
 
     # Return user-friendly error with details
+    # Need to serialize errors to JSON-safe format (ValueError objects can't be serialized)
+    errors_json_safe = json.loads(json.dumps(exc.errors(), default=str))
+
     return JSONResponse(
         status_code=422,
         content={
             "error": "Validation Error",
             "message": "Данные не прошли валидацию",
-            "details": exc.errors()
+            "details": errors_json_safe
         }
     )
 

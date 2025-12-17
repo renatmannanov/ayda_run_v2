@@ -69,7 +69,7 @@ def create_group(
 
 @router.get("", response_model=List[GroupResponse])
 def list_groups(
-    club_id: Optional[int] = None,
+    club_id: Optional[str] = None,
     limit: int = 50,
     offset: int = 0,
     current_user: Optional[User] = Depends(get_current_user),

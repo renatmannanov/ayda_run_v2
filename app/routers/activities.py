@@ -90,8 +90,8 @@ async def create_activity(
 
 @router.get("", response_model=List[ActivityResponse])
 async def list_activities(
-    club_id: Optional[int] = Query(None),
-    group_id: Optional[int] = Query(None),
+    club_id: Optional[str] = Query(None),
+    group_id: Optional[str] = Query(None),
     sport_type: Optional[SportType] = Query(None),
     difficulty: Optional[Difficulty] = Query(None),
     visibility: Optional[ActivityVisibility] = Query(None),

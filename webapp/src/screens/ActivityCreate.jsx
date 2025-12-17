@@ -44,8 +44,12 @@ export default function ActivityCreate() {
     const [maxParticipants, setMaxParticipants] = useState('20')
     const [noLimit, setNoLimit] = useState(false)
     const [description, setDescription] = useState('')
-    const [selectedClub, setSelectedClub] = useState(context?.clubId?.toString() || '')
-    const [selectedGroup, setSelectedGroup] = useState(context?.groupId?.toString() || '')
+    const [selectedClub, setSelectedClub] = useState(
+        (context?.clubId && context.clubId !== null) ? context.clubId.toString() : ''
+    )
+    const [selectedGroup, setSelectedGroup] = useState(
+        (context?.groupId && context.groupId !== null) ? context.groupId.toString() : ''
+    )
     const [isPublic, setIsPublic] = useState(false)
 
     const [showDifficultyPicker, setShowDifficultyPicker] = useState(false)
@@ -66,6 +70,16 @@ export default function ActivityCreate() {
         }, 100)
         return () => clearTimeout(timer)
     }, [])
+
+    // Auto-populate group/club from context
+    useEffect(() => {
+        if (context?.groupId) {
+            setSelectedGroup(context.groupId.toString())
+        }
+        if (context?.clubId && context.clubId !== null) {
+            setSelectedClub(context.clubId.toString())
+        }
+    }, [context])
 
     const validate = () => {
         const newErrors = {}
@@ -111,7 +125,15 @@ export default function ActivityCreate() {
     // Format club/group display
     const getClubGroupDisplay = () => {
         if (isPublic) return 'Публичная (видят все)'
-        if (!selectedClub) return null // Or 'Личная' if we support personal-private but usually it's club/group bound or public
+
+        // Standalone group (no club)
+        if (selectedGroup && !selectedClub) {
+            const group = allGroups.find(g => g.id.toString() === selectedGroup)
+            return group ? `👥 ${group.name}` : null
+        }
+
+        // Club or club group
+        if (!selectedClub) return null
         const club = getSelectedClubObj()
         if (!club) return null
         if (selectedGroup) {

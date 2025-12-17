@@ -44,6 +44,9 @@ export default function ClubGroupDetail({ type = 'club' }) {
     const error = isClub ? clubError : groupError
     const refetch = isClub ? refetchClub : refetchGroup
 
+    // Debug: log item data to see what we have
+    console.log('🏠 ClubGroupDetail item:', item, 'isClub:', isClub)
+
     // Fetch groups if it's a club (to show subgroups)
     const { data: clubGroups = [] } = useGroups(isClub ? id : null)
 
