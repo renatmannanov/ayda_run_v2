@@ -30,9 +30,18 @@ def create_group(
     # Check permissions if creating group within club
     if group_data.club_id:
         require_club_permission(db, current_user, group_data.club_id, UserRole.ORGANIZER)
-    
+
     # Create group
-    group = Group(**group_data.model_dump())
+    from app_config.constants import DEFAULT_COUNTRY
+    group_dict = group_data.model_dump()
+
+    # Set defaults from user profile if not provided
+    if not group_dict.get('city'):
+        group_dict['city'] = current_user.city
+    if not group_dict.get('country'):
+        group_dict['country'] = DEFAULT_COUNTRY
+
+    group = Group(**group_dict)
     
     db.add(group)
     db.commit()

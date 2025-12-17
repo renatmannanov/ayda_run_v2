@@ -24,12 +24,21 @@ def create_club(
 ) -> ClubResponse:
     """
     Create a new club
-    
+
     Anyone can create a club and becomes its admin automatically
     """
     # Create club
+    from app_config.constants import DEFAULT_COUNTRY
+    club_dict = club_data.model_dump()
+
+    # Set defaults from user profile if not provided
+    if not club_dict.get('city'):
+        club_dict['city'] = current_user.city
+    if not club_dict.get('country'):
+        club_dict['country'] = DEFAULT_COUNTRY
+
     club = Club(
-        **club_data.model_dump(),
+        **club_dict,
         creator_id=current_user.id
     )
     

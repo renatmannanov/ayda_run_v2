@@ -8,8 +8,8 @@ class GroupCreate(BaseModel):
     description: Optional[str] = Field(None, max_length=1000)
     club_id: Optional[str] = None  # UUID
 
-    # Location
-    city: str = Field(..., min_length=2, max_length=100)
+    # Location (both optional - will use user's location if not provided)
+    city: Optional[str] = Field(None, min_length=2, max_length=100)
     country: Optional[str] = Field(None, max_length=100)
 
     # Telegram

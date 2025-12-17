@@ -66,6 +66,10 @@ async def create_activity(
     if not activity_dict.get('country'):
         activity_dict['country'] = DEFAULT_COUNTRY
 
+    # Set city from user's profile if not provided (frontend doesn't send it yet)
+    if not activity_dict.get('city'):
+        activity_dict['city'] = current_user.city
+
     activity = Activity(
         **activity_dict,
         creator_id=current_user.id,

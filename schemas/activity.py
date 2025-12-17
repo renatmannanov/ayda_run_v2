@@ -10,8 +10,8 @@ class ActivityCreate(BaseModel):
     date: datetime = Field(..., description="Activity date and time")
     location: str = Field(..., min_length=2, max_length=200)
 
-    # Location
-    city: str = Field(..., min_length=2, max_length=100, description="City")
+    # Location (both optional - will use user's location if not provided)
+    city: Optional[str] = Field(None, min_length=2, max_length=100, description="City (optional, uses user's city if not provided)")
     country: Optional[str] = Field(None, max_length=100, description="Country (optional, defaults to Kazakhstan)")
 
     sport_type: SportType

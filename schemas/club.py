@@ -7,8 +7,8 @@ class ClubCreate(BaseModel):
     name: str = Field(..., min_length=3, max_length=100)
     description: Optional[str] = Field(None, max_length=1000)
 
-    # Location
-    city: str = Field(..., min_length=2, max_length=100)
+    # Location (both optional - will use user's location if not provided)
+    city: Optional[str] = Field(None, min_length=2, max_length=100)
     country: Optional[str] = Field(None, max_length=100)
 
     # Telegram
