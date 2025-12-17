@@ -32,7 +32,7 @@ def test_auth_allows_dev_mode_in_debug(client, db_session, monkeypatch):
     assert response.status_code == 200
     data = response.json()
     assert data["username"] == "admin"
-    assert data["telegram_id"] == 1
+    assert data["telegram_id"] == "1"  # telegram_id is serialized to string for JSON safety
 
 def test_get_dev_user_creates_user_if_not_exists(db_session):
     """Test that get_dev_user creates user on first call"""

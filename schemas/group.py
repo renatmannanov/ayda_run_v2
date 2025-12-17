@@ -52,14 +52,14 @@ class MembershipUpdate(BaseModel):
 class MemberResponse(BaseModel):
     """Schema for list of members"""
     user_id: str  # UUID
-    telegram_id: str  # String for JSON/JS safety
+    telegram_id: int | str  # Accept int from DB, serialize to string for JSON
     username: Optional[str]
     first_name: Optional[str]
     name: str
     role: UserRole
     joined_at: Optional[str] = None  # datetime to str if needed
 
-    @field_serializer('telegram_id')
+    @field_serializer('telegram_id', when_used='always')
     def serialize_telegram_id(self, telegram_id: int | str) -> str:
         """Convert telegram_id to string for JSON safety"""
         return str(telegram_id)

@@ -91,7 +91,7 @@ def list_clubs(
 
 @router.get("/{club_id}", response_model=ClubResponse)
 def get_club(
-    club_id: int,
+    club_id: str,
     current_user: Optional[User] = Depends(get_current_user),
     db: Session = Depends(get_db)
 ) -> ClubResponse:
@@ -119,7 +119,7 @@ def get_club(
 
 @router.patch("/{club_id}", response_model=ClubResponse)
 def update_club(
-    club_id: int,
+    club_id: str,
     club_data: ClubUpdate,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -158,7 +158,7 @@ def update_club(
 
 @router.delete("/{club_id}", status_code=204)
 def delete_club(
-    club_id: int,
+    club_id: str,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):

@@ -66,7 +66,7 @@ def test_create_and_join_activity_flow(client, auth_headers, test_user, monkeypa
         participants = response.json()
         # Should be at least 1 (the dev user)
         telegram_ids = [p["telegram_id"] for p in participants]
-        assert 1 in telegram_ids # Dev user has telegram_id=1
+        assert "1" in telegram_ids # Dev user has telegram_id="1" (serialized to string)
 
         # 5. Leave activity
         response = client.post(

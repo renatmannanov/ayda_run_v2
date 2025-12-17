@@ -1,19 +1,19 @@
-from pydantic import BaseModel, field_serializer
+from pydantic import BaseModel, field_serializer, ConfigDict
 from typing import Optional
 from datetime import datetime
 from .common import ParticipationStatus
 
 class UserResponse(BaseModel):
     """Response model for user"""
-    model_config = {"from_attributes": True}
+    model_config = ConfigDict(from_attributes=True)
 
     id: str  # UUID
-    telegram_id: str  # String for JSON/JS safety (64-bit int)
+    telegram_id: int | str  # Accept int from DB, serialize to string for JSON
     username: Optional[str]
     first_name: Optional[str]
     last_name: Optional[str]
 
-    @field_serializer('telegram_id')
+    @field_serializer('telegram_id', when_used='always')
     def serialize_telegram_id(self, telegram_id: int | str) -> str:
         """Convert telegram_id to string for JSON safety"""
         return str(telegram_id)
@@ -39,10 +39,10 @@ class UserResponse(BaseModel):
 
 class ParticipantResponse(BaseModel):
     """Response model for participant"""
-    model_config = {"from_attributes": True}
+    model_config = ConfigDict(from_attributes=True)
 
     user_id: str  # UUID
-    telegram_id: str  # String for JSON/JS safety
+    telegram_id: int | str  # Accept int from DB, serialize to string for JSON
     username: Optional[str]
     first_name: Optional[str]
     name: str  # Display name for frontend
@@ -50,7 +50,7 @@ class ParticipantResponse(BaseModel):
     attended: bool
     registered_at: datetime
 
-    @field_serializer('telegram_id')
+    @field_serializer('telegram_id', when_used='always')
     def serialize_telegram_id(self, telegram_id: int | str) -> str:
         """Convert telegram_id to string for JSON safety"""
         return str(telegram_id)

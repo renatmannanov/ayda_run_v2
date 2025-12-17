@@ -103,7 +103,7 @@ def list_groups(
 
 @router.get("/{group_id}", response_model=GroupResponse)
 def get_group(
-    group_id: int,
+    group_id: str,
     current_user: Optional[User] = Depends(get_current_user),
     db: Session = Depends(get_db)
 ) -> GroupResponse:
@@ -133,7 +133,7 @@ def get_group(
 
 @router.patch("/{group_id}", response_model=GroupResponse)
 def update_group(
-    group_id: int,
+    group_id: str,
     group_data: GroupUpdate,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -171,7 +171,7 @@ def update_group(
 
 @router.delete("/{group_id}", status_code=204)
 def delete_group(
-    group_id: int,
+    group_id: str,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -233,7 +233,7 @@ def join_club_endpoint(
 
 
 def join_group_endpoint(
-    group_id: int,
+    group_id: str,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -303,7 +303,7 @@ def get_club_members_endpoint(
 
 
 def get_group_members_endpoint(
-    group_id: int,
+    group_id: str,
     db: Session = Depends(get_db)
 ) -> List[MemberResponse]:
     """Get list of group members"""

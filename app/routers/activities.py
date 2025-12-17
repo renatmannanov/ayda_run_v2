@@ -166,7 +166,7 @@ async def list_activities(
 
 @router.get("/{activity_id}", response_model=ActivityResponse)
 async def get_activity(
-    activity_id: int,
+    activity_id: str,
     current_user: Optional[User] = Depends(get_current_user_optional),
     db: Session = Depends(get_db)
 ):
@@ -201,7 +201,7 @@ async def get_activity(
 
 @router.patch("/{activity_id}", response_model=ActivityResponse)
 async def update_activity(
-    activity_id: int,
+    activity_id: str,
     activity_data: ActivityUpdate,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -241,7 +241,7 @@ async def update_activity(
 
 @router.delete("/{activity_id}", status_code=204)
 async def delete_activity(
-    activity_id: int,
+    activity_id: str,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -266,7 +266,7 @@ async def delete_activity(
 
 @router.post("/{activity_id}/join", status_code=201)
 async def join_activity(
-    activity_id: int,
+    activity_id: str,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -311,7 +311,7 @@ async def join_activity(
 
 @router.post("/{activity_id}/leave", status_code=200)
 async def leave_activity(
-    activity_id: int,
+    activity_id: str,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -332,7 +332,7 @@ async def leave_activity(
 
 @router.get("/{activity_id}/participants", response_model=List[ParticipantResponse])
 async def get_participants(
-    activity_id: int,
+    activity_id: str,
     db: Session = Depends(get_db)
 ):
     """Get list of participants for an activity"""
