@@ -11,6 +11,7 @@ from app.core.dependencies import get_db, get_current_user
 from permissions import require_club_permission, can_manage_club
 from schemas.common import UserRole
 from schemas.club import ClubCreate, ClubUpdate, ClubResponse
+from schemas.group import MemberResponse
 
 router = APIRouter(prefix="/api/clubs", tags=["clubs"])
 
@@ -173,8 +174,79 @@ def delete_club(
     
     db.delete(club)
     db.commit()
-    
+
     return None
+
+
+# ============================================================================
+# Membership API
+# ============================================================================
+
+@router.post("/{club_id}/join", status_code=201)
+def join_club(
+    club_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Join a club (for invite-only clubs, use invite endpoint)"""
+    club = db.query(Club).filter(Club.id == club_id).first()
+
+    if not club:
+        raise HTTPException(status_code=404, detail="Club not found")
+
+    # Check if already member
+    existing = db.query(Membership).filter(
+        Membership.club_id == club_id,
+        Membership.user_id == current_user.id
+    ).first()
+
+    if existing:
+        raise HTTPException(status_code=400, detail="Already a member of this club")
+
+    # Add membership
+    membership = Membership(
+        user_id=current_user.id,
+        club_id=club_id,
+        role=UserRole.MEMBER
+    )
+
+    db.add(membership)
+    db.commit()
+
+    return {"message": "Successfully joined club", "club_id": club_id}
+
+
+@router.get("/{club_id}/members", response_model=List[MemberResponse])
+def get_club_members(
+    club_id: str,
+    db: Session = Depends(get_db)
+):
+    """Get list of club members"""
+    club = db.query(Club).filter(Club.id == club_id).first()
+
+    if not club:
+        raise HTTPException(status_code=404, detail="Club not found")
+
+    # Get all memberships
+    memberships = db.query(Membership).filter(
+        Membership.club_id == club_id
+    ).join(User).all()
+
+    # Build response
+    result = []
+    for membership in memberships:
+        user = membership.user
+        result.append(MemberResponse(
+            user_id=user.id,
+            telegram_id=user.telegram_id,
+            username=user.username,
+            first_name=user.first_name,
+            name=user.first_name or user.username or f"User {user.telegram_id}",
+            role=membership.role,
+            joined_at=membership.joined_at.isoformat() if membership.joined_at else None
+        ))
+
+    return result
 
 
 # ============================================================================

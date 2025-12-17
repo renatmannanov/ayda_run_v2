@@ -11,10 +11,12 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Depends
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.exceptions import RequestValidationError
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from typing import Optional
 import logging
+import json
 
 from storage.db import init_db, User
 from app.core.dependencies import get_db, get_current_user
@@ -80,10 +82,43 @@ async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
         content={
             "error": "Too Many Requests",
             "message": "Вы превысили лимит запросов. Пожалуйста, попробуйте позже.",
-            "retry_after": str(exc.limit) 
+            "retry_after": str(exc.limit)
         }, # exc.detail sometimes is not what we expect in some versions, using exc.limit or generic message is safer, but plan suggests exc.detail check if it works.
         headers={
             "Retry-After": "60" # Default fallback
+        }
+    )
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    """
+    Custom handler for validation errors (422)
+    Logs detailed information about validation failures for debugging
+    """
+    # Get request body for logging
+    try:
+        body = await request.body()
+        body_str = body.decode('utf-8') if body else "No body"
+    except:
+        body_str = "Could not read body"
+
+    # Log detailed error information
+    logger.error(
+        f"Validation Error on {request.method} {request.url.path}",
+        extra={
+            "errors": exc.errors(),
+            "body": body_str,
+            "headers": dict(request.headers)
+        }
+    )
+
+    # Return user-friendly error with details
+    return JSONResponse(
+        status_code=422,
+        content={
+            "error": "Validation Error",
+            "message": "Данные не прошли валидацию",
+            "details": exc.errors()
         }
     )
 

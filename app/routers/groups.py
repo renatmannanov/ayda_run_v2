@@ -199,40 +199,8 @@ def delete_group(
 # Membership API
 # ============================================================================
 
-def join_club_endpoint(
-    club_id: int,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    """Join a club (for invite-only clubs, use invite endpoint)"""
-    club = db.query(Club).filter(Club.id == club_id).first()
-    
-    if not club:
-        raise HTTPException(status_code=404, detail="Club not found")
-    
-    # Check if already member
-    existing = db.query(Membership).filter(
-        Membership.club_id == club_id,
-        Membership.user_id == current_user.id
-    ).first()
-    
-    if existing:
-        raise HTTPException(status_code=400, detail="Already a member of this club")
-    
-    # Add membership
-    membership = Membership(
-        user_id=current_user.id,
-        club_id=club_id,
-        role=UserRole.MEMBER
-    )
-    
-    db.add(membership)
-    db.commit()
-    
-    return {"message": "Successfully joined club", "club_id": club_id}
-
-
-def join_group_endpoint(
+@router.post("/{group_id}/join", status_code=201)
+def join_group(
     group_id: str,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -268,41 +236,8 @@ def join_group_endpoint(
     return {"message": "Successfully joined group", "group_id": group_id}
 
 
-def get_club_members_endpoint(
-    club_id: int,
-    db: Session = Depends(get_db)
-) -> List[MemberResponse]:
-    """Get list of club members"""
-    club = db.query(Club).filter(Club.id == club_id).first()
-    
-    if not club:
-        raise HTTPException(status_code=404, detail="Club not found")
-    
-    memberships = db.query(Membership, User).join(
-        User, Membership.user_id == User.id
-    ).filter(
-        Membership.club_id == club_id
-    ).all()
-    
-    result = []
-    for membership, user in memberships:
-        # Create display name from first_name or username
-        display_name = user.first_name or user.username or f"User {user.telegram_id}"
-
-        result.append(MemberResponse(
-            user_id=user.id,
-            telegram_id=user.telegram_id,
-            username=user.username,
-            first_name=user.first_name,
-            name=display_name,
-            role=membership.role,
-            joined_at=membership.joined_at
-        ))
-
-    return result
-
-
-def get_group_members_endpoint(
+@router.get("/{group_id}/members", response_model=List[MemberResponse])
+def get_group_members(
     group_id: str,
     db: Session = Depends(get_db)
 ) -> List[MemberResponse]:
