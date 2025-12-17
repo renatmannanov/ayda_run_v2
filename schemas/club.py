@@ -6,9 +6,20 @@ class ClubCreate(BaseModel):
     """Schema for creating club"""
     name: str = Field(..., min_length=3, max_length=100)
     description: Optional[str] = Field(None, max_length=1000)
+
+    # Location
+    city: str = Field(..., min_length=2, max_length=100)
+    country: Optional[str] = Field(None, max_length=100)
+
+    # Telegram
+    username: Optional[str] = Field(None, max_length=255)
+    telegram_chat_id: Optional[str] = None
+    invite_link: Optional[str] = Field(None, max_length=500)
+    photo: Optional[str] = Field(None, max_length=255)
+
+    # Payment
     is_paid: bool = Field(default=False)
     price_per_activity: Optional[float] = Field(None, ge=0, le=10000)
-    telegram_chat_id: Optional[str] = None
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -31,10 +42,22 @@ class ClubResponse(BaseResponse):
     """Schema for club response"""
     name: str
     description: Optional[str]
+
+    # Location
+    country: str
+    city: str
+
+    # Telegram
+    username: Optional[str]
+    telegram_chat_id: Optional[str]
+    invite_link: Optional[str]
+    photo: Optional[str]
+
+    # Payment
     is_paid: bool
     price_per_activity: Optional[float]
-    telegram_chat_id: Optional[str]
-    creator_id: int
+
+    creator_id: str  # UUID
 
     # Computed
     members_count: int = 0

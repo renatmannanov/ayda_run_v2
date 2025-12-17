@@ -17,7 +17,9 @@
       "Bash(powershell:*)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(rm:*)"
+      "Bash(rm:*)",
+      "Bash(timeout /t 3 /nobreak)",
+      "Bash(pytest:*)"
     ]
   }
 }

@@ -7,6 +7,8 @@ Architecture supports:
 - Flexible visibility system
 - Recurring activities
 - Role-based permissions
+- UUID-based primary keys for security
+- Location-based filtering (country/city)
 """
 
 from sqlalchemy import (
@@ -18,6 +20,9 @@ from datetime import datetime
 from typing import Optional
 from enum import Enum
 import os
+import uuid
+
+from app_config.constants import DEFAULT_COUNTRY, DEFAULT_CITY
 
 # Base class for models
 Base = declarative_base()
@@ -78,21 +83,38 @@ class User(Base):
     """User model - represents Telegram users"""
     __tablename__ = 'users'
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     telegram_id = Column(Integer, unique=True, nullable=False, index=True)
     username = Column(String(255), nullable=True)
     first_name = Column(String(255), nullable=True)
+    last_name = Column(String(255), nullable=True)
+
+    # Location
+    country = Column(String(100), default=DEFAULT_COUNTRY, nullable=False)
+    city = Column(String(100), default=DEFAULT_CITY, nullable=False, index=True)
+
+    # Profile
+    photo = Column(String(255), nullable=True)  # Telegram avatar file_id
+    is_premium = Column(Boolean, default=False, nullable=False)
+
+    # Onboarding
     has_completed_onboarding = Column(Boolean, default=False, nullable=False)
     preferred_sports = Column(Text, nullable=True)  # JSON array of sport IDs: ["running", "trail"]
+
+    # Activity tracking
+    first_seen_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    last_seen_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+    # Timestamps
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    
+
     # Relationships
     memberships = relationship("Membership", back_populates="user", cascade="all, delete-orphan")
     created_clubs = relationship("Club", back_populates="creator", foreign_keys="Club.creator_id")
     created_activities = relationship("Activity", back_populates="creator", foreign_keys="Activity.creator_id")
     participations = relationship("Participation", back_populates="user", cascade="all, delete-orphan")
-    
+
     def __repr__(self):
         return f"<User(telegram_id={self.telegram_id}, username={self.username})>"
 
@@ -100,91 +122,105 @@ class User(Base):
 class Club(Base):
     """Club model - paid organizations with extended functionality"""
     __tablename__ = 'clubs'
-    
-    id = Column(Integer, primary_key=True, autoincrement=True)
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     name = Column(String(255), nullable=False)
     description = Column(Text, nullable=True)
-    creator_id = Column(Integer, ForeignKey('users.id'), nullable=False)
-    
+    creator_id = Column(String(36), ForeignKey('users.id'), nullable=False)
+
+    # Location
+    country = Column(String(100), default=DEFAULT_COUNTRY, nullable=False)
+    city = Column(String(100), nullable=False, index=True)
+
+    # Telegram integration
+    username = Column(String(255), nullable=True)  # @username
+    telegram_chat_id = Column(Integer, nullable=True)
+    invite_link = Column(String(500), nullable=True)  # t.me/... link
+    photo = Column(String(255), nullable=True)  # Avatar file_id
+
     # Payment settings
     is_paid = Column(Boolean, default=False)
     price_per_activity = Column(Float, nullable=True)
-    
-    # Telegram integration
-    telegram_chat_id = Column(Integer, nullable=True)
-    
+
     created_at = Column(DateTime, default=datetime.utcnow)
-    
+
     # Relationships
     creator = relationship("User", back_populates="created_clubs", foreign_keys=[creator_id])
     groups = relationship("Group", back_populates="club", cascade="all, delete-orphan")
     activities = relationship("Activity", back_populates="club")
     memberships = relationship("Membership", back_populates="club", cascade="all, delete-orphan")
-    
+
     def __repr__(self):
-        return f"<Club(name={self.name}, is_paid={self.is_paid})>"
+        return f"<Club(name={self.name}, city={self.city})>"
 
 
 class Group(Base):
     """
     Unified Group model - can be standalone or part of a club
-    
+
     If club_id is NULL: standalone group (basic functionality)
     If club_id is set: group within club (extended functionality)
     """
     __tablename__ = 'groups'
-    
-    id = Column(Integer, primary_key=True, autoincrement=True)
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     name = Column(String(255), nullable=False)
     description = Column(Text, nullable=True)
-    
+
     # Optional club relationship (NULL = standalone)
-    club_id = Column(Integer, ForeignKey('clubs.id'), nullable=True, index=True)
-    
+    club_id = Column(String(36), ForeignKey('clubs.id'), nullable=True, index=True)
+
+    # Location
+    country = Column(String(100), default=DEFAULT_COUNTRY, nullable=False)
+    city = Column(String(100), nullable=False, index=True)
+
     # Telegram integration
+    username = Column(String(255), nullable=True)  # @username
     telegram_chat_id = Column(Integer, nullable=True)
-    
+    invite_link = Column(String(500), nullable=True)  # t.me/... link
+    photo = Column(String(255), nullable=True)  # Avatar file_id
+
     # Access control
     is_open = Column(Boolean, default=True)  # True = anyone can join
-    
+
     created_at = Column(DateTime, default=datetime.utcnow)
-    
+
     # Relationships
     club = relationship("Club", back_populates="groups")
     activities = relationship("Activity", back_populates="group")
     memberships = relationship("Membership", back_populates="group", cascade="all, delete-orphan")
-    
+
     def __repr__(self):
-        return f"<Group(name={self.name}, club_id={self.club_id})>"
+        return f"<Group(name={self.name}, city={self.city})>"
 
 
 class Membership(Base):
     """
     Membership model - user's membership in club or group
-    
+
     Either club_id or group_id must be set (not both)
     - club_id set: club-level membership
     - group_id set: group-level membership
     """
     __tablename__ = 'memberships'
-    
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    user_id = Column(Integer, ForeignKey('users.id'), nullable=False, index=True)
-    
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = Column(String(36), ForeignKey('users.id'), nullable=False, index=True)
+
     # One of these must be set
-    club_id = Column(Integer, ForeignKey('clubs.id'), nullable=True, index=True)
-    group_id = Column(Integer, ForeignKey('groups.id'), nullable=True, index=True)
-    
+    club_id = Column(String(36), ForeignKey('clubs.id'), nullable=True, index=True)
+    group_id = Column(String(36), ForeignKey('groups.id'), nullable=True, index=True)
+
     # Role in the organization
     role = Column(SQLEnum(UserRole), default=UserRole.MEMBER, nullable=False)
-    
+
     joined_at = Column(DateTime, default=datetime.utcnow)
-    
+
     # Relationships
     user = relationship("User", back_populates="memberships")
     club = relationship("Club", back_populates="memberships")
     group = relationship("Group", back_populates="memberships")
-    
+
     def __repr__(self):
         return f"<Membership(user_id={self.user_id}, role={self.role})>"
 
@@ -192,27 +228,27 @@ class Membership(Base):
 class RecurringTemplate(Base):
     """Template for recurring activities (e.g., every Monday, every weekend)"""
     __tablename__ = 'recurring_templates'
-    
-    id = Column(Integer, primary_key=True, autoincrement=True)
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     title = Column(String(255), nullable=False)
-    
+
     # Recurrence rule (e.g., "WEEKLY:MON,THU,SAT")
     recurrence_rule = Column(String(255), nullable=False)
-    
+
     # Organization (one of these can be set)
-    club_id = Column(Integer, ForeignKey('clubs.id'), nullable=True, index=True)
-    group_id = Column(Integer, ForeignKey('groups.id'), nullable=True, index=True)
-    
-    creator_id = Column(Integer, ForeignKey('users.id'), nullable=False)
-    
+    club_id = Column(String(36), ForeignKey('clubs.id'), nullable=True, index=True)
+    group_id = Column(String(36), ForeignKey('groups.id'), nullable=True, index=True)
+
+    creator_id = Column(String(36), ForeignKey('users.id'), nullable=False)
+
     # Active status
     active = Column(Boolean, default=True)
-    
+
     created_at = Column(DateTime, default=datetime.utcnow)
-    
+
     # Relationships
     activities = relationship("Activity", back_populates="recurring_template")
-    
+
     def __repr__(self):
         return f"<RecurringTemplate(title={self.title}, rule={self.recurrence_rule})>"
 
@@ -221,17 +257,21 @@ class Activity(Base):
     """Activity model - sports activities/events"""
     __tablename__ = 'activities'
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     title = Column(String(255), nullable=False)
     description = Column(Text, nullable=True)
     date = Column(DateTime, nullable=False, index=True)
     location = Column(String(500), nullable=True)
 
+    # Location
+    country = Column(String(100), default=DEFAULT_COUNTRY, nullable=False)
+    city = Column(String(100), nullable=False, index=True)
+
     # Relationships
-    club_id = Column(Integer, ForeignKey('clubs.id'), nullable=True, index=True)
-    group_id = Column(Integer, ForeignKey('groups.id'), nullable=True, index=True)
-    creator_id = Column(Integer, ForeignKey('users.id'), nullable=False, index=True)
-    recurring_template_id = Column(Integer, ForeignKey('recurring_templates.id'), nullable=True)
+    club_id = Column(String(36), ForeignKey('clubs.id'), nullable=True, index=True)
+    group_id = Column(String(36), ForeignKey('groups.id'), nullable=True, index=True)
+    creator_id = Column(String(36), ForeignKey('users.id'), nullable=False, index=True)
+    recurring_template_id = Column(String(36), ForeignKey('recurring_templates.id'), nullable=True)
 
     # Activity details
     sport_type = Column(SQLEnum(SportType), default=SportType.RUNNING, nullable=False, index=True)
@@ -249,43 +289,43 @@ class Activity(Base):
 
     # Status
     status = Column(SQLEnum(ActivityStatus), default=ActivityStatus.UPCOMING, nullable=False, index=True)
-    
+
     created_at = Column(DateTime, default=datetime.utcnow)
-    
+
     # Relationships
     club = relationship("Club", back_populates="activities")
     group = relationship("Group", back_populates="activities")
     creator = relationship("User", back_populates="created_activities", foreign_keys=[creator_id])
     recurring_template = relationship("RecurringTemplate", back_populates="activities")
     participations = relationship("Participation", back_populates="activity", cascade="all, delete-orphan")
-    
+
     def __repr__(self):
-        return f"<Activity(title={self.title}, date={self.date}, status={self.status})>"
+        return f"<Activity(title={self.title}, city={self.city}, date={self.date})>"
 
 
 class Participation(Base):
     """Participation model - user's participation in an activity"""
     __tablename__ = 'participations'
-    
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    activity_id = Column(Integer, ForeignKey('activities.id'), nullable=False, index=True)
-    user_id = Column(Integer, ForeignKey('users.id'), nullable=False, index=True)
-    
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    activity_id = Column(String(36), ForeignKey('activities.id'), nullable=False, index=True)
+    user_id = Column(String(36), ForeignKey('users.id'), nullable=False, index=True)
+
     # Participation status
     status = Column(SQLEnum(ParticipationStatus), default=ParticipationStatus.REGISTERED, nullable=False)
-    
+
     # Did they actually show up?
     attended = Column(Boolean, default=False)
-    
+
     # Payment tracking (for paid clubs)
     payment_status = Column(SQLEnum(PaymentStatus), default=PaymentStatus.NOT_REQUIRED, nullable=False)
-    
+
     registered_at = Column(DateTime, default=datetime.utcnow)
-    
+
     # Relationships
     activity = relationship("Activity", back_populates="participations")
     user = relationship("User", back_populates="participations")
-    
+
     def __repr__(self):
         return f"<Participation(activity_id={self.activity_id}, user_id={self.user_id}, status={self.status})>"
 

@@ -9,14 +9,19 @@ class ActivityCreate(BaseModel):
     description: Optional[str] = Field(None, max_length=2000)
     date: datetime = Field(..., description="Activity date and time")
     location: str = Field(..., min_length=2, max_length=200)
+
+    # Location
+    city: str = Field(..., min_length=2, max_length=100, description="City")
+    country: Optional[str] = Field(None, max_length=100, description="Country (optional, defaults to Kazakhstan)")
+
     sport_type: SportType
     difficulty: Difficulty
     distance: Optional[float] = Field(None, ge=0, le=500, description="Distance in km")
     duration: Optional[int] = Field(None, ge=1, le=1440, description="Duration in minutes")
     max_participants: Optional[int] = Field(None, ge=1, le=1000)
     visibility: ActivityVisibility = ActivityVisibility.INVITE_ONLY
-    club_id: Optional[int] = None
-    group_id: Optional[int] = None
+    club_id: Optional[str] = None  # UUID
+    group_id: Optional[str] = None  # UUID
 
     @field_validator('date')
     @classmethod
@@ -77,6 +82,11 @@ class ActivityResponse(BaseResponse):
     description: Optional[str]
     date: datetime
     location: Optional[str]
+
+    # Location
+    country: str
+    city: str
+
     sport_type: SportType
     difficulty: Difficulty
     distance: Optional[float]
@@ -84,9 +94,9 @@ class ActivityResponse(BaseResponse):
     max_participants: Optional[int]
     visibility: ActivityVisibility
     status: ActivityStatus
-    club_id: Optional[int]
-    group_id: Optional[int]
-    creator_id: int
+    club_id: Optional[str]  # UUID
+    group_id: Optional[str]  # UUID
+    creator_id: str  # UUID
 
     # Computed fields
     participants_count: int = 0

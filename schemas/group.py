@@ -6,8 +6,17 @@ class GroupCreate(BaseModel):
     """Schema for creating group"""
     name: str = Field(..., min_length=3, max_length=100)
     description: Optional[str] = Field(None, max_length=1000)
-    club_id: Optional[int] = None
+    club_id: Optional[str] = None  # UUID
+
+    # Location
+    city: str = Field(..., min_length=2, max_length=100)
+    country: Optional[str] = Field(None, max_length=100)
+
+    # Telegram
+    username: Optional[str] = Field(None, max_length=255)
     telegram_chat_id: Optional[str] = None
+    invite_link: Optional[str] = Field(None, max_length=500)
+    photo: Optional[str] = Field(None, max_length=255)
 
 class GroupUpdate(BaseModel):
     """Schema for updating group"""
@@ -18,10 +27,18 @@ class GroupResponse(BaseResponse):
     """Schema for group response"""
     name: str
     description: Optional[str]
-    club_id: Optional[int]
+    club_id: Optional[str]  # UUID
+
+    # Location
+    country: str
+    city: str
+
+    # Telegram
+    username: Optional[str]
     telegram_chat_id: Optional[str]
-    telegram_chat_id: Optional[str]
-    
+    invite_link: Optional[str]
+    photo: Optional[str]
+
     # Computed
     members_count: int = 0
     is_member: bool = False
@@ -34,8 +51,8 @@ class MembershipUpdate(BaseModel):
 
 class MemberResponse(BaseModel):
     """Schema for list of members"""
-    user_id: int
-    telegram_id: int
+    user_id: str  # UUID
+    telegram_id: str  # String for JSON/JS safety
     username: Optional[str]
     first_name: Optional[str]
     name: str

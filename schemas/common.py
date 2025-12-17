@@ -51,7 +51,7 @@ class PaymentStatus(str, Enum):
 # Base response model
 class BaseResponse(BaseModel):
     """Base response with common fields"""
-    id: int
+    id: str  # UUID
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
