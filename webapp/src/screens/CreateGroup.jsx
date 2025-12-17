@@ -90,7 +90,7 @@ export default function CreateGroup() {
                 const payload = {
                     name,
                     description,
-                    club_id: isIndependent || !selectedClub ? null : parseInt(selectedClub),
+                    club_id: isIndependent || !selectedClub ? null : selectedClub,
                     // telegram_chat_id: telegramChat, // Backend needs INT
                     is_open: joinAccess !== 'invite' // Public if not invite-only
                 }

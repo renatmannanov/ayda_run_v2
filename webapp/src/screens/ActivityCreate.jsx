@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import {
     FormInput,
@@ -19,10 +19,13 @@ export default function ActivityCreate() {
     const location = useLocation()
     const context = location.state // May contain pre-selected club/group
 
+    // Debug: log context to see what's passed
+    console.log('🎯 ActivityCreate context:', context)
+
     const { mutate: createActivity, loading } = useCreateActivity()
     const { data: clubs = [] } = useClubs()
-    // Fetch a flat list of all groups, or fetch lazily. 
-    // Let's assume useGroups() fetches all visible groups or user groups. 
+    // Fetch a flat list of all groups, or fetch lazily.
+    // Let's assume useGroups() fetches all visible groups or user groups.
     // Better to fetch all user's groups or just fetch all if list is small.
     // For now let's use useGroups() w/o filter to get all, filter client side for picker.
     const { data: allGroups = [] } = useGroups()
@@ -49,6 +52,21 @@ export default function ActivityCreate() {
     const [showClubPicker, setShowClubPicker] = useState(false)
     const [errors, setErrors] = useState({})
 
+    // Fix for Telegram Desktop WebApp input focus bug
+    useEffect(() => {
+        // Remove any stuck focus
+        if (document.activeElement) {
+            document.activeElement.blur()
+        }
+        // Small delay to ensure Telegram WebApp is ready
+        const timer = setTimeout(() => {
+            if (document.activeElement) {
+                document.activeElement.blur()
+            }
+        }, 100)
+        return () => clearTimeout(timer)
+    }, [])
+
     const validate = () => {
         const newErrors = {}
         if (!title.trim()) newErrors.title = true
@@ -71,8 +89,8 @@ export default function ActivityCreate() {
                     difficulty,
                     max_participants: noLimit ? null : parseInt(maxParticipants),
                     description,
-                    club_id: isPublic || !selectedClub ? null : parseInt(selectedClub),
-                    group_id: isPublic || !selectedGroup ? null : parseInt(selectedGroup)
+                    club_id: isPublic || !selectedClub ? null : selectedClub,
+                    group_id: isPublic || !selectedGroup ? null : selectedGroup
                 })
 
                 alert('Тренировка создана!')
@@ -103,10 +121,9 @@ export default function ActivityCreate() {
         return club.name
     }
 
-    // Get groups for selected club
-    const getGroupsForClub = () => {
-        if (!selectedClub) return []
-        return allGroups.filter(g => g.parentClubId?.toString() === selectedClub)
+    // Get all groups (no filtering by selectedClub)
+    const getAllGroups = () => {
+        return allGroups
     }
 
     // ... (Pickers UI same as before, updated data source from hooks) ...
@@ -170,43 +187,55 @@ export default function ActivityCreate() {
 
                 <div className="border-t border-gray-200 my-3" />
 
+                {/* Clubs */}
                 {clubs.filter(c => c.isMember).map(club => (
-                    <div key={club.id} className="mb-2">
-                        <button
-                            onClick={() => {
-                                setIsPublic(false)
-                                setSelectedClub(club.id.toString())
-                                setSelectedGroup('')
-                                const groups = allGroups.filter(g => g.parentClubId === club.id)
-                                if (groups.length === 0) {
-                                    setShowClubPicker(false)
-                                }
-                            }}
-                            className={`w-full text-left py-3 px-2 rounded-lg transition-colors ${selectedClub === club.id.toString() && !selectedGroup ? 'bg-gray-100' : 'hover:bg-gray-50'
-                                }`}
-                        >
-                            <span className="text-sm text-gray-700">🏆 {club.name}</span>
-                        </button>
+                    <button
+                        key={club.id}
+                        onClick={() => {
+                            setIsPublic(false)
+                            setSelectedClub(club.id.toString())
+                            setSelectedGroup('')
+                            setShowClubPicker(false)
+                        }}
+                        className={`w-full text-left py-3 px-2 rounded-lg mb-2 transition-colors ${selectedClub === club.id.toString() && !selectedGroup ? 'bg-gray-100' : 'hover:bg-gray-50'
+                            }`}
+                    >
+                        <span className="text-sm text-gray-700">🏆 {club.name}</span>
+                    </button>
+                ))}
 
-                        {/* Groups within club */}
-                        {selectedClub === club.id.toString() && (
-                            <div className="ml-6 mt-1">
-                                {getGroupsForClub().map(group => (
-                                    <button
-                                        key={group.id}
-                                        onClick={() => {
-                                            setSelectedGroup(group.id.toString())
-                                            setShowClubPicker(false)
-                                        }}
-                                        className={`w-full text-left py-2 px-2 rounded-lg transition-colors ${selectedGroup === group.id.toString() ? 'bg-gray-100' : 'hover:bg-gray-50'
-                                            }`}
-                                    >
-                                        <span className="text-sm text-gray-600">→ {group.name}</span>
-                                    </button>
-                                ))}
-                            </div>
-                        )}
-                    </div>
+                {/* Groups within clubs */}
+                {getAllGroups().filter(g => g.clubId && g.isMember).map(group => (
+                    <button
+                        key={group.id}
+                        onClick={() => {
+                            setIsPublic(false)
+                            setSelectedClub(group.clubId.toString())
+                            setSelectedGroup(group.id.toString())
+                            setShowClubPicker(false)
+                        }}
+                        className={`w-full text-left py-3 px-2 rounded-lg mb-2 transition-colors ${selectedGroup === group.id.toString() ? 'bg-gray-100' : 'hover:bg-gray-50'
+                            }`}
+                    >
+                        <span className="text-sm text-gray-600">→ {group.name}</span>
+                    </button>
+                ))}
+
+                {/* Independent Groups (clubId === null) */}
+                {getAllGroups().filter(g => !g.clubId && g.isMember).map(group => (
+                    <button
+                        key={group.id}
+                        onClick={() => {
+                            setIsPublic(false)
+                            setSelectedClub('')
+                            setSelectedGroup(group.id.toString())
+                            setShowClubPicker(false)
+                        }}
+                        className={`w-full text-left py-3 px-2 rounded-lg mb-2 transition-colors ${selectedGroup === group.id.toString() ? 'bg-gray-100' : 'hover:bg-gray-50'
+                            }`}
+                    >
+                        <span className="text-sm text-gray-700">👥 {group.name}</span>
+                    </button>
                 ))}
 
                 <button

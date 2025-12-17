@@ -39,6 +39,9 @@ class GroupResponse(BaseResponse):
     invite_link: Optional[str]
     photo: Optional[str]
 
+    # Access control
+    is_open: bool
+
     # Computed
     members_count: int = 0
     is_member: bool = False

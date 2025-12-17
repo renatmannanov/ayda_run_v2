@@ -284,7 +284,9 @@ export default function ClubGroupDetail({ type = 'club' }) {
             <CreateMenu
                 isOpen={showCreateMenu}
                 onClose={() => setShowCreateMenu(false)}
-                context={isClub ? { clubId: item.id, name: item.name } : { groupId: item.id, name: item.name }}
+                context={isClub
+                    ? { clubId: item.id, name: item.name }
+                    : { groupId: item.id, clubId: item.clubId, name: item.name }}
             />
 
             {/* Bottom Navigation */}

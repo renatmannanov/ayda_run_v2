@@ -41,17 +41,31 @@ async function apiFetch(endpoint, options = {}) {
 // ============================================================================
 
 const transformUser = (u) => !u ? null : ({
-    ...u,
+    id: u.id,
+    telegramId: u.telegram_id,
+    username: u.username,
     firstName: u.first_name,
     lastName: u.last_name,
-    telegramId: u.telegram_id,
+    country: u.country,
+    city: u.city,
     createdAt: u.created_at
 })
 
 const transformActivity = (a) => !a ? null : ({
-    ...a,
+    id: a.id,
+    title: a.title,
+    description: a.description,
+    date: a.date,
+    location: a.location,
+    country: a.country,
+    city: a.city,
     sportType: a.sport_type,
+    difficulty: a.difficulty,
+    distance: a.distance,
+    duration: a.duration,
     maxParticipants: a.max_participants,
+    visibility: a.visibility,
+    status: a.status,
     participants: a.participants_count, // Map count to prop expected by UI
     isJoined: a.is_joined,
     clubId: a.club_id,
@@ -67,7 +81,11 @@ const transformActivity = (a) => !a ? null : ({
 })
 
 const transformClub = (c) => !c ? null : ({
-    ...c,
+    id: c.id,
+    name: c.name,
+    description: c.description,
+    country: c.country,
+    city: c.city,
     isPaid: c.is_paid,
     pricePerActivity: c.price_per_activity,
     telegramChatId: c.telegram_chat_id,
@@ -80,7 +98,9 @@ const transformClub = (c) => !c ? null : ({
 })
 
 const transformGroup = (g) => !g ? null : ({
-    ...g,
+    id: g.id,
+    name: g.name,
+    description: g.description,
     clubId: g.club_id,
     telegramChatId: g.telegram_chat_id,
     isOpen: g.is_open,
@@ -92,10 +112,12 @@ const transformGroup = (g) => !g ? null : ({
 })
 
 const transformMember = (m) => !m ? null : ({
-    ...m,
     userId: m.user_id,
     telegramId: m.telegram_id,
+    username: m.username,
     firstName: m.first_name,
+    name: m.name,
+    role: m.role,
     joinedAt: m.joined_at,
     avatar: '👤' // Mock avatar
 })

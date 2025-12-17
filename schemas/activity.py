@@ -20,8 +20,21 @@ class ActivityCreate(BaseModel):
     duration: Optional[int] = Field(None, ge=1, le=1440, description="Duration in minutes")
     max_participants: Optional[int] = Field(None, ge=1, le=1000)
     visibility: ActivityVisibility = ActivityVisibility.INVITE_ONLY
-    club_id: Optional[str] = None  # UUID
-    group_id: Optional[str] = None  # UUID
+    club_id: Optional[int | str] = None  # UUID (temporarily accepts int from frontend bug)
+    group_id: Optional[int | str] = None  # UUID (temporarily accepts int from frontend bug)
+
+    @field_validator('club_id', 'group_id', mode='before')
+    @classmethod
+    def convert_id_to_string(cls, v: Optional[int | str]) -> Optional[str]:
+        """Convert integer ID to string (temporary workaround for frontend bug)"""
+        if v is None:
+            return None
+        if isinstance(v, int):
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning(f"⚠️ FRONTEND BUG: Received integer ID {v} instead of UUID string. Converting to '{v}' but this will likely cause 'not found' error.")
+            return str(v)
+        return v
 
     @field_validator('date')
     @classmethod
@@ -29,14 +42,6 @@ class ActivityCreate(BaseModel):
         """Activity date must be in the future"""
         if v < datetime.now():
             raise ValueError('Activity date must be in the future')
-        return v
-
-    @field_validator('group_id')
-    @classmethod
-    def cannot_have_both_club_and_group(cls, v: Optional[int], info: ValidationInfo) -> Optional[int]:
-        """Activity cannot belong to both club and group"""
-        if v and info.data.get('club_id'):
-            raise ValueError('Activity cannot belong to both club and group')
         return v
 
     model_config = ConfigDict(
