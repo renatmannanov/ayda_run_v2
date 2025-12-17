@@ -55,10 +55,13 @@ def client(db_session):
 @pytest.fixture
 def test_user(db_session):
     """Create a test user"""
+    from app_config.constants import DEFAULT_COUNTRY, DEFAULT_CITY
     user = User(
         telegram_id=12345,
         username="testuser",
         first_name="Test",
+        country=DEFAULT_COUNTRY,
+        city=DEFAULT_CITY,
         has_completed_onboarding=True
     )
     db_session.add(user)

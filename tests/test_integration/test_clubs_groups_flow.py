@@ -20,6 +20,7 @@ def test_club_flow(client, monkeypatch):
         club_data = {
             "name": "Integration Test Club",
             "description": "A club for testing integration flow",
+            "city": "Almaty",  # Required field
             "is_paid": False
         }
         # No headers = trigger dev mode
@@ -43,6 +44,7 @@ def test_club_flow(client, monkeypatch):
         group_data = {
             "name": "Club Runner Group",
             "description": "Group inside club",
+            "city": "Almaty",  # Required field
             "club_id": club_id
         }
         response = client.post("/api/groups", json=group_data)
@@ -77,7 +79,8 @@ def test_standalone_group_flow(client, monkeypatch):
         # 1. Create Standalone Group
         group_data = {
             "name": "Standalone Runners",
-            "description": "Just running, no club"
+            "description": "Just running, no club",
+            "city": "Almaty"  # Required field
         }
         response = client.post("/api/groups", json=group_data)
         assert response.status_code == 201

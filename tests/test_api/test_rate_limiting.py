@@ -16,8 +16,9 @@ def test_rate_limit_on_create_activity(client, monkeypatch):
     activity_data = {
         "title": "Test Activity",
         "date": (datetime.now() + timedelta(days=1)).isoformat(),
-        "sport_type": "running", 
+        "sport_type": "running",
         "location": "Test Location",
+        "city": "Almaty",  # Required field
         "difficulty": "easy"
     }
 

@@ -20,6 +20,7 @@ def test_create_and_join_activity_flow(client, auth_headers, test_user, monkeypa
             "title": "Integration Test Run",
             "date": (datetime.now() + timedelta(days=1)).isoformat(),
             "location": "Test Park",
+            "city": "Almaty",  # Required field
             "sport_type": "running",
             "difficulty": "easy"
         }
