@@ -59,8 +59,15 @@ async def create_activity(
             )
 
     # Create activity
+    from app_config.constants import DEFAULT_COUNTRY
+
+    activity_dict = activity_data.model_dump()
+    # Set default country if not provided
+    if not activity_dict.get('country'):
+        activity_dict['country'] = DEFAULT_COUNTRY
+
     activity = Activity(
-        **activity_data.model_dump(),
+        **activity_dict,
         creator_id=current_user.id,
         status=ActivityStatus.UPCOMING
     )

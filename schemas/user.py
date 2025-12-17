@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, field_serializer
 from typing import Optional
 from datetime import datetime
 from .common import ParticipationStatus
@@ -12,6 +12,11 @@ class UserResponse(BaseModel):
     username: Optional[str]
     first_name: Optional[str]
     last_name: Optional[str]
+
+    @field_serializer('telegram_id')
+    def serialize_telegram_id(self, telegram_id: int | str) -> str:
+        """Convert telegram_id to string for JSON safety"""
+        return str(telegram_id)
 
     # Location
     country: str
@@ -44,3 +49,8 @@ class ParticipantResponse(BaseModel):
     status: ParticipationStatus
     attended: bool
     registered_at: datetime
+
+    @field_serializer('telegram_id')
+    def serialize_telegram_id(self, telegram_id: int | str) -> str:
+        """Convert telegram_id to string for JSON safety"""
+        return str(telegram_id)

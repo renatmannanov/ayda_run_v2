@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_serializer
 from typing import Optional
 from .common import BaseResponse, UserRole
 
@@ -58,3 +58,8 @@ class MemberResponse(BaseModel):
     name: str
     role: UserRole
     joined_at: Optional[str] = None  # datetime to str if needed
+
+    @field_serializer('telegram_id')
+    def serialize_telegram_id(self, telegram_id: int | str) -> str:
+        """Convert telegram_id to string for JSON safety"""
+        return str(telegram_id)
