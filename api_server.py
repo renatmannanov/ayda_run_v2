@@ -95,21 +95,26 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
     Custom handler for validation errors (422)
     Logs detailed information about validation failures for debugging
     """
-    # Get request body for logging
+    # Get body from exception if available
+    body_str = "Body not available"
     try:
-        body = await request.body()
-        body_str = body.decode('utf-8') if body else "No body"
+        if hasattr(exc, 'body'):
+            body_str = str(exc.body)
     except:
-        body_str = "Could not read body"
+        pass
 
-    # Log detailed error information
+    # Log detailed error information with proper formatting
+    error_details = {
+        "method": request.method,
+        "path": str(request.url.path),
+        "errors": exc.errors(),
+        "body": body_str
+    }
+
     logger.error(
-        f"Validation Error on {request.method} {request.url.path}",
-        extra={
-            "errors": exc.errors(),
-            "body": body_str,
-            "headers": dict(request.headers)
-        }
+        f"❌ VALIDATION ERROR: {request.method} {request.url.path}\n"
+        f"Errors: {json.dumps(exc.errors(), indent=2, default=str)}\n"
+        f"Body: {body_str}"
     )
 
     # Return user-friendly error with details

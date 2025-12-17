@@ -265,7 +265,7 @@ def get_group_members(
             first_name=user.first_name,
             name=display_name,
             role=membership.role,
-            joined_at=membership.joined_at
+            joined_at=membership.joined_at.isoformat() if membership.joined_at else None
         ))
 
     return result
