@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from typing import Optional
 from .common import BaseResponse
 
@@ -10,14 +10,15 @@ class ClubCreate(BaseModel):
     price_per_activity: Optional[float] = Field(None, ge=0, le=10000)
     telegram_chat_id: Optional[str] = None
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "name": "Беговой клуб Алматы",
                 "description": "Дружеский беговой клуб для всех уровней",
                 "is_paid": False
             }
         }
+    )
 
 class ClubUpdate(BaseModel):
     """Schema for updating club"""

@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, field_validator, ValidationInfo
+from pydantic import BaseModel, ConfigDict, Field, field_validator, ValidationInfo
 from datetime import datetime
 from typing import Optional
 from .common import SportType, Difficulty, BaseResponse, ActivityVisibility, ActivityStatus
@@ -34,8 +34,8 @@ class ActivityCreate(BaseModel):
             raise ValueError('Activity cannot belong to both club and group')
         return v
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "title": "Утренняя пробежка",
                 "description": "Легкая пробежка в парке",
@@ -48,6 +48,7 @@ class ActivityCreate(BaseModel):
                 "max_participants": 10
             }
         }
+    )
 
 class ActivityUpdate(BaseModel):
     """Schema for updating activity"""
