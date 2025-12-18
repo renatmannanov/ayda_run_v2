@@ -15,13 +15,18 @@ from telegram.ext import (
 )
 
 from storage.user_storage import UserStorage
+from storage.club_storage import ClubStorage
+from storage.group_storage import GroupStorage
+from storage.membership_storage import MembershipStorage
 from config import settings
 from bot.keyboards import (
     get_consent_keyboard,
     get_sports_selection_keyboard,
     get_role_selection_keyboard,
     get_intro_done_keyboard,
-    get_webapp_button
+    get_webapp_button,
+    get_club_invitation_keyboard,
+    get_group_invitation_keyboard
 )
 from bot.messages import (
     get_welcome_message,
@@ -31,7 +36,14 @@ from bot.messages import (
     get_intro_message,
     get_completion_message,
     get_returning_user_message,
-    get_onboarding_cancelled_message
+    get_onboarding_cancelled_message,
+    format_club_invitation_message,
+    format_group_invitation_message,
+    format_existing_user_club_invitation,
+    format_existing_user_group_invitation,
+    get_club_not_found_message,
+    get_group_not_found_message,
+    get_join_success_message
 )
 
 logger = logging.getLogger(__name__)
@@ -43,14 +55,112 @@ SELECTING_ROLE = 3
 SHOWING_INTRO = 4
 
 
+async def handle_existing_user_invitation(update: Update, context: ContextTypes.DEFAULT_TYPE,
+                                          user, invitation_type: str, invitation_id: str) -> int:
+    """
+    Handle invitation for existing user who already completed onboarding.
+
+    Shows short flow: Welcome back + entity info + Join/Decline buttons.
+    """
+    try:
+        if invitation_type == "club":
+            with ClubStorage() as club_storage:
+                club_data = club_storage.get_club_preview(invitation_id)
+
+                if not club_data:
+                    await update.message.reply_text(get_club_not_found_message())
+                    return ConversationHandler.END
+
+                # Check if already member
+                with MembershipStorage() as membership_storage:
+                    if membership_storage.is_member_of_club(user.id, invitation_id):
+                        await update.message.reply_text(
+                            f"👋 Ты уже участник клуба {club_data['name']}!\n\n"
+                            "Открой приложение, чтобы посмотреть расписание тренировок."
+                        )
+                        webapp_url = f"{settings.app_url}?startapp=club_{invitation_id}"
+                        await update.message.reply_text(
+                            "Открой приложение:",
+                            reply_markup=get_webapp_button(webapp_url, f"🚀 Открыть {club_data['name']}")
+                        )
+                        return ConversationHandler.END
+
+                # Show invitation
+                message = format_existing_user_club_invitation(user.first_name, club_data)
+                await update.message.reply_text(
+                    message,
+                    reply_markup=get_club_invitation_keyboard(is_existing_user=True)
+                )
+
+        else:  # group
+            with GroupStorage() as group_storage:
+                group_data = group_storage.get_group_preview(invitation_id)
+
+                if not group_data:
+                    await update.message.reply_text(get_group_not_found_message())
+                    return ConversationHandler.END
+
+                # Check if already member
+                with MembershipStorage() as membership_storage:
+                    if membership_storage.is_member_of_group(user.id, invitation_id):
+                        await update.message.reply_text(
+                            f"👋 Ты уже участник группы {group_data['name']}!\n\n"
+                            "Открой приложение, чтобы посмотреть расписание тренировок."
+                        )
+                        webapp_url = f"{settings.app_url}?startapp=group_{invitation_id}"
+                        await update.message.reply_text(
+                            "Открой приложение:",
+                            reply_markup=get_webapp_button(webapp_url, f"🚀 Открыть {group_data['name']}")
+                        )
+                        return ConversationHandler.END
+
+                # Show invitation
+                message = format_existing_user_group_invitation(user.first_name, group_data)
+                await update.message.reply_text(
+                    message,
+                    reply_markup=get_group_invitation_keyboard(is_existing_user=True)
+                )
+
+        return ConversationHandler.END
+
+    except Exception as e:
+        logger.error(f"Error handling existing user invitation: {e}", exc_info=True)
+        await update.message.reply_text("Произошла ошибка. Попробуй позже.")
+        return ConversationHandler.END
+
+
 async def start_onboarding(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """
-    Entry point for /start command (without parameters).
+    Entry point for /start command.
+
+    Supports deep links:
+    - /start club_UUID - invitation to club
+    - /start group_UUID - invitation to group
 
     Checks if user exists and has completed onboarding.
     If not, starts onboarding flow.
     """
     telegram_user = update.effective_user
+
+    # Parse deep link parameters
+    invitation_type = None
+    invitation_id = None
+
+    if context.args and len(context.args) > 0:
+        param = context.args[0]
+        if param.startswith("club_"):
+            invitation_type = "club"
+            invitation_id = param[5:]  # Remove "club_" prefix
+            logger.info(f"User {telegram_user.id} clicked club invitation: {invitation_id}")
+        elif param.startswith("group_"):
+            invitation_type = "group"
+            invitation_id = param[6:]  # Remove "group_" prefix
+            logger.info(f"User {telegram_user.id} clicked group invitation: {invitation_id}")
+
+    # Store invitation info in context
+    if invitation_type:
+        context.user_data['invitation_type'] = invitation_type
+        context.user_data['invitation_id'] = invitation_id
 
     logger.info(f"User {telegram_user.id} (@{telegram_user.username}) started onboarding")
 
@@ -66,6 +176,12 @@ async def start_onboarding(update: Update, context: ContextTypes.DEFAULT_TYPE) -
         # Check if user already completed onboarding
         if user.has_completed_onboarding:
             logger.info(f"User {telegram_user.id} already completed onboarding")
+
+            # If has invitation - show invitation flow for existing user
+            if invitation_type:
+                return await handle_existing_user_invitation(update, context, user, invitation_type, invitation_id)
+
+            # No invitation - show regular welcome back
             await update.message.reply_text(
                 get_returning_user_message(user.first_name)
             )
@@ -76,11 +192,42 @@ async def start_onboarding(update: Update, context: ContextTypes.DEFAULT_TYPE) -
             )
             return ConversationHandler.END
 
-    # Start onboarding - show welcome message with consent request
-    await update.message.reply_text(
-        get_welcome_message(telegram_user.first_name),
-        reply_markup=get_consent_keyboard()
-    )
+    # Start onboarding
+    # If has invitation - show combined message (invitation + app intro)
+    if invitation_type:
+        try:
+            if invitation_type == "club":
+                with ClubStorage() as club_storage:
+                    entity_data = club_storage.get_club_preview(invitation_id)
+                    if not entity_data:
+                        await update.message.reply_text(get_club_not_found_message())
+                        return ConversationHandler.END
+                    message = format_club_invitation_message(telegram_user.first_name, entity_data)
+            else:  # group
+                with GroupStorage() as group_storage:
+                    entity_data = group_storage.get_group_preview(invitation_id)
+                    if not entity_data:
+                        await update.message.reply_text(get_group_not_found_message())
+                        return ConversationHandler.END
+                    message = format_group_invitation_message(telegram_user.first_name, entity_data)
+
+            await update.message.reply_text(
+                message,
+                reply_markup=get_consent_keyboard()
+            )
+        except Exception as e:
+            logger.error(f"Error showing invitation: {e}", exc_info=True)
+            # Fallback to regular onboarding
+            await update.message.reply_text(
+                get_welcome_message(telegram_user.first_name),
+                reply_markup=get_consent_keyboard()
+            )
+    else:
+        # Regular onboarding without invitation
+        await update.message.reply_text(
+            get_welcome_message(telegram_user.first_name),
+            reply_markup=get_consent_keyboard()
+        )
 
     return AWAITING_CONSENT
 
@@ -233,25 +380,72 @@ async def complete_onboarding(update: Update, context: ContextTypes.DEFAULT_TYPE
     Complete onboarding flow.
 
     Mark user as onboarded and show completion message with WebApp button.
+    If user came via invitation - automatically add to club/group.
     """
     query = update.callback_query
     await query.answer()
 
     telegram_user = query.from_user
+    invitation_type = context.user_data.get('invitation_type')
+    invitation_id = context.user_data.get('invitation_id')
 
     # Mark onboarding as complete
     with UserStorage() as user_storage:
         user = user_storage.get_user_by_telegram_id(telegram_user.id)
-        if user:
-            user_storage.mark_onboarding_complete(user.id)
-            logger.info(f"User {telegram_user.id} completed onboarding")
+        if not user:
+            await query.edit_message_text("Произошла ошибка")
+            return ConversationHandler.END
 
-            # Show completion message
+        user_storage.mark_onboarding_complete(user.id)
+        logger.info(f"User {telegram_user.id} completed onboarding")
+
+        # If has invitation - automatically add to club/group
+        if invitation_type and invitation_id:
+            try:
+                with MembershipStorage() as membership_storage:
+                    if invitation_type == "club":
+                        membership_storage.add_member_to_club(user.id, invitation_id)
+                        logger.info(f"Auto-joined user {user.id} to club {invitation_id}")
+
+                        with ClubStorage() as club_storage:
+                            entity_data = club_storage.get_club_preview(invitation_id)
+                            entity_name = entity_data['name'] if entity_data else "клуб"
+                            webapp_url = f"{settings.app_url}?startapp=club_{invitation_id}"
+                    else:  # group
+                        membership_storage.add_member_to_group(user.id, invitation_id)
+                        logger.info(f"Auto-joined user {user.id} to group {invitation_id}")
+
+                        with GroupStorage() as group_storage:
+                            entity_data = group_storage.get_group_preview(invitation_id)
+                            entity_name = entity_data['name'] if entity_data else "группу"
+                            webapp_url = f"{settings.app_url}?startapp=group_{invitation_id}"
+
+                # Success message for invitation
+                await query.edit_message_text(
+                    get_join_success_message(entity_name, "клуба" if invitation_type == "club" else "группы")
+                )
+
+                await query.message.reply_text(
+                    "Открой приложение:",
+                    reply_markup=get_webapp_button(webapp_url, f"🚀 Открыть {entity_name}")
+                )
+
+            except Exception as e:
+                logger.error(f"Error auto-joining after onboarding: {e}", exc_info=True)
+                # Fallback to regular completion
+                await query.edit_message_text(
+                    get_completion_message(user.first_name, user.username)
+                )
+                await query.message.reply_text(
+                    "Открой приложение:",
+                    reply_markup=get_webapp_button(settings.app_url)
+                )
+        else:
+            # Regular completion without invitation
             await query.edit_message_text(
                 get_completion_message(user.first_name, user.username)
             )
 
-            # Show WebApp button
             await query.message.reply_text(
                 "Открой приложение:",
                 reply_markup=get_webapp_button(settings.app_url)

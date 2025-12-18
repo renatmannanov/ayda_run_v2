@@ -10,19 +10,21 @@
 ### P0 - Критично (Must Have)
 
 #### 1. Telegram Bot Onboarding 🤖
-**Статус:** Not Started
+**Статус:** ✅ Phase 1-2 Complete (Testing Required)
 **Описание:** Онбординг через Telegram бота (текстовый формат)
 
-**User Flow:**
-1. `/start` → бот проверяет есть ли user в БД
-2. Если нет → текстовое сообщение с просьбой выбрать виды спорта
-3. Пользователь выбирает (можно несколько)
-4. Бот сохраняет в `preferred_sports`, устанавливает `city = "Almaty"`
-5. Показывает кнопку WebApp "🏃 Открыть Ayda Run"
+**Реализовано:**
+- ✅ Flow 1: Participant self-registration (consent, sports, role, intro)
+- ✅ Flow 2A/2B: Club and Group invitations via deep links
+- ✅ `/start club_UUID` - invitation to club
+- ✅ `/start group_UUID` - invitation to group
+- ✅ Storage layer (UserStorage, ClubStorage, GroupStorage, MembershipStorage)
+- ✅ Keyboards, messages, validators
+- ✅ Bot integration into api_server.py via webhook
 
-**Invite Links:**
-- `/start club_123` → автоматически присоединяет к клубу после онбординга
-- `/start group_456` → автоматически присоединяет к группе
+**TODO:**
+- ⏳ Flow 3: Organizer club creation (Phase 3)
+- ⏳ Testing Phase 2 (invitations)
 
 ---
 

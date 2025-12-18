@@ -27,6 +27,7 @@ from telegram import Update
 from telegram.ext import Application, CommandHandler
 from bot.start_handler import start
 from bot.onboarding_handler import onboarding_conv_handler
+from bot.invitation_handler import join_invitation_handlers
 
 # Logger setup (needed before lifespan)
 logging.basicConfig(
@@ -54,8 +55,11 @@ async def lifespan(app: FastAPI):
     # because ConversationHandler also handles /start command
     bot_app.add_handler(onboarding_conv_handler)
 
+    # Phase 2: Invitation handlers for existing users
+    for handler in join_invitation_handlers:
+        bot_app.add_handler(handler)
+
     # TODO: Add more handlers as we implement other features
-    # - Invitation handler (Phase 2)
     # - Organizer handler (Phase 3)
 
     # Initialize bot (but don't start polling - we use webhook)
