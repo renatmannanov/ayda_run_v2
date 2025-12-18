@@ -10,7 +10,7 @@
 ### P0 - Критично (Must Have)
 
 #### 1. Telegram Bot Onboarding 🤖
-**Статус:** ✅ Phase 1-2 Complete (Testing Required)
+**Статус:** ✅ Phase 1-2 Complete & Tested
 **Описание:** Онбординг через Telegram бота (текстовый формат)
 
 **Реализовано:**
@@ -21,10 +21,10 @@
 - ✅ Storage layer (UserStorage, ClubStorage, GroupStorage, MembershipStorage)
 - ✅ Keyboards, messages, validators
 - ✅ Bot integration into api_server.py via webhook
+- ✅ Tested with real invitations (clubs & groups)
 
 **TODO:**
 - ⏳ Flow 3: Organizer club creation (Phase 3)
-- ⏳ Testing Phase 2 (invitations)
 
 ---
 
@@ -65,6 +65,14 @@
 ---
 
 ## ✅ Выполненные задачи
+
+### 2025-12-18 - Telegram Bot Onboarding Phase 1-2
+- ✅ Flow 1: Participant self-registration (consent, sports, role, intro)
+- ✅ Flow 2A/2B: Club and Group invitations via deep links
+- ✅ Storage layer (UserStorage, ClubStorage, GroupStorage, MembershipStorage)
+- ✅ Bot keyboards, messages, validators
+- ✅ Webhook integration into api_server.py
+- ✅ Testing with real club/group invitations
 
 ### 2025-12-18 - Bug Fixes & Features (PLAN_11)
 - ✅ Блокировка прошлых дат в date picker
