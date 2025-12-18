@@ -61,6 +61,7 @@ class MemberResponse(BaseModel):
     name: str
     role: UserRole
     joined_at: Optional[str] = None  # datetime to str if needed
+    preferred_sports: Optional[str] = None  # JSON string of sport preferences
 
     @field_serializer('telegram_id', when_used='always')
     def serialize_telegram_id(self, telegram_id: int | str) -> str:

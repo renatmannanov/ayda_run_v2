@@ -364,7 +364,8 @@ async def get_participants(
             name=display_name,
             status=participation.status,
             attended=participation.attended,
-            registered_at=participation.registered_at
+            registered_at=participation.registered_at,
+            preferred_sports=user.preferred_sports
         ))
 
     return result

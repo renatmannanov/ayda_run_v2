@@ -48,7 +48,8 @@ const transformUser = (u) => !u ? null : ({
     lastName: u.last_name,
     country: u.country,
     city: u.city,
-    createdAt: u.created_at
+    createdAt: u.created_at,
+    preferredSports: u.preferred_sports
 })
 
 const transformActivity = (a) => !a ? null : ({
@@ -76,8 +77,9 @@ const transformActivity = (a) => !a ? null : ({
     createdAt: a.created_at,
     isPast: new Date(a.date) < new Date(),
     icon: (a.sport_type === 'running' || !a.sport_type) ? '🏃' :
-        a.sport_type === 'cycling' ? '🚴' :
-            a.sport_type === 'hiking' ? '🥾' : '🏃'
+        a.sport_type === 'trail' ? '⛰️' :
+            a.sport_type === 'cycling' ? '🚴' :
+                a.sport_type === 'hiking' ? '🥾' : '🏃'
 })
 
 const transformClub = (c) => !c ? null : ({
@@ -119,7 +121,9 @@ const transformMember = (m) => !m ? null : ({
     name: m.name,
     role: m.role,
     joinedAt: m.joined_at,
-    avatar: '👤' // Mock avatar
+    avatar: '👤', // Mock avatar
+    preferredSports: m.preferred_sports,
+    isOrganizer: m.role === 'admin' || m.role === 'organizer'
 })
 
 
@@ -145,7 +149,8 @@ export const api = {
 // ============================================================================
 
 export const usersApi = {
-    getMe: () => apiFetch('/users/me').then(transformUser)
+    getMe: () => apiFetch('/users/me').then(transformUser),
+    getStats: () => apiFetch('/users/me/stats')
 }
 
 // ============================================================================

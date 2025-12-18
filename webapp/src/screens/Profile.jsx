@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { BottomNav, CreateMenu, LoadingScreen, ErrorScreen } from '../components'
 import { usersApi, tg } from '../api'
 import { useApi, useClubs, useGroups } from '../hooks'
+import { SPORT_TYPES } from '../constants/sports'
 
 export default function Profile() {
     const navigate = useNavigate()
@@ -31,13 +32,31 @@ export default function Profile() {
     const [showStats, setShowStats] = useState(false)
     const [showCreateMenu, setShowCreateMenu] = useState(false)
 
-    // Mock stats - backend endpoint missing
+    // Fetch user stats from backend
+    const { data: statsData } = useApi(usersApi.getStats)
+
     const stats = {
-        totalActivities: 42,
-        attended: 38,
-        missed: 4,
-        attendanceRate: 90
+        totalActivities: statsData?.totalActivities || 0,
+        attended: statsData?.completedActivities || 0,
+        missed: (statsData?.totalActivities || 0) - (statsData?.completedActivities || 0),
+        attendanceRate: statsData?.attendanceRate || 0
     }
+
+    // Parse user's preferred sports and get icons
+    const getUserSportIcons = () => {
+        try {
+            if (!userProfile?.preferredSports) return null
+            const sports = JSON.parse(userProfile.preferredSports)
+            return sports.map(sportId => {
+                const sport = SPORT_TYPES.find(s => s.id === sportId)
+                return sport?.icon || null
+            }).filter(Boolean)
+        } catch {
+            return null
+        }
+    }
+
+    const sportIcons = getUserSportIcons()
 
     // Mini Club Card
     const MiniClubCard = ({ club }) => (
@@ -187,19 +206,21 @@ export default function Profile() {
                     </button>
 
                     <button className="w-full px-4 py-4 flex items-center gap-3 hover:bg-gray-50 transition-colors border-b border-gray-100">
-                        <span className="text-lg">🔔</span>
-                        <span className="text-sm text-gray-700 flex-1 text-left">Уведомления</span>
-                        <span className="text-gray-300">→</span>
-                    </button>
-
-                    <button className="w-full px-4 py-4 flex items-center gap-3 hover:bg-gray-50 transition-colors border-b border-gray-100">
                         <span className="text-lg">🎨</span>
                         <span className="text-sm text-gray-700 flex-1 text-left">Виды спорта</span>
-                        <span className="text-sm text-gray-400">Running</span>
+                        {sportIcons && sportIcons.length > 0 ? (
+                            <div className="flex gap-1">
+                                {sportIcons.map((icon, idx) => (
+                                    <span key={idx} className="text-lg">{icon}</span>
+                                ))}
+                            </div>
+                        ) : (
+                            <span className="text-sm text-gray-400">Не выбрано</span>
+                        )}
                         <span className="text-gray-300">→</span>
                     </button>
 
-                    <button className="w-full px-4 py-4 flex items-center gap-3 hover:bg-gray-50 transition-colors">
+                    <button className="w-full px-4 py-4 flex items-center gap-3 opacity-40 cursor-not-allowed">
                         <span className="text-lg">⚙️</span>
                         <span className="text-sm text-gray-700 flex-1 text-left">Настройки</span>
                         <span className="text-gray-300">→</span>

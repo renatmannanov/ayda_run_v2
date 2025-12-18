@@ -28,12 +28,9 @@ export default function ActivityCard({ activity, onJoinToggle }) {
 
         if (activity.isJoined) {
             return (
-                <button
-                    onClick={handleActionClick}
-                    className="text-sm text-green-600 font-medium"
-                >
-                    Иду ✓
-                </button>
+                <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center text-green-600">
+                    <span className="text-lg">✓</span>
+                </div>
             )
         }
 
@@ -42,12 +39,9 @@ export default function ActivityCard({ activity, onJoinToggle }) {
         }
 
         return (
-            <button
-                onClick={handleActionClick}
-                className="text-sm text-gray-600 hover:text-gray-800 transition-colors"
-            >
-                Записаться
-            </button>
+            <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-600">
+                <span className="text-lg">+</span>
+            </div>
         )
     }
 

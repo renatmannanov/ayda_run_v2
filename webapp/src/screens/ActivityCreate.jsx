@@ -304,6 +304,7 @@ export default function ActivityCreate() {
                         <input
                             type="date"
                             value={date}
+                            min={new Date().toISOString().split('T')[0]}
                             onChange={(e) => setDate(e.target.value)}
                             className={`w-full px-4 py-3 border rounded-xl text-sm text-gray-800 outline-none transition-colors ${errors.date ? 'border-red-300 bg-red-50' : 'border-gray-200 focus:border-gray-400'
                                 }`}

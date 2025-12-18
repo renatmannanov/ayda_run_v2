@@ -37,6 +37,14 @@ class UserResponse(BaseModel):
     # Timestamps
     created_at: datetime
 
+class UserStatsResponse(BaseModel):
+    """Response model for user statistics"""
+    total_activities: int  # Total activities joined
+    completed_activities: int  # Activities attended
+    total_distance: float  # Sum of distances
+    most_frequent_sport: Optional[str]  # Most frequent sport type
+    attendance_rate: int  # Percentage of completed activities
+
 class ParticipantResponse(BaseModel):
     """Response model for participant"""
     model_config = ConfigDict(from_attributes=True)
@@ -49,6 +57,7 @@ class ParticipantResponse(BaseModel):
     status: ParticipationStatus
     attended: bool
     registered_at: datetime
+    preferred_sports: Optional[str] = None  # JSON string of sport preferences
 
     @field_serializer('telegram_id', when_used='always')
     def serialize_telegram_id(self, telegram_id: int | str) -> str:

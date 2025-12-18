@@ -77,7 +77,7 @@ export default function ClubGroupDetail({ type = 'club' }) {
     // Combine list (only one will be populated)
     const participants = (isClub ? clubMembers : groupMembers) || []
 
-    const upcomingActivities = activities.filter(a => !a.isPast).slice(0, 3)
+    const upcomingActivities = activities.filter(a => !a.isPast)
 
     const toggleMembership = async () => {
         try {
@@ -256,7 +256,7 @@ export default function ClubGroupDetail({ type = 'club' }) {
                 {/* Upcoming Activities */}
                 {upcomingActivities.length > 0 ? (
                     <div className="mb-4">
-                        <p className="text-sm text-gray-500 mb-3">Ближайшие тренировки</p>
+                        <p className="text-sm text-gray-500 mb-3">Тренировки</p>
                         {upcomingActivities.map(activity => (
                             <ActivityCard key={activity.id} activity={activity} />
                         ))}

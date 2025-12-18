@@ -232,11 +232,62 @@ async def health_check():
 # ============================================================================
 
 # UserResponse imported from schemas
+from schemas.user import UserStatsResponse
+from storage.db import Participation, Activity
+from sqlalchemy import func
 
 @app.get("/api/users/me", response_model=UserResponse)
 async def get_me(current_user: User = Depends(get_current_user)):
     """Get current user profile"""
     return current_user
+
+
+@app.get("/api/users/me/stats", response_model=UserStatsResponse)
+async def get_user_stats(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Get user statistics"""
+    # Get all participations for current user
+    participations = db.query(Participation).filter(
+        Participation.user_id == current_user.id
+    ).all()
+
+    total_activities = len(participations)
+    completed_activities = sum(1 for p in participations if p.attended)
+
+    # Calculate attendance rate
+    attendance_rate = 0
+    if total_activities > 0:
+        attendance_rate = int((completed_activities / total_activities) * 100)
+
+    # Calculate total distance from activities where user participated
+    total_distance = 0.0
+    sport_counts = {}
+
+    for participation in participations:
+        activity = db.query(Activity).filter(Activity.id == participation.activity_id).first()
+        if activity:
+            # Add distance
+            if activity.distance:
+                total_distance += activity.distance
+
+            # Count sport types
+            if activity.sport_type:
+                sport_counts[activity.sport_type] = sport_counts.get(activity.sport_type, 0) + 1
+
+    # Find most frequent sport
+    most_frequent_sport = None
+    if sport_counts:
+        most_frequent_sport = max(sport_counts, key=sport_counts.get)
+
+    return UserStatsResponse(
+        total_activities=total_activities,
+        completed_activities=completed_activities,
+        total_distance=round(total_distance, 1),
+        most_frequent_sport=most_frequent_sport,
+        attendance_rate=attendance_rate
+    )
 
 
 class OnboardingData(BaseModel):
