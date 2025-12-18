@@ -251,3 +251,61 @@ def get_declined_invitation_keyboard() -> InlineKeyboardMarkup:
         [InlineKeyboardButton("🔍 Посмотреть тренировки", callback_data="explore_activities")]
     ]
     return InlineKeyboardMarkup(keyboard)
+
+
+def get_club_form_start_keyboard() -> InlineKeyboardMarkup:
+    """
+    Keyboard to start filling club creation form.
+
+    Returns:
+        InlineKeyboardMarkup with start/back buttons
+    """
+    keyboard = [
+        [InlineKeyboardButton("📝 Заполнить заявку", callback_data="form_start")],
+        [InlineKeyboardButton("← Назад", callback_data="form_back")],
+    ]
+    return InlineKeyboardMarkup(keyboard)
+
+
+def get_telegram_group_keyboard() -> InlineKeyboardMarkup:
+    """
+    Keyboard for Telegram group connection option.
+
+    Returns:
+        InlineKeyboardMarkup with connect/skip buttons
+    """
+    keyboard = [
+        [InlineKeyboardButton("🔗 Хочу подключить чат", callback_data="telegram_connect")],
+        [InlineKeyboardButton("⏭ Пока пропустить", callback_data="telegram_skip")],
+    ]
+    return InlineKeyboardMarkup(keyboard)
+
+
+def get_contact_method_keyboard() -> InlineKeyboardMarkup:
+    """
+    Keyboard for contact method selection.
+
+    Returns:
+        InlineKeyboardMarkup with contact options
+    """
+    keyboard = [
+        [InlineKeyboardButton("✅ Пиши в Telegram", callback_data="contact_telegram")],
+        [InlineKeyboardButton("📱 Указать телефон/WhatsApp", callback_data="contact_phone")],
+    ]
+    return InlineKeyboardMarkup(keyboard)
+
+
+def get_club_request_summary_keyboard() -> InlineKeyboardMarkup:
+    """
+    Keyboard for club request summary confirmation.
+
+    Returns:
+        InlineKeyboardMarkup with submit/edit buttons
+    """
+    keyboard = [
+        [
+            InlineKeyboardButton("✅ Отправить", callback_data="request_submit"),
+            InlineKeyboardButton("✏️ Исправить", callback_data="request_edit"),
+        ]
+    ]
+    return InlineKeyboardMarkup(keyboard)

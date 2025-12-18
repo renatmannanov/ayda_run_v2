@@ -475,3 +475,70 @@ def get_invalid_input_message(field_name: str) -> str:
     return f"""❌ Некорректный ввод для поля "{field_name}".
 
 Попробуй ещё раз."""
+
+
+# ============= FUNCTION ALIASES FOR ORGANIZER HANDLER =============
+
+def get_org_welcome_message() -> str:
+    """Alias for get_organizer_choice_message"""
+    return get_organizer_choice_message()
+
+
+def get_club_creation_info_message() -> str:
+    """Alias for get_club_creation_intro_message"""
+    return get_club_creation_intro_message()
+
+
+def get_club_name_prompt() -> str:
+    """Alias for get_club_name_request_message"""
+    return get_club_name_request_message()
+
+
+def get_club_description_prompt(club_name: str) -> str:
+    """Alias for get_club_description_request_message"""
+    return get_club_description_request_message(club_name)
+
+
+def get_club_sports_prompt() -> str:
+    """Alias for get_club_sports_request_message"""
+    return get_club_sports_request_message()
+
+
+def get_club_members_count_prompt() -> str:
+    """Alias for get_club_members_count_request_message"""
+    return get_club_members_count_request_message()
+
+
+def get_club_groups_count_prompt() -> str:
+    """Alias for get_club_groups_count_request_message"""
+    return get_club_groups_count_request_message()
+
+
+def get_club_telegram_group_prompt() -> str:
+    """Alias for get_club_telegram_request_message"""
+    return get_club_telegram_request_message()
+
+
+def get_club_telegram_instructions() -> str:
+    """Alias for get_club_telegram_instructions_message"""
+    return get_club_telegram_instructions_message()
+
+
+def get_club_contact_prompt(username: str = None) -> str:
+    """Alias for get_club_contact_request_message"""
+    return get_club_contact_request_message(username)
+
+
+def get_club_request_summary(form_data: Dict[str, Any]) -> str:
+    """Alias for format_club_confirmation_message"""
+    return format_club_confirmation_message(form_data)
+
+
+def get_club_request_success_message() -> str:
+    """Alias for get_club_request_submitted_message"""
+    return get_club_request_submitted_message()
+
+
+def get_group_creation_redirect_message() -> str:
+    """Alias for get_group_creation_message"""
+    return get_group_creation_message()

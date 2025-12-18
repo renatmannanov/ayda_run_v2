@@ -28,6 +28,8 @@ from telegram.ext import Application, CommandHandler
 from bot.start_handler import start
 from bot.onboarding_handler import onboarding_conv_handler
 from bot.invitation_handler import join_invitation_handlers
+from bot.organizer_handler import organizer_conv_handler
+from bot.admin_notifications import handle_admin_approval
 
 # Logger setup (needed before lifespan)
 logging.basicConfig(
@@ -59,8 +61,17 @@ async def lifespan(app: FastAPI):
     for handler in join_invitation_handlers:
         bot_app.add_handler(handler)
 
-    # TODO: Add more handlers as we implement other features
-    # - Organizer handler (Phase 3)
+    # Phase 3: Organizer handler for club creation
+    bot_app.add_handler(organizer_conv_handler)
+
+    # Admin handlers for club request approval/rejection
+    from telegram.ext import CallbackQueryHandler
+    bot_app.add_handler(
+        CallbackQueryHandler(
+            lambda update, context: handle_admin_approval(context.bot, update.callback_query),
+            pattern="^(approve_club_|reject_club_)"
+        )
+    )
 
     # Initialize bot (but don't start polling - we use webhook)
     await bot_app.initialize()

@@ -270,3 +270,35 @@ class ClubStorage:
             self.session.rollback()
             logger.error(f"Error in reject_club_request: {e}")
             return False
+
+    def update_club_request_status(self, request_id: str, status: 'ClubRequestStatus') -> bool:
+        """
+        Update club request status.
+
+        Args:
+            request_id: ClubRequest UUID
+            status: New status
+
+        Returns:
+            True if successful, False otherwise
+        """
+        try:
+            from storage.db import ClubRequest
+
+            request = self.session.query(ClubRequest).filter(
+                ClubRequest.id == request_id
+            ).first()
+
+            if not request:
+                return False
+
+            request.status = status
+            request.updated_at = datetime.utcnow()
+            self.session.commit()
+            logger.info(f"Updated club request {request_id} status to {status}")
+            return True
+
+        except Exception as e:
+            self.session.rollback()
+            logger.error(f"Error in update_club_request_status: {e}")
+            return False
