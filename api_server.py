@@ -26,6 +26,7 @@ from config import settings
 from telegram import Update
 from telegram.ext import Application, CommandHandler
 from bot.start_handler import start
+from bot.onboarding_handler import onboarding_conv_handler
 
 # Logger setup (needed before lifespan)
 logging.basicConfig(
@@ -49,18 +50,22 @@ async def lifespan(app: FastAPI):
     bot_app = Application.builder().token(settings.bot_token).build()
 
     # Register handlers
-    bot_app.add_handler(CommandHandler("start", start))
+    # Note: ConversationHandler must be added BEFORE simple CommandHandler
+    # because ConversationHandler also handles /start command
+    bot_app.add_handler(onboarding_conv_handler)
 
-    # TODO: Add more handlers as we implement onboarding
-    # from bot.onboarding_handler import onboarding_conv_handler
-    # bot_app.add_handler(onboarding_conv_handler)
+    # TODO: Add more handlers as we implement other features
+    # - Invitation handler (Phase 2)
+    # - Organizer handler (Phase 3)
 
     # Initialize bot (but don't start polling - we use webhook)
     await bot_app.initialize()
     await bot_app.start()
 
     # Set webhook
-    webhook_url = f"{settings.app_url}/webhook/{settings.bot_token}"
+    # Remove trailing slash from app_url if present
+    base_url = settings.app_url.rstrip('/') if settings.app_url else ''
+    webhook_url = f"{base_url}/webhook/{settings.bot_token}"
     await bot_app.bot.set_webhook(url=webhook_url)
     logger.info(f"[SUCCESS] Telegram bot webhook set to: {webhook_url}")
 

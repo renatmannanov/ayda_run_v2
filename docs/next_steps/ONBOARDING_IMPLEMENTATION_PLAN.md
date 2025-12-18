@@ -421,11 +421,11 @@ async def handle_admin_approval(update, context)
 - [x] Создать bot/validators.py
 - [x] Интегрировать Telegram бота в api_server.py через webhook
 
-### ✅ Фаза 1: Flow 1 - Участник
-- [ ] Создать bot/onboarding_handler.py с ConversationHandler
-- [ ] Реализовать все states и handlers для Flow 1
-- [ ] Зарегистрировать handler в main.py
-- [ ] Протестировать базовый онбординг
+### ✅ Фаза 1: Flow 1 - Участник (ЗАВЕРШЕНА)
+- [x] Создать bot/onboarding_handler.py с ConversationHandler
+- [x] Реализовать все states и handlers для Flow 1
+- [x] Зарегистрировать handler в api_server.py
+- [x] Протестировать базовый онбординг
 
 ### ✅ Фаза 2: Flow 2 - Приглашения
 - [ ] Добавить парсинг deep links в start_onboarding
