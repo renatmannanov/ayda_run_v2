@@ -347,30 +347,8 @@ async def handle_role_selection(update: Update, context: ContextTypes.DEFAULT_TY
 
         return SHOWING_INTRO
 
-    elif callback_data == "role_organizer":
-        # User is an organizer
-        logger.info(f"User {telegram_user.id} selected role: organizer")
-
-        # TODO: Implement organizer flow (Phase 3)
-        await query.edit_message_text(
-            "Функция для организаторов будет доступна скоро!\n\n"
-            "А пока можешь использовать приложение как участник:"
-        )
-
-        telegram_user = query.from_user
-
-        # Mark onboarding as complete
-        with UserStorage() as user_storage:
-            user = user_storage.get_user_by_telegram_id(telegram_user.id)
-            if user:
-                user_storage.mark_onboarding_complete(user.id)
-
-        await query.message.reply_text(
-            "Открой приложение:",
-            reply_markup=get_webapp_button(settings.app_url)
-        )
-
-        return ConversationHandler.END
+    # Note: role_organizer is handled by organizer_conv_handler
+    # This handler only processes role_participant
 
     return SELECTING_ROLE
 
@@ -485,7 +463,7 @@ onboarding_conv_handler = ConversationHandler(
             CallbackQueryHandler(handle_sports_selection, pattern="^sport_")
         ],
         SELECTING_ROLE: [
-            CallbackQueryHandler(handle_role_selection, pattern="^role_")
+            CallbackQueryHandler(handle_role_selection, pattern="^role_participant$")
         ],
         SHOWING_INTRO: [
             CallbackQueryHandler(complete_onboarding, pattern="^intro_done$")
