@@ -77,6 +77,12 @@ class PaymentStatus(str, Enum):
     PAID = "paid"
     NOT_REQUIRED = "not_required"
 
+class ClubRequestStatus(str, Enum):
+    """Club request status"""
+    PENDING = "pending"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+
 # ============= MODELS =============
 
 class User(Base):
@@ -328,6 +334,39 @@ class Participation(Base):
 
     def __repr__(self):
         return f"<Participation(activity_id={self.activity_id}, user_id={self.user_id}, status={self.status})>"
+
+
+class ClubRequest(Base):
+    """
+    Club Request model - requests from organizers to create clubs
+
+    Used for manual moderation of club creation during beta phase.
+    """
+    __tablename__ = 'club_requests'
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = Column(String(36), ForeignKey('users.id'), nullable=False, index=True)
+
+    # Club data
+    name = Column(String(255), nullable=False)
+    description = Column(Text, nullable=True)
+    sports = Column(Text, nullable=True)  # JSON array of sport IDs
+    members_count = Column(Integer, nullable=True)
+    groups_count = Column(Integer, nullable=True)
+    telegram_group_link = Column(String(500), nullable=True)
+    contact = Column(String(255), nullable=True)
+
+    # Request status
+    status = Column(SQLEnum(ClubRequestStatus), default=ClubRequestStatus.PENDING, nullable=False)
+
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships
+    user = relationship("User", foreign_keys=[user_id])
+
+    def __repr__(self):
+        return f"<ClubRequest(name={self.name}, status={self.status})>"
 
 
 # ============= DATABASE SETUP =============

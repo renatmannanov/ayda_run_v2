@@ -8,7 +8,7 @@ Provides REST API for:
 """
 
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI, Depends, Request
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.exceptions import RequestValidationError
@@ -21,6 +21,11 @@ import json
 from storage.db import init_db, User
 from app.core.dependencies import get_db, get_current_user
 from config import settings
+
+# Telegram Bot
+from telegram import Update
+from telegram.ext import Application, CommandHandler
+from bot.start_handler import start
 
 # Logger setup (needed before lifespan)
 logging.basicConfig(
@@ -39,8 +44,35 @@ async def lifespan(app: FastAPI):
     # Startup
     init_db()
     logger.info("[SUCCESS] Database initialized")
+
+    # Initialize Telegram bot
+    bot_app = Application.builder().token(settings.bot_token).build()
+
+    # Register handlers
+    bot_app.add_handler(CommandHandler("start", start))
+
+    # TODO: Add more handlers as we implement onboarding
+    # from bot.onboarding_handler import onboarding_conv_handler
+    # bot_app.add_handler(onboarding_conv_handler)
+
+    # Initialize bot (but don't start polling - we use webhook)
+    await bot_app.initialize()
+    await bot_app.start()
+
+    # Set webhook
+    webhook_url = f"{settings.app_url}/webhook/{settings.bot_token}"
+    await bot_app.bot.set_webhook(url=webhook_url)
+    logger.info(f"[SUCCESS] Telegram bot webhook set to: {webhook_url}")
+
+    # Store bot app in FastAPI app state
+    app.state.bot_app = bot_app
+
     yield
-    # Shutdown (if needed in future)
+
+    # Shutdown
+    await bot_app.stop()
+    await bot_app.shutdown()
+    logger.info("[SUCCESS] Telegram bot shutdown")
 
 app = FastAPI(
     title="Ayda Run API",
@@ -226,6 +258,38 @@ if os.path.exists("webapp/dist"):
 async def health_check():
     """Health check endpoint"""
     return {"status": "ok", "service": "Ayda Run API"}
+
+# ============================================================================
+# Telegram Bot Webhook
+# ============================================================================
+
+@app.post("/webhook/{token}")
+async def telegram_webhook(token: str, request: Request):
+    """
+    Telegram webhook endpoint.
+
+    Receives updates from Telegram and processes them through the bot.
+    """
+    # Verify token
+    if token != settings.bot_token:
+        logger.warning(f"Invalid webhook token attempt: {token[:10]}...")
+        return {"status": "error", "message": "Invalid token"}
+
+    # Get bot application from app state
+    bot_app: Application = request.app.state.bot_app
+
+    # Parse update
+    try:
+        update_data = await request.json()
+        update = Update.de_json(update_data, bot_app.bot)
+
+        # Process update
+        await bot_app.process_update(update)
+
+        return {"status": "ok"}
+    except Exception as e:
+        logger.error(f"Error processing webhook update: {e}", exc_info=True)
+        return {"status": "error", "message": str(e)}
 
 # ============================================================================
 # Users API
