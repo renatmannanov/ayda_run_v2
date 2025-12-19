@@ -15,6 +15,7 @@ from telegram.ext import (
 )
 
 from bot.group_parser import TelegramGroupParser
+from bot.validators import validate_group_data
 from storage.user_storage import UserStorage
 from storage.club_storage import ClubStorage
 from storage.membership_storage import MembershipStorage
@@ -134,11 +135,21 @@ async def create_club_from_group(update: Update, context: ContextTypes.DEFAULT_T
             )
             return ConversationHandler.END
 
+        # 6. Валидация данных группы
+        is_valid, error_message = validate_group_data(group_data)
+        if not is_valid:
+            logger.warning(f"Group data validation failed for {chat.id}: {error_message}")
+            await message.reply_text(
+                f"❌ Невозможно создать клуб:\n\n{error_message}\n\n"
+                "Проверьте настройки группы и попробуйте снова."
+            )
+            return ConversationHandler.END
+
         # Сохранить данные в context
         context.user_data['group_data'] = group_data
         context.user_data['creator_telegram_id'] = user.id
 
-        # 6. Показать preview
+        # 7. Показать preview
         return await show_club_preview(update, context, group_data)
 
     except Exception as e:

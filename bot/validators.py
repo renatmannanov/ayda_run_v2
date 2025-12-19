@@ -197,3 +197,49 @@ def validate_phone_number(phone: str) -> Tuple[bool, str]:
         return False, "Некорректный номер телефона. Используй формат: +7XXXXXXXXXX"
 
     return True, cleaned
+
+
+def validate_group_data(group_data: dict) -> Tuple[bool, str]:
+    """
+    Validate Telegram group data before creating a club.
+
+    Checks:
+    - Title is not empty and not too short
+    - Chat ID is valid
+    - Chat type is group or supergroup
+    - Member count is reasonable
+
+    Args:
+        group_data: Dictionary with group information from TelegramGroupParser
+
+    Returns:
+        Tuple of (is_valid, error_message)
+    """
+    # Check title exists
+    if not group_data.get('title'):
+        return False, "Название группы не найдено"
+
+    # Check title length
+    if len(group_data['title'].strip()) < 3:
+        return False, "Название группы слишком короткое (минимум 3 символа)"
+
+    if len(group_data['title'].strip()) > 255:
+        return False, "Название группы слишком длинное (максимум 255 символов)"
+
+    # Check chat type
+    if group_data.get('type') not in ['group', 'supergroup']:
+        return False, "Команда работает только в группах и супергруппах"
+
+    # Check chat_id exists
+    if not group_data.get('chat_id'):
+        return False, "Не удалось определить ID группы"
+
+    # Check member count is reasonable
+    member_count = group_data.get('member_count', 0)
+    if member_count < 2:
+        return False, "В группе должно быть минимум 2 участника"
+
+    if member_count > 200000:
+        return False, "Слишком большая группа для создания клуба"
+
+    return True, ""
