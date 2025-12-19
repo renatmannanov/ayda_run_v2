@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     
     # === Core Settings ===
     bot_token: str = Field(..., alias="TELEGRAM_BOT_TOKEN", description="Telegram Bot Token")
+    bot_username: str = Field(..., alias="BOT_USERNAME", description="Bot username without @")
     app_url: Optional[str] = Field(None, alias="WEB_APP_URL", description="Public URL of the app")
     admin_chat_id: Optional[int] = Field(None, alias="ADMIN_CHAT_ID", description="Admin Telegram Chat ID for notifications")
     
