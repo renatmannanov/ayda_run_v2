@@ -13,7 +13,7 @@ class ClubCreate(BaseModel):
 
     # Telegram
     username: Optional[str] = Field(None, max_length=255)
-    telegram_chat_id: Optional[str] = None
+    telegram_chat_id: Optional[int] = None
     invite_link: Optional[str] = Field(None, max_length=500)
     photo: Optional[str] = Field(None, max_length=255)
 
@@ -49,7 +49,7 @@ class ClubResponse(BaseResponse):
 
     # Telegram
     username: Optional[str]
-    telegram_chat_id: Optional[str]
+    telegram_chat_id: Optional[int]
     invite_link: Optional[str]
     photo: Optional[str]
 

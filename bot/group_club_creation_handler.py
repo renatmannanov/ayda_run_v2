@@ -228,21 +228,32 @@ async def handle_sports_selection(update: Update, context: ContextTypes.DEFAULT_
         # Создать клуб
         return await finalize_club_creation(update, context)
 
+    if callback_data == "sport_skip":
+        # Пропустить выбор спортов
+        context.user_data['selected_sports'] = []
+        return await finalize_club_creation(update, context)
+
     # Добавить/удалить спорт
-    sport = callback_data.replace("sport_", "")
-    selected = context.user_data.get('selected_sports', [])
+    if callback_data.startswith("sport_toggle_"):
+        sport = callback_data.replace("sport_toggle_", "")
+        selected = context.user_data.get('selected_sports', [])
 
-    if sport in selected:
-        selected.remove(sport)
-    else:
-        selected.append(sport)
+        if sport in selected:
+            selected.remove(sport)
+        else:
+            selected.append(sport)
 
-    context.user_data['selected_sports'] = selected
+        context.user_data['selected_sports'] = selected
 
-    # Обновить клавиатуру
-    await query.edit_message_reply_markup(
-        reply_markup=get_sports_selection_keyboard(selected)
-    )
+        # Обновить клавиатуру
+        try:
+            await query.edit_message_reply_markup(
+                reply_markup=get_sports_selection_keyboard(selected)
+            )
+        except Exception as e:
+            # Игнорировать ошибку "Message is not modified"
+            logger.debug(f"Failed to update keyboard: {e}")
+            pass
 
     return SELECTING_SPORTS
 
@@ -318,7 +329,7 @@ async def send_club_created_notifications(
 
     # Уведомление в группу
     bot_link = f"https://t.me/{settings.bot_username}?start=club_{club.id}"
-    webapp_url = f"{settings.app_url}?startapp=club_{club.id}"
+    webapp_url = f"{settings.app_url}?startapp=club_{club.id}" if settings.app_url else bot_link
 
     group_message = (
         f"🎉 Клуб создан в Ayda Run!\n\n"
@@ -331,10 +342,16 @@ async def send_club_created_notifications(
         f"✅ Общение с бегунами"
     )
 
+    # В группу отправляем обычную URL кнопку (WebApp не работает в группах)
+    from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+    group_keyboard = InlineKeyboardMarkup([
+        [InlineKeyboardButton("🔗 Вступить через бота", url=bot_link)]
+    ])
+
     await context.bot.send_message(
         chat_id=group_chat_id,
         text=group_message,
-        reply_markup=get_webapp_button(webapp_url, f"🚀 Открыть {club.name}")
+        reply_markup=group_keyboard
     )
 
     # Уведомление организатору в ЛС
@@ -347,12 +364,13 @@ async def send_club_created_notifications(
 
     await query.edit_message_text(organizer_message)
 
-    # WebApp кнопка
-    await context.bot.send_message(
-        chat_id=query.from_user.id,
-        text="Откройте приложение для управления клубом:",
-        reply_markup=get_webapp_button(webapp_url, f"🚀 Управление клубом")
-    )
+    # WebApp кнопку в ЛС можно отправить
+    if settings.app_url:
+        await context.bot.send_message(
+            chat_id=query.from_user.id,
+            text="Откройте приложение для управления клубом:",
+            reply_markup=get_webapp_button(webapp_url, f"🚀 Управление клубом")
+        )
 
 
 async def cancel_creation(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
