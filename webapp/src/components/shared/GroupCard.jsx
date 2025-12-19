@@ -24,7 +24,8 @@ export default function GroupCard({ group, showJoinButton = false, onJoin }) {
                     <span className="text-xl flex-shrink-0">{group.icon || '👥'}</span>
                     <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
-                            <h3 className="text-base text-gray-800 font-medium truncate flex-1 min-w-0">
+                            <h3 className="text-base text-gray-800 font-medium truncate flex-1 min-w-0 flex items-center gap-1">
+                                {!group.isOpen && <span className="text-gray-400 text-sm flex-shrink-0">🔒</span>}
                                 <span className={group.club_name || group.parentClub ? "" : "truncate"}>
                                     {group.name}
                                 </span>

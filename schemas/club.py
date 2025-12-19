@@ -21,6 +21,9 @@ class ClubCreate(BaseModel):
     is_paid: bool = Field(default=False)
     price_per_activity: Optional[float] = Field(None, ge=0, le=10000)
 
+    # Access control
+    is_open: bool = Field(default=True, description="True = anyone can join, False = join by request")
+
     model_config = ConfigDict(
         json_schema_extra={
             "example": {
@@ -37,6 +40,7 @@ class ClubUpdate(BaseModel):
     description: Optional[str] = Field(None, max_length=1000)
     is_paid: Optional[bool] = None
     price_per_activity: Optional[float] = Field(None, ge=0, le=10000)
+    is_open: Optional[bool] = None
 
 class ClubResponse(BaseResponse):
     """Schema for club response"""
@@ -56,6 +60,9 @@ class ClubResponse(BaseResponse):
     # Payment
     is_paid: bool
     price_per_activity: Optional[float]
+
+    # Access control
+    is_open: bool
 
     creator_id: str  # UUID
 

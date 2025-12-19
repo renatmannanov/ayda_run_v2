@@ -83,6 +83,13 @@ class ClubRequestStatus(str, Enum):
     APPROVED = "approved"
     REJECTED = "rejected"
 
+class JoinRequestStatus(str, Enum):
+    """Join request status"""
+    PENDING = "pending"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+    EXPIRED = "expired"
+
 # ============= MODELS =============
 
 class User(Base):
@@ -147,6 +154,9 @@ class Club(Base):
     # Payment settings
     is_paid = Column(Boolean, default=False)
     price_per_activity = Column(Float, nullable=True)
+
+    # Access control
+    is_open = Column(Boolean, default=True, nullable=False)  # True = anyone can join
 
     created_at = Column(DateTime, default=datetime.utcnow)
 
@@ -289,6 +299,9 @@ class Activity(Base):
     # Visibility
     visibility = Column(SQLEnum(ActivityVisibility), default=ActivityVisibility.INVITE_ONLY, nullable=False, index=True)
 
+    # Access control
+    is_open = Column(Boolean, default=True, nullable=False)  # True = anyone can join
+
     # GPX file storage (in Telegram channel)
     gpx_file_channel_id = Column(Integer, nullable=True)
     gpx_file_message_id = Column(Integer, nullable=True)
@@ -367,6 +380,42 @@ class ClubRequest(Base):
 
     def __repr__(self):
         return f"<ClubRequest(name={self.name}, status={self.status})>"
+
+
+class JoinRequest(Base):
+    """
+    Join Request model - user's request to join a closed club/group/activity
+
+    Used when a club/group/activity is marked as is_open=False.
+    Organizer can approve or reject the request.
+    """
+    __tablename__ = 'join_requests'
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = Column(String(36), ForeignKey('users.id'), nullable=False, index=True)
+
+    # One of these must be set (entity being requested)
+    club_id = Column(String(36), ForeignKey('clubs.id'), nullable=True, index=True)
+    group_id = Column(String(36), ForeignKey('groups.id'), nullable=True, index=True)
+    activity_id = Column(String(36), ForeignKey('activities.id'), nullable=True, index=True)
+
+    # Request status
+    status = Column(SQLEnum(JoinRequestStatus), default=JoinRequestStatus.PENDING, nullable=False, index=True)
+
+    # Timestamps
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    expires_at = Column(DateTime, nullable=True)  # Auto-reject after this time
+
+    # Relationships
+    user = relationship("User", foreign_keys=[user_id])
+    club = relationship("Club", foreign_keys=[club_id])
+    group = relationship("Group", foreign_keys=[group_id])
+    activity = relationship("Activity", foreign_keys=[activity_id])
+
+    def __repr__(self):
+        entity = "club" if self.club_id else "group" if self.group_id else "activity"
+        return f"<JoinRequest(user_id={self.user_id}, {entity}, status={self.status})>"
 
 
 # ============= DATABASE SETUP =============

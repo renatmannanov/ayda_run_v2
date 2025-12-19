@@ -542,3 +542,152 @@ def get_club_request_success_message() -> str:
 def get_group_creation_redirect_message() -> str:
     """Alias for get_group_creation_message"""
     return get_group_creation_message()
+
+
+# ============= JOIN REQUEST MESSAGES =============
+
+def format_join_request_notification(user_data: Dict[str, Any], entity_data: Dict[str, Any]) -> str:
+    """
+    Format notification message to organizer about new join request.
+
+    Args:
+        user_data: Dictionary with user data (first_name, username, preferred_sports, strava_link)
+        entity_data: Dictionary with entity data (name, type, id)
+
+    Returns:
+        Formatted notification message
+    """
+    entity_type = entity_data.get('type', 'entity')
+    entity_name = entity_data.get('name', 'Unknown')
+
+    # Entity type in Russian
+    entity_type_ru = {
+        'club': 'клуб',
+        'group': 'группу',
+        'activity': 'активность'
+    }.get(entity_type, 'сущность')
+
+    # User info
+    first_name = user_data.get('first_name', 'Unknown')
+    username = user_data.get('username', '')
+    username_text = f"@{username}" if username else "нет username"
+
+    # Sports
+    sports = user_data.get('preferred_sports', '')
+    sports_text = f"\nВиды спорта: {sports}" if sports else ""
+
+    # Strava link
+    strava = user_data.get('strava_link', '')
+    strava_text = f"\nStrava: {strava}" if strava else ""
+
+    return f"""Новая заявка на вступление!
+
+В {entity_type_ru}: {entity_name}
+
+Пользователь:
+Имя: {first_name}
+Username: {username_text}{sports_text}{strava_text}
+
+Одобрить заявку?"""
+
+
+def format_approval_notification(entity_name: str, entity_type: str) -> str:
+    """
+    Format notification to user about approved join request.
+
+    Args:
+        entity_name: Name of club/group/activity
+        entity_type: "club", "group", or "activity"
+
+    Returns:
+        Formatted notification message
+    """
+    entity_type_ru = {
+        'club': 'клуб',
+        'group': 'группу',
+        'activity': 'активность'
+    }.get(entity_type, 'сущность')
+
+    entity_acc = {
+        'club': 'клуба',
+        'group': 'группы',
+        'activity': 'активности'
+    }.get(entity_type, 'сущности')
+
+    return f"""Твоя заявка одобрена!
+
+Ты теперь участник {entity_acc}: {entity_name}
+
+Открой приложение, чтобы увидеть детали."""
+
+
+def format_rejection_notification(entity_name: str, entity_type: str) -> str:
+    """
+    Format notification to user about rejected join request.
+
+    Args:
+        entity_name: Name of club/group/activity
+        entity_type: "club", "group", or "activity"
+
+    Returns:
+        Formatted notification message
+    """
+    entity_type_ru = {
+        'club': 'клуб',
+        'group': 'группу',
+        'activity': 'активность'
+    }.get(entity_type, 'сущность')
+
+    entity_acc = {
+        'club': 'клуба',
+        'group': 'группы',
+        'activity': 'активности'
+    }.get(entity_type, 'сущности')
+
+    return f"""Твоя заявка отклонена
+
+К сожалению, организатор отклонил твою заявку в {entity_acc}: {entity_name}
+
+Ты можешь поискать другие открытые активности в приложении."""
+
+
+def format_join_request_sent_confirmation(entity_name: str, entity_type: str) -> str:
+    """
+    Format confirmation message to user after sending join request.
+
+    Args:
+        entity_name: Name of club/group/activity
+        entity_type: "club", "group", or "activity"
+
+    Returns:
+        Formatted confirmation message
+    """
+    entity_acc = {
+        'club': 'клуба',
+        'group': 'группы',
+        'activity': 'активности'
+    }.get(entity_type, 'сущности')
+
+    return f"""Заявка отправлена!
+
+Твоя заявка на вступление в {entity_acc} "{entity_name}" отправлена организатору.
+
+Мы уведомим тебя, когда заявка будет рассмотрена."""
+
+
+def format_expired_request_notification(entity_name: str, entity_type: str) -> str:
+    """
+    Format notification to user about expired join request (for activities).
+
+    Args:
+        entity_name: Name of activity
+        entity_type: "activity"
+
+    Returns:
+        Formatted notification message
+    """
+    return f"""Заявка истекла
+
+Твоя заявка на вступление в активность "{entity_name}" истекла, так как активность уже прошла.
+
+Ты можешь найти другие активности в приложении."""

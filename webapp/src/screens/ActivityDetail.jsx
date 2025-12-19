@@ -12,6 +12,7 @@ import {
     formatTime,
     getDifficultyLabel
 } from '../data/sample_data' // Ensure these helpers are exported or move to utils
+import { activitiesApi, tg } from '../api'
 
 export default function ActivityDetail() {
     const { id } = useParams()
@@ -51,13 +52,22 @@ export default function ActivityDetail() {
             if (isJoined) {
                 await leaveActivity(id)
             } else {
-                await joinActivity(id)
+                if (activity.isOpen) {
+                    // Open activity - join directly
+                    await joinActivity(id)
+                } else {
+                    // Closed activity - send join request
+                    await activitiesApi.requestJoin(id)
+                    tg.showAlert('Заявка отправлена! Мы уведомим тебя, когда организатор рассмотрит её.')
+                }
             }
             // Refetch both to update UI count and list
             refetchActivity()
             refetchParticipants()
         } catch (e) {
             console.error('Action failed', e)
+            const errorMessage = e.message || 'Произошла ошибка'
+            tg.showAlert(errorMessage)
         }
     }
 
@@ -96,8 +106,9 @@ export default function ActivityDetail() {
                     {/* Title */}
                     <div className="flex justify-between items-start mb-4">
                         <div>
-                            <h1 className="text-xl text-gray-800 font-medium mb-1">
-                                {activity.title}
+                            <h1 className="text-xl text-gray-800 font-medium mb-1 flex items-center gap-2">
+                                {!activity.isOpen && <span className="text-gray-400 text-lg">🔒</span>}
+                                <span>{activity.title}</span>
                             </h1>
                             {isPast && (
                                 <span className="text-sm text-gray-400">
@@ -138,7 +149,7 @@ export default function ActivityDetail() {
                             </span>
                         </div>
 
-                        {activity.gpxLink && (
+                        {activity.gpxLink && activity.canDownloadGpx && (
                             <div className="flex items-start gap-3">
                                 <span className="text-gray-400">📎</span>
                                 <a
@@ -169,41 +180,53 @@ export default function ActivityDetail() {
                     {/* Participants */}
                     <div className="mb-4">
                         <p className="text-sm text-gray-500 mb-3">
-                            Участники · {isPast
-                                ? `${attendedCount} из ${participants.length} были`
-                                : activity.maxParticipants !== null
-                                    ? `${activity.participants}/${activity.maxParticipants}`
-                                    : `${activity.participants}`
+                            Участники · {activity.canViewParticipants
+                                ? (isPast
+                                    ? `${attendedCount} из ${participants.length} были`
+                                    : activity.maxParticipants !== null
+                                        ? `${activity.participants}/${activity.maxParticipants}`
+                                        : `${activity.participants}`
+                                )
+                                : `${activity.participants}`
                             }
+                            {!activity.canViewParticipants && (
+                                <span className="text-xs text-gray-400"> (только участники)</span>
+                            )}
                         </p>
 
-                        <button
-                            onClick={() => setShowParticipants(true)}
-                            className="flex items-center gap-1 w-full text-left"
-                            disabled={participantsLoading}
-                        >
-                            {participantsLoading ? (
-                                <span className="text-sm text-gray-400">Загрузка участников...</span>
-                            ) : (
-                                <>
-                                    <div className="flex -space-x-2">
-                                        {displayedParticipants.map(p => (
-                                            <span
-                                                key={p.id}
-                                                className={`text-2xl ${isPast && p.attended === false ? 'opacity-40' : ''}`}
-                                            >
-                                                {p.avatar || '👤'}
+                        {activity.canViewParticipants ? (
+                            <button
+                                onClick={() => setShowParticipants(true)}
+                                className="flex items-center gap-1 w-full text-left"
+                                disabled={participantsLoading}
+                            >
+                                {participantsLoading ? (
+                                    <span className="text-sm text-gray-400">Загрузка участников...</span>
+                                ) : (
+                                    <>
+                                        <div className="flex -space-x-2">
+                                            {displayedParticipants.map(p => (
+                                                <span
+                                                    key={p.id}
+                                                    className={`text-2xl ${isPast && p.attended === false ? 'opacity-40' : ''}`}
+                                                >
+                                                    {p.avatar || '👤'}
+                                                </span>
+                                            ))}
+                                        </div>
+                                        {remainingCount > 0 && (
+                                            <span className="text-sm text-gray-400 ml-2">
+                                                +{remainingCount} →
                                             </span>
-                                        ))}
-                                    </div>
-                                    {remainingCount > 0 && (
-                                        <span className="text-sm text-gray-400 ml-2">
-                                            +{remainingCount} →
-                                        </span>
-                                    )}
-                                </>
-                            )}
-                        </button>
+                                        )}
+                                    </>
+                                )}
+                            </button>
+                        ) : (
+                            <p className="text-sm text-gray-400">
+                                🔒 Список участников доступен только членам активности
+                            </p>
+                        )}
 
                         {/* User attendance status (past activities) */}
                         {isPast && isJoined && (
@@ -260,7 +283,7 @@ export default function ActivityDetail() {
                                 loading={joining || leaving}
                                 className="w-full rounded-none h-12"
                             >
-                                Записаться
+                                {activity.isOpen ? 'Записаться' : 'Отправить заявку'}
                             </Button>
                         )}
                     </div>

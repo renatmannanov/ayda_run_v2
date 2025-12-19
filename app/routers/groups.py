@@ -6,11 +6,19 @@ from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.orm import Session, joinedload
 from typing import List, Optional
 
-from storage.db import Club, Group, Membership, User
+from storage.db import Club, Group, Membership, User, JoinRequest, JoinRequestStatus
 from app.core.dependencies import get_db, get_current_user
 from permissions import require_group_permission, require_club_permission
 from schemas.common import UserRole
 from schemas.group import GroupCreate, GroupUpdate, GroupResponse, MembershipUpdate, MemberResponse
+from schemas.join_request import JoinRequestCreate, JoinRequestResponse
+from storage.join_request_storage import JoinRequestStorage
+
+# Bot notifications
+from bot.join_request_notifications import send_join_request_to_organizer
+from telegram import Bot
+from config import settings
+import asyncio
 
 router = APIRouter(prefix="/api/groups", tags=["groups"])
 
@@ -214,14 +222,17 @@ def join_group(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Join a group (only if is_open=True)"""
+    """Join a group (for closed groups, use request-join endpoint)"""
     group = db.query(Group).filter(Group.id == group_id).first()
-    
+
     if not group:
         raise HTTPException(status_code=404, detail="Group not found")
-    
+
     if not group.is_open:
-        raise HTTPException(status_code=403, detail="This group is invite-only")
+        raise HTTPException(
+            status_code=403,
+            detail="This group is closed. Please send a join request instead using POST /api/groups/{group_id}/request-join"
+        )
     
     # Check if already member
     existing = db.query(Membership).filter(
@@ -303,5 +314,233 @@ def update_member_role_endpoint(
     
     membership.role = role_data.role
     db.commit()
-    
+
     return {"message": "Role updated successfully"}
+
+
+# ============================================================================
+# Join Requests API (for closed groups)
+# ============================================================================
+
+@router.post("/{group_id}/request-join", status_code=201)
+def request_join_group(
+    group_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Send a join request for a closed group"""
+    group = db.query(Group).filter(Group.id == group_id).first()
+
+    if not group:
+        raise HTTPException(status_code=404, detail="Group not found")
+
+    # Check if group is open
+    if group.is_open:
+        raise HTTPException(
+            status_code=400,
+            detail="This group is open. Please use POST /api/groups/{group_id}/join instead"
+        )
+
+    # Check if already member
+    existing_membership = db.query(Membership).filter(
+        Membership.group_id == group_id,
+        Membership.user_id == current_user.id
+    ).first()
+
+    if existing_membership:
+        raise HTTPException(status_code=400, detail="Already a member of this group")
+
+    # Check if pending request already exists
+    jr_storage = JoinRequestStorage(session=db)
+    existing_request = jr_storage.get_user_pending_request(current_user.id, "group", group_id)
+
+    if existing_request:
+        raise HTTPException(status_code=400, detail="You already have a pending join request for this group")
+
+    # Create join request
+    join_request = jr_storage.create_join_request(current_user.id, "group", group_id)
+
+    if not join_request:
+        raise HTTPException(status_code=500, detail="Failed to create join request")
+
+    # Send notification to group organizer via bot
+    try:
+        # Get group creator (organizer)
+        creator = db.query(User).filter(User.id == group.creator_id).first()
+
+        if creator and creator.telegram_id:
+            # Prepare user data
+            user_data = {
+                'first_name': current_user.first_name or 'Unknown',
+                'username': current_user.username,
+                'preferred_sports': current_user.preferred_sports or '',
+                'strava_link': getattr(current_user, 'strava_link', '')
+            }
+
+            # Prepare entity data
+            entity_data = {
+                'name': group.name,
+                'type': 'group',
+                'id': group.id
+            }
+
+            # Send notification
+            bot = Bot(token=settings.bot_token)
+            asyncio.create_task(
+                send_join_request_to_organizer(
+                    bot,
+                    creator.telegram_id,
+                    user_data,
+                    entity_data,
+                    join_request.id
+                )
+            )
+    except Exception as e:
+        # Log error but don't fail the request
+        import logging
+        logging.error(f"Failed to send join request notification: {e}")
+
+    return {
+        "message": "Join request sent successfully",
+        "request_id": join_request.id,
+        "group_id": group_id
+    }
+
+
+@router.get("/{group_id}/join-requests", response_model=List[JoinRequestResponse])
+def get_group_join_requests(
+    group_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Get all pending join requests for a group (trainers/organizers only)"""
+    group = db.query(Group).filter(Group.id == group_id).first()
+
+    if not group:
+        raise HTTPException(status_code=404, detail="Group not found")
+
+    # Check permissions (trainer or higher)
+    require_group_permission(db, current_user, group_id, UserRole.TRAINER)
+
+    # Get pending requests
+    jr_storage = JoinRequestStorage(session=db)
+    requests = jr_storage.get_pending_requests_for_entity("group", group_id)
+
+    # Build response with user info
+    result = []
+    for request in requests:
+        user = db.query(User).filter(User.id == request.user_id).first()
+        if not user:
+            continue
+
+        result.append(JoinRequestResponse(
+            id=request.id,
+            created_at=request.created_at,
+            user_id=request.user_id,
+            group_id=request.group_id,
+            status=request.status.value,
+            expires_at=request.expires_at,
+            user_name=f"{user.first_name or ''} {user.last_name or ''}".strip(),
+            username=user.username,
+            user_first_name=user.first_name,
+            user_sports=user.preferred_sports,
+            user_strava_link=getattr(user, 'strava_link', None),
+            entity_name=group.name,
+            entity_type="group"
+        ))
+
+    return result
+
+
+@router.post("/{group_id}/join-requests/{request_id}/approve", status_code=200)
+def approve_group_join_request(
+    group_id: str,
+    request_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Approve a join request and add user to group (trainers/organizers only)"""
+    group = db.query(Group).filter(Group.id == group_id).first()
+
+    if not group:
+        raise HTTPException(status_code=404, detail="Group not found")
+
+    # Check permissions
+    require_group_permission(db, current_user, group_id, UserRole.TRAINER)
+
+    # Get join request
+    jr_storage = JoinRequestStorage(session=db)
+    join_request = jr_storage.get_join_request(request_id)
+
+    if not join_request:
+        raise HTTPException(status_code=404, detail="Join request not found")
+
+    if join_request.group_id != group_id:
+        raise HTTPException(status_code=400, detail="Join request does not belong to this group")
+
+    if join_request.status != JoinRequestStatus.PENDING:
+        raise HTTPException(status_code=400, detail=f"Join request already {join_request.status.value}")
+
+    # Add user to group
+    membership = Membership(
+        user_id=join_request.user_id,
+        group_id=group_id,
+        role=UserRole.MEMBER
+    )
+    db.add(membership)
+
+    # Update request status
+    jr_storage.update_request_status(request_id, JoinRequestStatus.APPROVED)
+
+    db.commit()
+
+    # TODO: Send approval notification to user via bot (Phase 5)
+
+    return {
+        "message": "Join request approved successfully",
+        "request_id": request_id,
+        "user_id": join_request.user_id
+    }
+
+
+@router.post("/{group_id}/join-requests/{request_id}/reject", status_code=200)
+def reject_group_join_request(
+    group_id: str,
+    request_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Reject a join request (trainers/organizers only)"""
+    group = db.query(Group).filter(Group.id == group_id).first()
+
+    if not group:
+        raise HTTPException(status_code=404, detail="Group not found")
+
+    # Check permissions
+    require_group_permission(db, current_user, group_id, UserRole.TRAINER)
+
+    # Get join request
+    jr_storage = JoinRequestStorage(session=db)
+    join_request = jr_storage.get_join_request(request_id)
+
+    if not join_request:
+        raise HTTPException(status_code=404, detail="Join request not found")
+
+    if join_request.group_id != group_id:
+        raise HTTPException(status_code=400, detail="Join request does not belong to this group")
+
+    if join_request.status != JoinRequestStatus.PENDING:
+        raise HTTPException(status_code=400, detail=f"Join request already {join_request.status.value}")
+
+    # Update request status
+    jr_storage.update_request_status(request_id, JoinRequestStatus.REJECTED)
+
+    db.commit()
+
+    # TODO: Send rejection notification to user via bot (Phase 5)
+
+    return {
+        "message": "Join request rejected successfully",
+        "request_id": request_id,
+        "user_id": join_request.user_id
+    }

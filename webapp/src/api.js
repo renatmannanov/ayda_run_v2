@@ -69,6 +69,9 @@ const transformActivity = (a) => !a ? null : ({
     status: a.status,
     participants: a.participants_count, // Map count to prop expected by UI
     isJoined: a.is_joined,
+    isOpen: a.is_open !== undefined ? a.is_open : true, // Default to open for backwards compatibility
+    canViewParticipants: a.can_view_participants !== undefined ? a.can_view_participants : true,
+    canDownloadGpx: a.can_download_gpx !== undefined ? a.can_download_gpx : true,
     clubId: a.club_id,
     groupId: a.group_id,
     club: a.club_name,
@@ -95,6 +98,7 @@ const transformClub = (c) => !c ? null : ({
     groupsCount: c.groups_count,
     members: c.members_count, // Map count
     isMember: c.is_member,
+    isOpen: c.is_open !== undefined ? c.is_open : true, // Default to open for backwards compatibility
     userRole: c.user_role,
     isAdmin: c.user_role === 'admin' || c.user_role === 'organizer'
 })
@@ -182,6 +186,8 @@ export const activitiesApi = {
 
     leave: (id) => apiFetch(`/activities/${id}/leave`, { method: 'POST' }),
 
+    requestJoin: (id) => apiFetch(`/activities/${id}/request-join`, { method: 'POST' }),
+
     getParticipants: (id) => apiFetch(`/activities/${id}/participants`)
         .then(items => items.map(transformMember))
 }
@@ -210,6 +216,8 @@ export const clubsApi = {
     delete: (id) => apiFetch(`/clubs/${id}`, { method: 'DELETE' }),
 
     join: (id) => apiFetch(`/clubs/${id}/join`, { method: 'POST' }),
+
+    requestJoin: (id) => apiFetch(`/clubs/${id}/request-join`, { method: 'POST' }),
 
     getMembers: (id) => apiFetch(`/clubs/${id}/members`)
         .then(items => items.map(transformMember))
@@ -242,6 +250,8 @@ export const groupsApi = {
     delete: (id) => apiFetch(`/groups/${id}`, { method: 'DELETE' }),
 
     join: (id) => apiFetch(`/groups/${id}/join`, { method: 'POST' }),
+
+    requestJoin: (id) => apiFetch(`/groups/${id}/request-join`, { method: 'POST' }),
 
     getMembers: (id) => apiFetch(`/groups/${id}/members`)
         .then(items => items.map(transformMember))

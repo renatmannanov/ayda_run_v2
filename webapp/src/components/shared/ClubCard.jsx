@@ -24,8 +24,9 @@ export default function ClubCard({ club, showJoinButton = false, onJoin }) {
                     <span className="text-xl flex-shrink-0">{club.icon || '🏆'}</span>
                     <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
-                            <h3 className="text-base text-gray-800 font-medium truncate flex-1 min-w-0">
-                                {club.name}
+                            <h3 className="text-base text-gray-800 font-medium truncate flex-1 min-w-0 flex items-center gap-1">
+                                {!club.isOpen && <span className="text-gray-400 text-sm">🔒</span>}
+                                <span>{club.name}</span>
                             </h3>
                             {club.isMember && !showJoinButton && (
                                 <span className="text-green-600 text-sm flex-shrink-0">✓</span>

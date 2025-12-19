@@ -51,8 +51,9 @@ export default function ActivityCard({ activity, onJoinToggle }) {
             className="bg-white border border-gray-200 rounded-xl p-4 mb-3 cursor-pointer hover:border-gray-300 transition-colors"
         >
             <div className="flex justify-between items-start mb-2">
-                <h3 className="text-base text-gray-800 font-medium pr-2">
-                    {activity.title}
+                <h3 className="text-base text-gray-800 font-medium pr-2 flex items-center gap-1">
+                    {!activity.isOpen && <span className="text-gray-400 text-sm">🔒</span>}
+                    <span>{activity.title}</span>
                 </h3>
                 <span className="text-xl flex-shrink-0">{activity.icon}</span>
             </div>

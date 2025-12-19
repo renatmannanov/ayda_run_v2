@@ -309,3 +309,23 @@ def get_club_request_summary_keyboard() -> InlineKeyboardMarkup:
         ]
     ]
     return InlineKeyboardMarkup(keyboard)
+
+
+def get_join_request_keyboard(request_id: str, entity_type: str) -> InlineKeyboardMarkup:
+    """
+    Keyboard for organizer to approve/reject join requests.
+
+    Args:
+        request_id: JoinRequest UUID
+        entity_type: "club", "group", or "activity"
+
+    Returns:
+        InlineKeyboardMarkup with approve/reject buttons
+    """
+    keyboard = [
+        [
+            InlineKeyboardButton("✅ Одобрить", callback_data=f"approve_join_{entity_type}_{request_id}"),
+            InlineKeyboardButton("❌ Отклонить", callback_data=f"reject_join_{entity_type}_{request_id}"),
+        ]
+    ]
+    return InlineKeyboardMarkup(keyboard)

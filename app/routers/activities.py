@@ -12,13 +12,20 @@ from fastapi import APIRouter, HTTPException, Depends, Query
 from sqlalchemy.orm import Session, joinedload
 from typing import List, Optional
 
-from storage.db import Activity, Participation, User
+from storage.db import Activity, Participation, User, Membership, JoinRequest, JoinRequestStatus
 from app.core.dependencies import get_db, get_current_user, get_current_user_optional
 from permissions import can_create_activity_in_club, can_create_activity_in_group, require_activity_owner
 from schemas.common import SportType, Difficulty, ActivityVisibility, ActivityStatus, ParticipationStatus, PaymentStatus
 from schemas.activity import ActivityCreate, ActivityUpdate, ActivityResponse
 from schemas.user import ParticipantResponse
+from schemas.join_request import JoinRequestCreate, JoinRequestResponse
+from storage.join_request_storage import JoinRequestStorage
 from config import settings
+
+# Bot notifications
+from bot.join_request_notifications import send_join_request_to_organizer
+from telegram import Bot
+import asyncio
 
 logger = logging.getLogger(__name__)
 
@@ -274,11 +281,18 @@ async def join_activity(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Join an activity"""
+    """Join an activity (for closed activities, use request-join endpoint)"""
     activity = db.query(Activity).filter(Activity.id == activity_id).first()
 
     if not activity:
         raise HTTPException(status_code=404, detail="Activity not found")
+
+    # Check if activity is open
+    if not activity.is_open:
+        raise HTTPException(
+            status_code=403,
+            detail="This activity is closed. Please send a join request instead using POST /api/activities/{activity_id}/request-join"
+        )
 
     # Check if already joined
     existing = db.query(Participation).filter(
@@ -369,3 +383,245 @@ async def get_participants(
         ))
 
     return result
+
+
+# ============================================================================
+# Join Requests API (for closed activities)
+# ============================================================================
+
+@router.post("/{activity_id}/request-join", status_code=201)
+async def request_join_activity(
+    activity_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Send a join request for a closed activity"""
+    activity = db.query(Activity).filter(Activity.id == activity_id).first()
+
+    if not activity:
+        raise HTTPException(status_code=404, detail="Activity not found")
+
+    # Check if activity is open
+    if activity.is_open:
+        raise HTTPException(
+            status_code=400,
+            detail="This activity is open. Please use POST /api/activities/{activity_id}/join instead"
+        )
+
+    # Check if already joined
+    existing_participation = db.query(Participation).filter(
+        Participation.activity_id == activity_id,
+        Participation.user_id == current_user.id
+    ).first()
+
+    if existing_participation:
+        raise HTTPException(status_code=400, detail="Already joined this activity")
+
+    # Check if pending request already exists
+    jr_storage = JoinRequestStorage(session=db)
+    existing_request = jr_storage.get_user_pending_request(current_user.id, "activity", activity_id)
+
+    if existing_request:
+        raise HTTPException(status_code=400, detail="You already have a pending join request for this activity")
+
+    # Create join request
+    join_request = jr_storage.create_join_request(current_user.id, "activity", activity_id)
+
+    if not join_request:
+        raise HTTPException(status_code=500, detail="Failed to create join request")
+
+    # Set expiry to activity date
+    join_request.expires_at = activity.date
+    db.commit()
+
+    # Send notification to activity creator via bot
+    try:
+        # Get activity creator
+        creator = db.query(User).filter(User.id == activity.creator_id).first()
+
+        if creator and creator.telegram_id:
+            # Prepare user data
+            user_data = {
+                'first_name': current_user.first_name or 'Unknown',
+                'username': current_user.username,
+                'preferred_sports': current_user.preferred_sports or '',
+                'strava_link': getattr(current_user, 'strava_link', '')
+            }
+
+            # Prepare entity data
+            entity_data = {
+                'name': activity.title,
+                'type': 'activity',
+                'id': activity.id
+            }
+
+            # Send notification
+            bot = Bot(token=settings.bot_token)
+            asyncio.create_task(
+                send_join_request_to_organizer(
+                    bot,
+                    creator.telegram_id,
+                    user_data,
+                    entity_data,
+                    join_request.id
+                )
+            )
+    except Exception as e:
+        # Log error but don't fail the request
+        logger.error(f"Failed to send join request notification: {e}")
+
+    return {
+        "message": "Join request sent successfully",
+        "request_id": join_request.id,
+        "activity_id": activity_id
+    }
+
+
+@router.get("/{activity_id}/join-requests", response_model=List[JoinRequestResponse])
+async def get_activity_join_requests(
+    activity_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Get all pending join requests for an activity (creator only)"""
+    activity = db.query(Activity).filter(Activity.id == activity_id).first()
+
+    if not activity:
+        raise HTTPException(status_code=404, detail="Activity not found")
+
+    # Check permissions (only creator can see requests)
+    require_activity_owner(current_user, activity)
+
+    # Get pending requests
+    jr_storage = JoinRequestStorage(session=db)
+    requests = jr_storage.get_pending_requests_for_entity("activity", activity_id)
+
+    # Build response with user info
+    result = []
+    for request in requests:
+        user = db.query(User).filter(User.id == request.user_id).first()
+        if not user:
+            continue
+
+        result.append(JoinRequestResponse(
+            id=request.id,
+            created_at=request.created_at,
+            user_id=request.user_id,
+            activity_id=request.activity_id,
+            status=request.status.value,
+            expires_at=request.expires_at,
+            user_name=f"{user.first_name or ''} {user.last_name or ''}".strip(),
+            username=user.username,
+            user_first_name=user.first_name,
+            user_sports=user.preferred_sports,
+            user_strava_link=getattr(user, 'strava_link', None),
+            entity_name=activity.title,
+            entity_type="activity"
+        ))
+
+    return result
+
+
+@router.post("/{activity_id}/join-requests/{request_id}/approve", status_code=200)
+async def approve_activity_join_request(
+    activity_id: str,
+    request_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Approve a join request and add user to activity (creator only)"""
+    activity = db.query(Activity).filter(Activity.id == activity_id).first()
+
+    if not activity:
+        raise HTTPException(status_code=404, detail="Activity not found")
+
+    # Check permissions
+    require_activity_owner(current_user, activity)
+
+    # Get join request
+    jr_storage = JoinRequestStorage(session=db)
+    join_request = jr_storage.get_join_request(request_id)
+
+    if not join_request:
+        raise HTTPException(status_code=404, detail="Join request not found")
+
+    if join_request.activity_id != activity_id:
+        raise HTTPException(status_code=400, detail="Join request does not belong to this activity")
+
+    if join_request.status != JoinRequestStatus.PENDING:
+        raise HTTPException(status_code=400, detail=f"Join request already {join_request.status.value}")
+
+    # Check max participants
+    if activity.max_participants:
+        current_count = db.query(Participation).filter(
+            Participation.activity_id == activity_id,
+            Participation.status.in_([ParticipationStatus.REGISTERED, ParticipationStatus.CONFIRMED])
+        ).count()
+
+        if current_count >= activity.max_participants:
+            raise HTTPException(status_code=400, detail="Activity is full")
+
+    # Add user to activity
+    participation = Participation(
+        activity_id=activity_id,
+        user_id=join_request.user_id,
+        status=ParticipationStatus.REGISTERED,
+        payment_status=PaymentStatus.NOT_REQUIRED
+    )
+    db.add(participation)
+
+    # Update request status
+    jr_storage.update_request_status(request_id, JoinRequestStatus.APPROVED)
+
+    db.commit()
+
+    # TODO: Send approval notification to user via bot (Phase 5)
+
+    return {
+        "message": "Join request approved successfully",
+        "request_id": request_id,
+        "user_id": join_request.user_id
+    }
+
+
+@router.post("/{activity_id}/join-requests/{request_id}/reject", status_code=200)
+async def reject_activity_join_request(
+    activity_id: str,
+    request_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Reject a join request (creator only)"""
+    activity = db.query(Activity).filter(Activity.id == activity_id).first()
+
+    if not activity:
+        raise HTTPException(status_code=404, detail="Activity not found")
+
+    # Check permissions
+    require_activity_owner(current_user, activity)
+
+    # Get join request
+    jr_storage = JoinRequestStorage(session=db)
+    join_request = jr_storage.get_join_request(request_id)
+
+    if not join_request:
+        raise HTTPException(status_code=404, detail="Join request not found")
+
+    if join_request.activity_id != activity_id:
+        raise HTTPException(status_code=400, detail="Join request does not belong to this activity")
+
+    if join_request.status != JoinRequestStatus.PENDING:
+        raise HTTPException(status_code=400, detail=f"Join request already {join_request.status.value}")
+
+    # Update request status
+    jr_storage.update_request_status(request_id, JoinRequestStatus.REJECTED)
+
+    db.commit()
+
+    # TODO: Send rejection notification to user via bot (Phase 5)
+
+    return {
+        "message": "Join request rejected successfully",
+        "request_id": request_id,
+        "user_id": join_request.user_id
+    }

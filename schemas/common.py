@@ -48,6 +48,12 @@ class PaymentStatus(str, Enum):
     PAID = "paid"
     REFUNDED = "refunded"
 
+class JoinRequestStatus(str, Enum):
+    PENDING = "pending"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+    EXPIRED = "expired"
+
 # Base response model
 class BaseResponse(BaseModel):
     """Base response with common fields"""

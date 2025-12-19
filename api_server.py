@@ -77,23 +77,41 @@ async def lifespan(app: FastAPI):
         )
     )
 
+    # Phase 5: Join request handlers
+    from bot.join_request_handler import get_join_request_handlers
+    for handler in get_join_request_handlers():
+        bot_app.add_handler(handler)
+
     # Initialize bot (but don't start polling - we use webhook)
     await bot_app.initialize()
     await bot_app.start()
 
     # Set webhook
-    # Remove trailing slash from app_url if present
-    base_url = settings.app_url.rstrip('/') if settings.app_url else ''
-    webhook_url = f"{base_url}/webhook/{settings.bot_token}"
-    await bot_app.bot.set_webhook(url=webhook_url)
-    logger.info(f"[SUCCESS] Telegram bot webhook set to: {webhook_url}")
+    # Use base_url for webhook if available, otherwise fall back to app_url
+    base_url = (settings.base_url or settings.app_url or '').rstrip('/')
+    if base_url:
+        webhook_url = f"{base_url}/webhook/{settings.bot_token}"
+        await bot_app.bot.set_webhook(url=webhook_url)
+        logger.info(f"[SUCCESS] Telegram bot webhook set to: {webhook_url}")
+    else:
+        logger.warning("No BASE_URL or WEB_APP_URL set - webhook not configured!")
 
     # Store bot app in FastAPI app state
     app.state.bot_app = bot_app
 
+    # Phase 6: Start auto-reject service for expired join requests
+    from app.services.auto_reject_service import get_auto_reject_service
+    auto_reject_service = get_auto_reject_service(bot_app.bot)
+    await auto_reject_service.start()
+    logger.info("[SUCCESS] Auto-reject service started")
+
     yield
 
     # Shutdown
+    # Stop auto-reject service
+    await auto_reject_service.stop()
+    logger.info("[SUCCESS] Auto-reject service stopped")
+
     await bot_app.stop()
     await bot_app.shutdown()
     logger.info("[SUCCESS] Telegram bot shutdown")

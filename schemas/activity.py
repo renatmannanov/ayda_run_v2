@@ -20,6 +20,7 @@ class ActivityCreate(BaseModel):
     duration: Optional[int] = Field(None, ge=1, le=1440, description="Duration in minutes")
     max_participants: Optional[int] = Field(None, ge=1, le=1000)
     visibility: ActivityVisibility = ActivityVisibility.INVITE_ONLY
+    is_open: bool = Field(default=True, description="True = anyone can join, False = join by request")
     club_id: Optional[int | str] = None  # UUID (temporarily accepts int from frontend bug)
     group_id: Optional[int | str] = None  # UUID (temporarily accepts int from frontend bug)
 
@@ -72,6 +73,7 @@ class ActivityUpdate(BaseModel):
     duration: Optional[int] = Field(None, ge=1, le=1440)
     max_participants: Optional[int] = Field(None, ge=1, le=1000)
     visibility: Optional[ActivityVisibility] = None
+    is_open: Optional[bool] = None
     status: Optional[ActivityStatus] = None
 
     @field_validator('date')
@@ -98,6 +100,7 @@ class ActivityResponse(BaseResponse):
     duration: Optional[int]
     max_participants: Optional[int]
     visibility: ActivityVisibility
+    is_open: bool
     status: ActivityStatus
     club_id: Optional[str]  # UUID
     group_id: Optional[str]  # UUID
@@ -106,5 +109,7 @@ class ActivityResponse(BaseResponse):
     # Computed fields
     participants_count: int = 0
     is_joined: bool = False
+    can_view_participants: bool = True  # False if closed and not member
+    can_download_gpx: bool = True  # False if closed and not member
     club_name: Optional[str] = None
     group_name: Optional[str] = None
