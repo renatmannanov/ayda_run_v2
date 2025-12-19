@@ -30,6 +30,7 @@ from bot.onboarding_handler import onboarding_conv_handler
 from bot.invitation_handler import join_invitation_handlers
 from bot.organizer_handler import organizer_conv_handler
 from bot.admin_notifications import handle_admin_approval
+from bot.group_club_creation_handler import group_club_creation_handler
 
 # Logger setup (needed before lifespan)
 logging.basicConfig(
@@ -63,6 +64,9 @@ async def lifespan(app: FastAPI):
 
     # Phase 3: Organizer handler for club creation
     bot_app.add_handler(organizer_conv_handler)
+
+    # Phase 4: Group club creation handler for /create_club in groups
+    bot_app.add_handler(group_club_creation_handler)
 
     # Admin handlers for club request approval/rejection
     from telegram.ext import CallbackQueryHandler

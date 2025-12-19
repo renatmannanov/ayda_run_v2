@@ -302,3 +302,85 @@ class ClubStorage:
             self.session.rollback()
             logger.error(f"Error in update_club_request_status: {e}")
             return False
+
+    def get_club_by_telegram_chat_id(self, chat_id: int) -> Optional[Club]:
+        """
+        Получить клуб по telegram_chat_id
+
+        Args:
+            chat_id: Telegram chat ID группы
+
+        Returns:
+            Club или None
+        """
+        try:
+            return self.session.query(Club).filter(
+                Club.telegram_chat_id == chat_id
+            ).first()
+        except Exception as e:
+            logger.error(f"Error in get_club_by_telegram_chat_id: {e}")
+            return None
+
+    def create_club_from_telegram_group(
+        self,
+        creator_id: str,
+        group_data: dict,
+        sports: List[str]
+    ) -> Club:
+        """
+        Создать клуб на основе данных Telegram группы
+
+        Args:
+            creator_id: ID пользователя-создателя
+            group_data: Данные из TelegramGroupParser
+                {
+                    'chat_id': int,
+                    'title': str,
+                    'description': str,
+                    'username': str,
+                    'member_count': int,
+                    'invite_link': str,
+                    'photo': str,
+                    'type': str,
+                }
+            sports: Выбранные виды спорта
+
+        Returns:
+            Club: Созданный клуб
+
+        Raises:
+            ValueError: Если группа уже связана с клубом
+        """
+        try:
+            # Проверить, что группа не связана с другим клубом
+            existing_club = self.get_club_by_telegram_chat_id(group_data['chat_id'])
+            if existing_club:
+                raise ValueError(f"Группа уже связана с клубом {existing_club.name}")
+
+            import json
+
+            # Создать клуб
+            club = Club(
+                name=group_data['title'],
+                description=group_data.get('description') or '',
+                creator_id=creator_id,
+                username=group_data.get('username'),
+                telegram_chat_id=group_data['chat_id'],
+                invite_link=group_data.get('invite_link'),
+                photo=group_data.get('photo'),
+                city='Almaty',  # TODO: определять из группы или пользователя
+            )
+
+            self.session.add(club)
+            self.session.commit()
+            self.session.refresh(club)
+
+            logger.info(f"Created club {club.id} from Telegram group {group_data['chat_id']}")
+            return club
+
+        except ValueError:
+            raise
+        except Exception as e:
+            self.session.rollback()
+            logger.error(f"Error in create_club_from_telegram_group: {e}")
+            raise
