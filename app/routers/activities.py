@@ -696,8 +696,8 @@ async def _send_new_activity_notifications(
             # Filter out None values
             members = [m for m in members if m and m.telegram_id]
 
-            # Build webapp link
-            webapp_link = f"{settings.app_url.rstrip('/')}/activities/{activity_id}"
+            # Build webapp link (Telegram deep link)
+            webapp_link = f"https://t.me/{settings.bot_username}?start=activity_{activity_id}"
 
             # Initialize bot
             bot = Bot(token=settings.bot_token)
