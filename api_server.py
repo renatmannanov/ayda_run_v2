@@ -82,6 +82,11 @@ async def lifespan(app: FastAPI):
     for handler in get_join_request_handlers():
         bot_app.add_handler(handler)
 
+    # Phase 5.1: Request management commands (/requests, /my_requests)
+    from bot.requests_handler import get_request_management_handlers
+    for handler in get_request_management_handlers():
+        bot_app.add_handler(handler)
+
     # Initialize bot (but don't start polling - we use webhook)
     await bot_app.initialize()
     await bot_app.start()
