@@ -75,6 +75,9 @@ class JoinRequestStorage:
                 logger.info(f"User {user_id} already has pending request for {entity_type} {entity_id}")
                 return existing
 
+            # Delete any rejected/expired requests to allow re-application
+            self._delete_old_requests(user_id, entity_type, entity_id)
+
             # Create join request
             kwargs = {"user_id": user_id}
             if entity_type == "club":
@@ -300,3 +303,50 @@ class JoinRequestStorage:
             logger.error(f"Error deleting join request {request_id}: {e}")
             self.session.rollback()
             return False
+
+    def _delete_old_requests(
+        self,
+        user_id: str,
+        entity_type: str,
+        entity_id: str
+    ) -> int:
+        """
+        Delete old rejected/expired requests to allow re-application.
+
+        Args:
+            user_id: User UUID
+            entity_type: "club", "group", or "activity"
+            entity_id: Entity UUID
+
+        Returns:
+            Number of deleted requests
+        """
+        try:
+            query = self.session.query(JoinRequest).filter(
+                JoinRequest.user_id == user_id,
+                JoinRequest.status.in_([JoinRequestStatus.REJECTED, JoinRequestStatus.EXPIRED])
+            )
+
+            if entity_type == "club":
+                query = query.filter(JoinRequest.club_id == entity_id)
+            elif entity_type == "group":
+                query = query.filter(JoinRequest.group_id == entity_id)
+            elif entity_type == "activity":
+                query = query.filter(JoinRequest.activity_id == entity_id)
+
+            old_requests = query.all()
+            count = len(old_requests)
+
+            for req in old_requests:
+                self.session.delete(req)
+
+            if count > 0:
+                self.session.commit()
+                logger.info(f"Deleted {count} old rejected/expired requests for user {user_id}")
+
+            return count
+
+        except Exception as e:
+            logger.error(f"Error deleting old requests: {e}")
+            self.session.rollback()
+            return 0

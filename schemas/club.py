@@ -52,10 +52,10 @@ class ClubResponse(BaseResponse):
     city: str
 
     # Telegram
-    username: Optional[str]
-    telegram_chat_id: Optional[int]
-    invite_link: Optional[str]
-    photo: Optional[str]
+    username: Optional[str] = None
+    telegram_chat_id: Optional[int] = None
+    invite_link: Optional[str] = None
+    photo: Optional[str] = None
 
     # Payment
     is_paid: bool

@@ -1,5 +1,6 @@
 import React from 'react'
 import { SPORT_TYPES } from '../constants/sports'
+import { Avatar } from './ui'
 
 export default function ParticipantsSheet({
     isOpen,
@@ -69,7 +70,11 @@ export default function ParticipantsSheet({
                                     }`}
                             >
                                 <div className="flex items-center gap-3 flex-1">
-                                    <span className="text-2xl">{participant.avatar}</span>
+                                    <Avatar
+                                        src={participant.photo}
+                                        name={participant.name}
+                                        size="md"
+                                    />
                                     <div className="flex items-center gap-2 flex-1">
                                         <span className={`text-sm ${isPast && participant.attended === false
                                             ? 'text-gray-400 line-through'

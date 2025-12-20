@@ -8,7 +8,7 @@ import logging
 from telegram import Update
 from telegram.ext import ContextTypes, CallbackQueryHandler
 
-from storage.db import SessionLocal, User, Club, Group, Activity, Membership, UserRole, JoinRequestStatus
+from storage.db import SessionLocal, User, Club, Group, Activity, Membership, Participation, UserRole, JoinRequestStatus, ParticipationStatus
 from storage.join_request_storage import JoinRequestStorage
 from bot.join_request_notifications import send_approval_notification, send_rejection_notification
 
@@ -88,40 +88,57 @@ async def handle_join_request_callback(update: Update, context: ContextTypes.DEF
             # Update request status
             jr_storage.update_request_status(request_id, JoinRequestStatus.APPROVED)
 
-            # Add user to entity (create membership)
-            entity_id = join_request.club_id or join_request.group_id or join_request.activity_id
+            if entity_type == "activity":
+                # For activities - create Participation (not Membership!)
+                existing_participation = session.query(Participation).filter(
+                    Participation.user_id == user.id,
+                    Participation.activity_id == join_request.activity_id
+                ).first()
 
-            # Check if membership already exists
-            existing_membership = session.query(Membership).filter(
-                Membership.user_id == user.id
-            )
+                if existing_participation:
+                    await query.edit_message_text(
+                        f"Пользователь {user.first_name} уже записан на {entity_name}"
+                    )
+                    return
 
-            if entity_type == "club":
-                existing_membership = existing_membership.filter(Membership.club_id == entity_id)
-            elif entity_type == "group":
-                existing_membership = existing_membership.filter(Membership.group_id == entity_id)
-            elif entity_type == "activity":
-                existing_membership = existing_membership.filter(Membership.activity_id == entity_id)
-
-            if existing_membership.first():
-                await query.edit_message_text(
-                    f"Пользователь {user.first_name} уже является участником {entity_name}"
+                participation = Participation(
+                    user_id=user.id,
+                    activity_id=join_request.activity_id,
+                    status=ParticipationStatus.REGISTERED
                 )
-                return
+                session.add(participation)
+                session.commit()
 
-            # Create membership
-            membership_data = {"user_id": user.id, "role": UserRole.MEMBER}
+            else:
+                # For clubs/groups - create Membership
+                entity_id = join_request.club_id or join_request.group_id
 
-            if entity_type == "club":
-                membership_data["club_id"] = entity_id
-            elif entity_type == "group":
-                membership_data["group_id"] = entity_id
-            elif entity_type == "activity":
-                membership_data["activity_id"] = entity_id
+                existing_membership = session.query(Membership).filter(
+                    Membership.user_id == user.id
+                )
 
-            membership = Membership(**membership_data)
-            session.add(membership)
-            session.commit()
+                if entity_type == "club":
+                    existing_membership = existing_membership.filter(Membership.club_id == entity_id)
+                elif entity_type == "group":
+                    existing_membership = existing_membership.filter(Membership.group_id == entity_id)
+
+                if existing_membership.first():
+                    await query.edit_message_text(
+                        f"Пользователь {user.first_name} уже является участником {entity_name}"
+                    )
+                    return
+
+                # Create membership
+                membership_data = {"user_id": user.id, "role": UserRole.MEMBER}
+
+                if entity_type == "club":
+                    membership_data["club_id"] = entity_id
+                elif entity_type == "group":
+                    membership_data["group_id"] = entity_id
+
+                membership = Membership(**membership_data)
+                session.add(membership)
+                session.commit()
 
             # Send approval notification to user
             await send_approval_notification(

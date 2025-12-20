@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { CreateMenu, ParticipantsSheet, ActivityCard, GroupCard, LoadingScreen, ErrorScreen, Button, BottomNav } from '../components'
+import { Avatar, AvatarStack } from '../components/ui'
 import {
     useClub,
     useGroup,
@@ -14,6 +15,7 @@ import {
     useDeleteGroup,
     tg // for confirmations
 } from '../hooks'
+import { clubsApi, groupsApi } from '../api'
 import { pluralizeMembers, pluralizeGroups } from '../data/sample_data'
 
 export default function ClubGroupDetail({ type = 'club' }) {
@@ -81,14 +83,27 @@ export default function ClubGroupDetail({ type = 'club' }) {
 
     const toggleMembership = async () => {
         try {
-            if (isClub) {
-                await joinClub(id)
+            // Check if entity is closed - need to send request instead of direct join
+            if (!item.isOpen) {
+                // Closed entity - send join request
+                if (isClub) {
+                    await clubsApi.requestJoin(id)
+                } else {
+                    await groupsApi.requestJoin(id)
+                }
+                tg.showAlert('Заявка отправлена! Организатор получит уведомление.')
             } else {
-                await joinGroup(id)
+                // Open entity - direct join
+                if (isClub) {
+                    await joinClub(id)
+                } else {
+                    await joinGroup(id)
+                }
             }
             refetch()
         } catch (e) {
             console.error('Membership toggle failed', e)
+            tg.showAlert(e.message || 'Произошла ошибка')
         }
     }
 
@@ -191,17 +206,23 @@ export default function ClubGroupDetail({ type = 'club' }) {
                 <div className="border border-gray-200 rounded-xl p-4 mb-4">
                     <div className="flex items-start justify-between mb-4">
                         <div className="flex-1 pr-3">
-                            <h1 className="text-xl text-gray-800 font-medium mb-1">
-                                {item.name}
+                            <h1 className="text-xl text-gray-800 font-medium mb-1 flex items-center gap-2">
+                                {!item.isOpen && <span className="text-gray-400 text-lg">🔒</span>}
+                                <span>{item.name}</span>
                                 {!isClub && (item.club_name || item.parentClub) && (
                                     <span className="text-gray-400 font-normal"> / {item.club_name || item.parentClub}</span>
                                 )}
                             </h1>
                             <p className="text-sm text-gray-500">
                                 {isClub ? '🏆 Клуб' : '👥 Группа'}
+                                {!item.isOpen && ' · Закрытый'}
                             </p>
                         </div>
-                        <span className="text-3xl flex-shrink-0">{isClub ? '🏆' : '👥'}</span>
+                        {item.photo ? (
+                            <Avatar src={item.photo} name={item.name} size="xl" />
+                        ) : (
+                            <span className="text-3xl flex-shrink-0">{isClub ? '🏆' : '👥'}</span>
+                        )}
                     </div>
 
                     {item.description && (
@@ -215,11 +236,7 @@ export default function ClubGroupDetail({ type = 'club' }) {
                             onClick={() => setShowParticipants(true)}
                             className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 transition-colors"
                         >
-                            <div className="flex -space-x-2">
-                                {participants.slice(0, 5).map((p, i) => (
-                                    <span key={p.id || i} className="text-xl">{p.avatar || '👤'}</span>
-                                ))}
-                            </div>
+                            <AvatarStack participants={participants} max={5} size="sm" />
                             <span>
                                 {pluralizeMembers(item.members)}
                                 {isClub && item.groupsCount > 0 && ` · ${pluralizeGroups(item.groupsCount)}`}
@@ -237,7 +254,7 @@ export default function ClubGroupDetail({ type = 'club' }) {
                                 disabled={joiningClub || joiningGroup}
                                 className="text-sm font-medium text-blue-600 bg-blue-50 px-3 py-1 rounded-full hover:bg-blue-100 transition-colors"
                             >
-                                {joiningClub || joiningGroup ? '...' : 'Вступить'}
+                                {joiningClub || joiningGroup ? '...' : (item.isOpen ? 'Вступить' : 'Отправить заявку')}
                             </button>
                         )}
                     </div>

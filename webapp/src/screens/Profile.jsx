@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { BottomNav, CreateMenu, LoadingScreen, ErrorScreen } from '../components'
+import { Avatar } from '../components/ui'
 import { usersApi, tg } from '../api'
 import { useApi, useClubs, useGroups } from '../hooks'
 import { SPORT_TYPES } from '../constants/sports'
@@ -15,8 +16,8 @@ export default function Profile() {
     const user = {
         name: userProfile?.firstName || tg.user?.first_name || 'Бегун',
         username: userProfile?.username || tg.user?.username || 'runner',
-        avatar: '👤', // Backend doesn't store avatar URL yet
-        ...tg.user, // TG data takes precedence if available (for avatar url etc if we had it)
+        photo: userProfile?.photo || null,
+        ...tg.user, // TG data takes precedence if available
         ...userProfile // Backend data overwrites if available
     }
 
@@ -159,7 +160,13 @@ export default function Profile() {
                 {/* User Info Card */}
                 <div className="border border-gray-200 rounded-xl p-6 bg-white mb-4">
                     <div className="flex flex-col items-center text-center">
-                        <span className="text-5xl mb-3">{user.avatar}</span>
+                        <div className="mb-3">
+                            <Avatar
+                                src={user.photo}
+                                name={`${user.first_name || user.name} ${user.last_name || ''}`}
+                                size="xl"
+                            />
+                        </div>
                         <h2 className="text-lg text-gray-800 font-medium">
                             {user.first_name || user.name} {user.last_name || ''}
                         </h2>

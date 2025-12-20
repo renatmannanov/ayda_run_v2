@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { ParticipantsSheet, LoadingScreen, ErrorScreen, Button, BottomNav } from '../components'
+import { AvatarStack } from '../components/ui'
 import {
     useActivity,
     useActivityParticipants,
@@ -197,29 +198,13 @@ export default function ActivityDetail() {
                         {activity.canViewParticipants ? (
                             <button
                                 onClick={() => setShowParticipants(true)}
-                                className="flex items-center gap-1 w-full text-left"
+                                className="flex items-center gap-2 w-full text-left"
                                 disabled={participantsLoading}
                             >
                                 {participantsLoading ? (
                                     <span className="text-sm text-gray-400">Загрузка участников...</span>
                                 ) : (
-                                    <>
-                                        <div className="flex -space-x-2">
-                                            {displayedParticipants.map(p => (
-                                                <span
-                                                    key={p.id}
-                                                    className={`text-2xl ${isPast && p.attended === false ? 'opacity-40' : ''}`}
-                                                >
-                                                    {p.avatar || '👤'}
-                                                </span>
-                                            ))}
-                                        </div>
-                                        {remainingCount > 0 && (
-                                            <span className="text-sm text-gray-400 ml-2">
-                                                +{remainingCount} →
-                                            </span>
-                                        )}
-                                    </>
+                                    <AvatarStack participants={participants} max={5} size="sm" />
                                 )}
                             </button>
                         ) : (

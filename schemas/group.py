@@ -34,10 +34,10 @@ class GroupResponse(BaseResponse):
     city: str
 
     # Telegram
-    username: Optional[str]
-    telegram_chat_id: Optional[str]
-    invite_link: Optional[str]
-    photo: Optional[str]
+    username: Optional[str] = None
+    telegram_chat_id: Optional[str] = None
+    invite_link: Optional[str] = None
+    photo: Optional[str] = None
 
     # Access control
     is_open: bool
@@ -59,6 +59,7 @@ class MemberResponse(BaseModel):
     username: Optional[str]
     first_name: Optional[str]
     name: str
+    photo: Optional[str] = None  # Telegram file_id or URL
     role: UserRole
     joined_at: Optional[str] = None  # datetime to str if needed
     preferred_sports: Optional[str] = None  # JSON string of sport preferences

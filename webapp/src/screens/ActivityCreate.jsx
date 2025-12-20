@@ -51,6 +51,7 @@ export default function ActivityCreate() {
         (context?.groupId && context.groupId !== null) ? context.groupId.toString() : ''
     )
     const [isPublic, setIsPublic] = useState(false)
+    const [isOpen, setIsOpen] = useState(true) // true = anyone can join, false = by request only
 
     const [showDifficultyPicker, setShowDifficultyPicker] = useState(false)
     const [showClubPicker, setShowClubPicker] = useState(false)
@@ -104,7 +105,8 @@ export default function ActivityCreate() {
                     max_participants: noLimit ? null : parseInt(maxParticipants),
                     description,
                     club_id: isPublic || !selectedClub ? null : selectedClub,
-                    group_id: isPublic || !selectedGroup ? null : selectedGroup
+                    group_id: isPublic || !selectedGroup ? null : selectedGroup,
+                    is_open: isOpen
                 })
 
                 alert('Тренировка создана!')
@@ -427,6 +429,40 @@ export default function ActivityCreate() {
                     value={getClubGroupDisplay()}
                     onClick={() => setShowClubPicker(true)}
                 />
+
+                <div className="border-t border-gray-200 my-4" />
+
+                {/* Access control */}
+                <div className="mb-4">
+                    <label className="text-sm text-gray-700 mb-2 block">Кто может записаться?</label>
+                    <div className="flex gap-2">
+                        <button
+                            onClick={() => setIsOpen(true)}
+                            className={`flex-1 py-3 px-4 rounded-xl text-sm border transition-colors ${
+                                isOpen
+                                    ? 'border-gray-800 bg-gray-800 text-white'
+                                    : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                            }`}
+                        >
+                            Все желающие
+                        </button>
+                        <button
+                            onClick={() => setIsOpen(false)}
+                            className={`flex-1 py-3 px-4 rounded-xl text-sm border transition-colors ${
+                                !isOpen
+                                    ? 'border-gray-800 bg-gray-800 text-white'
+                                    : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                            }`}
+                        >
+                            🔒 По заявке
+                        </button>
+                    </div>
+                    <p className="text-xs text-gray-400 mt-2">
+                        {isOpen
+                            ? 'Любой может записаться на тренировку'
+                            : 'Участники отправляют заявку, вы одобряете'}
+                    </p>
+                </div>
             </div>
 
             {/* Submit button */}

@@ -11,6 +11,8 @@ from telegram.ext import (
     ConversationHandler,
     CommandHandler,
     CallbackQueryHandler,
+    MessageHandler,
+    filters,
     ContextTypes
 )
 
@@ -52,7 +54,8 @@ logger = logging.getLogger(__name__)
 AWAITING_CONSENT = 1
 SELECTING_SPORTS = 2
 SELECTING_ROLE = 3
-SHOWING_INTRO = 4
+ASKING_STRAVA = 4
+SHOWING_INTRO = 5
 
 
 async def handle_existing_user_invitation(update: Update, context: ContextTypes.DEFAULT_TYPE,
@@ -174,7 +177,7 @@ async def start_onboarding(update: Update, context: ContextTypes.DEFAULT_TYPE) -
         )
 
         # Save Telegram profile photo if available and not already saved
-        if not user.photo and telegram_user.photo:
+        if not user.photo:
             try:
                 # Get the largest photo size
                 photo_file = await telegram_user.get_profile_photos(limit=1)
@@ -351,8 +354,47 @@ async def handle_role_selection(update: Update, context: ContextTypes.DEFAULT_TY
     telegram_user = query.from_user
 
     if callback_data == "role_participant":
-        # User is a participant - show app intro
+        # User is a participant - ask about Strava
         logger.info(f"User {telegram_user.id} selected role: participant")
+
+        from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+
+        keyboard = [
+            [InlineKeyboardButton("Да, добавить ссылку", callback_data="strava_yes")],
+            [InlineKeyboardButton("Пропустить →", callback_data="strava_skip")]
+        ]
+
+        await query.edit_message_text(
+            "🏃 У тебя есть профиль на Strava?\n\n"
+            "Если хочешь, можешь добавить ссылку на свой профиль — "
+            "другие участники смогут найти тебя там.",
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
+
+        return ASKING_STRAVA
+
+    # Note: role_organizer is handled by organizer_conv_handler
+    # This handler only processes role_participant
+
+    return SELECTING_ROLE
+
+
+async def handle_strava_response(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """
+    Handle Strava link question responses (yes/skip).
+
+    - strava_yes: Ask user to send Strava link
+    - strava_skip: Skip to intro message
+    """
+    query = update.callback_query
+    await query.answer()
+
+    callback_data = query.data
+    telegram_user = query.from_user
+
+    if callback_data == "strava_skip":
+        # Skip Strava link - proceed to intro
+        logger.info(f"User {telegram_user.id} skipped Strava link")
 
         await query.edit_message_text(
             get_intro_message(),
@@ -361,10 +403,49 @@ async def handle_role_selection(update: Update, context: ContextTypes.DEFAULT_TY
 
         return SHOWING_INTRO
 
-    # Note: role_organizer is handled by organizer_conv_handler
-    # This handler only processes role_participant
+    elif callback_data == "strava_yes":
+        # User wants to add Strava link - ask for it
+        logger.info(f"User {telegram_user.id} wants to add Strava link")
 
-    return SELECTING_ROLE
+        await query.edit_message_text(
+            "Отправь ссылку на свой профиль Strava\n\n"
+            "Например: https://www.strava.com/athletes/12345"
+        )
+
+        return ASKING_STRAVA
+
+    return ASKING_STRAVA
+
+
+async def handle_strava_link(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """
+    Handle Strava link text input.
+
+    Save Strava link to user profile and proceed to intro.
+    """
+    message = update.message
+    telegram_user = message.from_user
+    strava_link = message.text.strip()
+
+    logger.info(f"User {telegram_user.id} sent Strava link: {strava_link}")
+
+    # Save to database
+    with UserStorage() as user_storage:
+        user = user_storage.get_user_by_telegram_id(telegram_user.id)
+        if user:
+            user_storage.update_profile(user.id, strava_link=strava_link)
+            logger.info(f"Saved Strava link for user {user.id}")
+
+    # Confirmation message
+    await message.reply_text("✅ Ссылка сохранена!")
+
+    # Show intro message
+    await message.reply_text(
+        get_intro_message(),
+        reply_markup=get_intro_done_keyboard()
+    )
+
+    return SHOWING_INTRO
 
 
 async def complete_onboarding(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -478,6 +559,10 @@ onboarding_conv_handler = ConversationHandler(
         ],
         SELECTING_ROLE: [
             CallbackQueryHandler(handle_role_selection, pattern="^role_participant$")
+        ],
+        ASKING_STRAVA: [
+            CallbackQueryHandler(handle_strava_response, pattern="^strava_"),
+            MessageHandler(filters.TEXT & ~filters.COMMAND, handle_strava_link)
         ],
         SHOWING_INTRO: [
             CallbackQueryHandler(complete_onboarding, pattern="^intro_done$")

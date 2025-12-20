@@ -57,9 +57,9 @@ export default function CreateClub() {
                 const payload = {
                     name,
                     description,
+                    is_open: visibility !== 'private', // public = open, private = closed
                     // sport_types: selectedSports, // Not supported by backend yet
                     // telegram_chat_id: telegramChat, // Backend needs INT, not string username
-                    // is_private: visibility === 'private' // Not supported by backend yet
                 }
 
                 if (isEditMode) {

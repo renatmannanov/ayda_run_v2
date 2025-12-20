@@ -23,9 +23,9 @@ class UserResponse(BaseModel):
     city: str
 
     # Profile
-    photo: Optional[str]  # Telegram avatar file_id
-    strava_link: Optional[str]  # URL to Strava profile
-    is_premium: bool
+    photo: Optional[str] = None  # Telegram avatar file_id
+    strava_link: Optional[str] = None  # URL to Strava profile
+    is_premium: bool = False
 
     # Onboarding
     has_completed_onboarding: bool

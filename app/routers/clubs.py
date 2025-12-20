@@ -123,7 +123,7 @@ def get_club(
     response = ClubResponse.model_validate(club)
     response.groups_count = db.query(Group).filter(Group.club_id == club.id).count()
     response.members_count = db.query(Membership).filter(Membership.club_id == club.id).count()
-    
+
     if current_user:
         membership = db.query(Membership).filter(
             Membership.club_id == club.id,
@@ -131,7 +131,17 @@ def get_club(
         ).first()
         response.is_member = membership is not None
         response.user_role = membership.role if membership else None
-    
+
+    # DEBUG: Check if photo is in response
+    print(f"DEBUG get_club: club.photo={club.photo}, response.photo={response.photo}")
+    dict_dump = response.model_dump()
+    print(f"DEBUG response dict: {dict_dump}")
+    print(f"DEBUG photo in dict: {'photo' in dict_dump}, value: {dict_dump.get('photo')}")
+
+    json_dump = response.model_dump(mode='json')
+    print(f"DEBUG JSON dump: {json_dump}")
+    print(f"DEBUG photo in JSON: {'photo' in json_dump}, value: {json_dump.get('photo')}")
+
     return response
 
 

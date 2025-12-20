@@ -61,22 +61,28 @@ export default function Avatar({ src, name, size = 'md', className = '' }) {
     const initials = getInitials(name)
     const bgColor = getColorFromName(name)
 
-    // Convert Telegram file_id to URL if needed
+    // Convert Telegram file path to URL if needed
     const getImageUrl = (src) => {
         if (!src) return null
 
-        // If it's a Telegram file_id (doesn't start with http), construct URL
-        if (!src.startsWith('http')) {
-            // TODO: Implement Telegram file URL construction
-            // For now, treat as invalid
-            return null
+        // If it's already a full URL, use it as is
+        if (src.startsWith('http')) {
+            return src
         }
 
-        return src
+        // If it's a Telegram file path (like "profile_photos/file_0.jpg"), construct URL
+        return `/api/media/photo/${encodeURIComponent(src)}`
     }
 
     const imageUrl = getImageUrl(src)
     const showImage = imageUrl && !imageError
+
+    // Debug logging
+    React.useEffect(() => {
+        if (imageUrl && imageError) {
+            console.warn(`Avatar image failed to load: ${imageUrl}`, { src, name })
+        }
+    }, [imageUrl, imageError, src, name])
 
     return (
         <div

@@ -284,12 +284,13 @@ app.add_middleware(LoggingMiddleware)
 # ============================================================================
 # Include Routers
 # ============================================================================
-from app.routers import activities, clubs, groups, users
+from app.routers import activities, clubs, groups, users, media
 
 app.include_router(activities.router)
 app.include_router(clubs.router)
 app.include_router(groups.router)
 app.include_router(users.router)
+app.include_router(media.router)
 
 # ============================================================================
 # Static File Serving
