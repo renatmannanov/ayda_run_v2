@@ -242,6 +242,8 @@ async def send_new_activity_notification_to_group(
         True if sent successfully, False otherwise
     """
     try:
+        from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+
         message_text = format_new_activity_group_notification(
             activity_title=activity_title,
             activity_date=activity_date,
@@ -249,10 +251,20 @@ async def send_new_activity_notification_to_group(
             webapp_link=webapp_link
         )
 
+        # Remove the link from text since we'll use a button
+        message_text = message_text.replace(f"\n\nЗаписаться: {webapp_link}", "")
+
+        # Create inline button for the link
+        keyboard = [[
+            InlineKeyboardButton("Записаться 🔗", url=webapp_link)
+        ]]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+
         await bot.send_message(
             chat_id=group_chat_id,
             text=message_text,
-            disable_web_page_preview=False
+            reply_markup=reply_markup,
+            disable_web_page_preview=True
         )
 
         logger.info(f"Sent new activity notification to group {group_chat_id}")

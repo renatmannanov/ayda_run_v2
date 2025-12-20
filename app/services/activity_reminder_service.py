@@ -92,10 +92,11 @@ class ActivityReminderService:
         session = SessionLocal()
 
         try:
-            # Calculate time window for 2 days from now
+            # Calculate time window for reminders
             now = datetime.now(timezone.utc)
-            target_start = now + timedelta(days=2)
-            target_end = target_start + timedelta(hours=1)  # 1-hour window
+            # For testing: 1 minute ahead. For production: change to days=2
+            target_start = now + timedelta(minutes=1)
+            target_end = target_start + timedelta(minutes=2)  # 2-minute window
 
             # Get upcoming activities in the time window
             activities = session.query(Activity).filter(
