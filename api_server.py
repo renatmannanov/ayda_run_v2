@@ -110,9 +110,19 @@ async def lifespan(app: FastAPI):
     await auto_reject_service.start()
     logger.info("[SUCCESS] Auto-reject service started")
 
+    # Phase 6.1: Start activity reminder service (2-day reminders)
+    from app.services.activity_reminder_service import get_activity_reminder_service
+    activity_reminder_service = get_activity_reminder_service(bot_app.bot)
+    await activity_reminder_service.start()
+    logger.info("[SUCCESS] Activity reminder service started")
+
     yield
 
     # Shutdown
+    # Stop activity reminder service
+    await activity_reminder_service.stop()
+    logger.info("[SUCCESS] Activity reminder service stopped")
+
     # Stop auto-reject service
     await auto_reject_service.stop()
     logger.info("[SUCCESS] Auto-reject service stopped")

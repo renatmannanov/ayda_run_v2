@@ -12,7 +12,7 @@ from fastapi import APIRouter, HTTPException, Depends, Query
 from sqlalchemy.orm import Session, joinedload
 from typing import List, Optional
 
-from storage.db import Activity, Participation, User, Membership, JoinRequest, JoinRequestStatus
+from storage.db import Activity, Participation, User, Membership, JoinRequest, JoinRequestStatus, Club, Group
 from app.core.dependencies import get_db, get_current_user, get_current_user_optional
 from permissions import can_create_activity_in_club, can_create_activity_in_group, require_activity_owner
 from schemas.common import SportType, Difficulty, ActivityVisibility, ActivityStatus, ParticipationStatus, PaymentStatus
@@ -24,6 +24,7 @@ from config import settings
 
 # Bot notifications
 from bot.join_request_notifications import send_join_request_to_organizer
+from bot.activity_notifications import send_new_activity_notification_to_user, send_new_activity_notification_to_group
 from telegram import Bot
 import asyncio
 
@@ -86,6 +87,17 @@ async def create_activity(
     db.add(activity)
     db.commit()
     db.refresh(activity)
+
+    # Send notifications to club/group members (async, don't block response)
+    asyncio.create_task(_send_new_activity_notifications(
+        activity_id=activity.id,
+        activity_title=activity.title,
+        activity_date=activity.date,
+        location=activity.location or "Не указано",
+        club_id=activity.club_id,
+        group_id=activity.group_id,
+        max_participants=activity.max_participants
+    ))
 
     # Convert to response
     response = ActivityResponse.model_validate(activity)
@@ -623,3 +635,108 @@ async def reject_activity_join_request(
         "request_id": request_id,
         "user_id": join_request.user_id
     }
+
+
+# ============================================================================
+# Helper Functions for Notifications
+# ============================================================================
+
+async def _send_new_activity_notifications(
+    activity_id: str,
+    activity_title: str,
+    activity_date,
+    location: str,
+    club_id: Optional[str],
+    group_id: Optional[str],
+    max_participants: Optional[int]
+) -> None:
+    """
+    Send new activity notifications to club/group members.
+    Runs asynchronously in background.
+
+    Args:
+        activity_id: Activity ID
+        activity_title: Activity title
+        activity_date: Activity date/time
+        location: Activity location
+        club_id: Club ID (if club activity)
+        group_id: Group ID (if group activity)
+        max_participants: Maximum participants
+    """
+    try:
+        from storage.db import SessionLocal
+        session = SessionLocal()
+
+        try:
+            # Get entity (club or group)
+            entity = None
+            entity_name = "Активность"
+            telegram_group_id = None
+
+            if club_id:
+                entity = session.query(Club).filter(Club.id == club_id).first()
+                if entity:
+                    entity_name = entity.name
+                    telegram_group_id = entity.telegram_group_id
+            elif group_id:
+                entity = session.query(Group).filter(Group.id == group_id).first()
+                if entity:
+                    entity_name = entity.name
+                    telegram_group_id = entity.telegram_group_id
+
+            # Get all members of the club/group
+            members = []
+            if club_id:
+                memberships = session.query(Membership).filter(Membership.club_id == club_id).all()
+                members = [session.query(User).filter(User.id == m.user_id).first() for m in memberships]
+            elif group_id:
+                memberships = session.query(Membership).filter(Membership.group_id == group_id).all()
+                members = [session.query(User).filter(User.id == m.user_id).first() for m in memberships]
+
+            # Filter out None values
+            members = [m for m in members if m and m.telegram_id]
+
+            # Build webapp link
+            webapp_link = f"{settings.webapp_url}/activities/{activity_id}"
+
+            # Initialize bot
+            bot = Bot(token=settings.bot_token)
+
+            # Send to each member's personal chat
+            for member in members:
+                try:
+                    await send_new_activity_notification_to_user(
+                        bot=bot,
+                        user_telegram_id=member.telegram_id,
+                        activity_title=activity_title,
+                        activity_date=activity_date,
+                        location=location,
+                        participants_count=0,
+                        max_participants=max_participants,
+                        entity_name=entity_name,
+                        webapp_link=webapp_link
+                    )
+                except Exception as e:
+                    logger.error(f"Failed to send notification to user {member.telegram_id}: {e}")
+
+            # Send to Telegram group if linked
+            if telegram_group_id:
+                try:
+                    await send_new_activity_notification_to_group(
+                        bot=bot,
+                        group_chat_id=telegram_group_id,
+                        activity_title=activity_title,
+                        activity_date=activity_date,
+                        location=location,
+                        webapp_link=webapp_link
+                    )
+                except Exception as e:
+                    logger.error(f"Failed to send notification to group {telegram_group_id}: {e}")
+
+            logger.info(f"Sent new activity notifications for activity {activity_id} to {len(members)} members")
+
+        finally:
+            session.close()
+
+    except Exception as e:
+        logger.error(f"Error in _send_new_activity_notifications: {e}", exc_info=True)
