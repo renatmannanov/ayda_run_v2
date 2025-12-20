@@ -1,0 +1,154 @@
+{
+  "project": {
+    "name": "Ayda Run v2",
+    "type": "Telegram Mini App",
+    "mvp_readiness": "85%",
+    "stack": "FastAPI + React + Telegram Bot"
+  },
+
+  "urls": {
+    "api": "http://localhost:8000",
+    "api_docs": "http://localhost:8000/docs",
+    "webapp_dev": "http://localhost:5173",
+    "telegram_api": "https://api.telegram.org/bot{token}/",
+    "telegram_files": "https://api.telegram.org/file/bot{token}/{file_path}"
+  },
+
+  "commands": {
+    "allowed": [
+      "npm run build (in webapp/)",
+      "pytest tests/ -v",
+      "git add/commit (with user approval)",
+      "python <script>.py (one-off scripts only)"
+    ],
+    "forbidden": [
+      "python api_server.py",
+      "python telegram_bot.py",
+      "taskkill/pkill for Python processes",
+      "Server restarts of any kind"
+    ]
+  },
+
+  "commit_strategy": {
+    "when_to_commit": [
+      "Feature fully implemented AND tested by user",
+      "Bug fix verified to work",
+      "Complete refactoring (not mid-refactor)",
+      "Substantial documentation update"
+    ],
+    "when_NOT_to_commit": [
+      "After every small change",
+      "WIP or incomplete features",
+      "Before user confirms it works",
+      "Multiple times while debugging same issue"
+    ],
+    "ideal_pattern": "1 feature = 1 commit (after user testing)"
+  },
+
+  "problem_solving": {
+    "stuck_threshold": "10 minutes",
+    "action_when_stuck": [
+      "STOP coding attempts",
+      "WebSearch for official documentation",
+      "Check Telegram Bot API docs",
+      "Read error messages COMPLETELY",
+      "PLAN solution based on research",
+      "IMPLEMENT once root cause is understood"
+    ]
+  },
+
+  "architecture": {
+    "backend": {
+      "api_endpoints": "app/routers/",
+      "background_services": "app/services/",
+      "dependencies": "app/core/dependencies.py",
+      "no_service_layer": "Business logic stays in routers"
+    },
+    "frontend": {
+      "generic_ui": "components/ui/",
+      "domain_components": "components/shared/",
+      "screen_specific": "components/<screen>/",
+      "api_hooks": "hooks/"
+    },
+    "bot": {
+      "handlers": "bot/*_handler.py",
+      "notifications": "bot/*_notifications.py",
+      "utilities": "bot/group_parser.py"
+    }
+  },
+
+  "common_gotchas": {
+    "datetime": {
+      "db": "Always UTC (datetime.utcnow())",
+      "frontend": "Browser local timezone",
+      "reminders": "Compare LOCAL to LOCAL (not UTC!)"
+    },
+    "pydantic": {
+      "optional_fields": "Must have = None for JSON serialization",
+      "validation": "Use model_validate() not parse_obj()",
+      "check_both": ".model_dump() and .model_dump(mode='json')"
+    },
+    "telegram": {
+      "photo_flow": "chat.photo.big_file_id → get_file() → file.file_path",
+      "file_path": "Relative path like 'photos/file_0.jpg'",
+      "full_url": "https://api.telegram.org/file/bot{token}/{file_path}",
+      "cors_issue": "Direct access may fail → use proxy"
+    },
+    "frontend": {
+      "api_prefix": "Always /api/ for backend routes",
+      "caching": "React Query handles it (5min staleTime)",
+      "hard_refresh": "Ctrl+Shift+R to clear cache"
+    }
+  },
+
+  "testing": {
+    "target_coverage": "~60% is acceptable",
+    "priorities": [
+      "Core business logic (permissions, access control)",
+      "Database operations",
+      "API endpoints (integration)",
+      "Edge cases in complex logic"
+    ],
+    "skip": [
+      "Trivial getters/setters",
+      "UI components",
+      "100% coverage chase"
+    ]
+  },
+
+  "config": {
+    "source": "config.py (Pydantic Settings)",
+    "key_settings": {
+      "settings.bot_token": "Telegram bot token",
+      "settings.app_url": "Frontend URL (NOT webapp_url!)",
+      "settings.debug": "Dev mode flag",
+      "settings.database_url": "Database connection"
+    },
+    "rule": "ALWAYS use settings object, NEVER hardcode"
+  },
+
+  "communication": {
+    "before_feature": "Summarize plan in 2-3 sentences",
+    "during": "Execute without play-by-play narration",
+    "after": "Report results, wait for user feedback",
+    "before_commit": "Wait for user confirmation feature works"
+  },
+
+  "mvp_status": {
+    "completed": [
+      "Core flow (clubs → activities → join requests)",
+      "Telegram bot with notifications",
+      "Web app with all screens",
+      "Access control (4 permission levels)",
+      "Background services (reminders, auto-reject)"
+    ],
+    "in_progress": [
+      "User/club avatars (95% done, display issue)"
+    ],
+    "planned_p1": [
+      "Telegram group integration",
+      "GPX route uploads",
+      "Strava sync"
+    ]
+  }
+}

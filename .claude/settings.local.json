@@ -19,7 +19,8 @@
       "Bash(git commit:*)",
       "Bash(rm:*)",
       "Bash(timeout /t 3 /nobreak)",
-      "Bash(pytest:*)"
+      "Bash(pytest:*)",
+      "Bash(cat:*)"
     ]
   }
 }
