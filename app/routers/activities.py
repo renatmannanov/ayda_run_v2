@@ -697,7 +697,7 @@ async def _send_new_activity_notifications(
             members = [m for m in members if m and m.telegram_id]
 
             # Build webapp link
-            webapp_link = f"{settings.webapp_url}/activities/{activity_id}"
+            webapp_link = f"{settings.app_url}/activities/{activity_id}"
 
             # Initialize bot
             bot = Bot(token=settings.bot_token)
