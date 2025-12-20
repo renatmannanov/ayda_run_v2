@@ -37,7 +37,7 @@ class ActivityReminderService:
     Runs as a background task and checks every hour.
     """
 
-    def __init__(self, bot: Bot, check_interval: int = 3600):
+    def __init__(self, bot: Bot, check_interval: int = 60):
         """
         Initialize activity reminder service.
 
@@ -148,12 +148,12 @@ class ActivityReminderService:
             club = session.query(Club).filter(Club.id == activity.club_id).first()
             if club:
                 entity_name = club.name
-                telegram_group_id = club.telegram_group_id
+                telegram_group_id = club.telegram_chat_id
         elif activity.group_id:
             group = session.query(Group).filter(Group.id == activity.group_id).first()
             if group:
                 entity_name = group.name
-                telegram_group_id = group.telegram_group_id
+                telegram_group_id = group.telegram_chat_id
 
         # Get all registered participants
         participations = session.query(Participation).filter(

@@ -677,12 +677,12 @@ async def _send_new_activity_notifications(
                 entity = session.query(Club).filter(Club.id == club_id).first()
                 if entity:
                     entity_name = entity.name
-                    telegram_group_id = entity.telegram_group_id
+                    telegram_group_id = entity.telegram_chat_id
             elif group_id:
                 entity = session.query(Group).filter(Group.id == group_id).first()
                 if entity:
                     entity_name = entity.name
-                    telegram_group_id = entity.telegram_group_id
+                    telegram_group_id = entity.telegram_chat_id
 
             # Get all members of the club/group
             members = []
