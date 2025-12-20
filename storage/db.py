@@ -108,6 +108,7 @@ class User(Base):
 
     # Profile
     photo = Column(String(255), nullable=True)  # Telegram avatar file_id
+    strava_link = Column(String(500), nullable=True)  # URL to Strava profile
     is_premium = Column(Boolean, default=False, nullable=False)
 
     # Onboarding

@@ -217,3 +217,60 @@ class UserStorage:
         except Exception as e:
             logger.error(f"Error in get_preferred_sports: {e}")
             return []
+
+    def update_photo(self, user_id: str, photo: str) -> Optional[User]:
+        """
+        Update user's photo (Telegram file_id or URL).
+
+        Args:
+            user_id: User UUID
+            photo: Photo file_id or URL
+
+        Returns:
+            Updated User object or None if user not found
+        """
+        try:
+            user = self.session.query(User).filter(User.id == user_id).first()
+            if user:
+                user.photo = photo
+                user.updated_at = datetime.utcnow()
+                self.session.commit()
+                self.session.refresh(user)
+                logger.info(f"Updated photo for user {user_id}")
+                return user
+            return None
+        except Exception as e:
+            self.session.rollback()
+            logger.error(f"Error in update_photo: {e}")
+            raise
+
+    def update_profile(self, user_id: str, photo: Optional[str] = None,
+                      strava_link: Optional[str] = None) -> Optional[User]:
+        """
+        Update user's profile (photo and/or strava_link).
+
+        Args:
+            user_id: User UUID
+            photo: Optional photo file_id or URL
+            strava_link: Optional Strava profile URL
+
+        Returns:
+            Updated User object or None if user not found
+        """
+        try:
+            user = self.session.query(User).filter(User.id == user_id).first()
+            if user:
+                if photo is not None:
+                    user.photo = photo
+                if strava_link is not None:
+                    user.strava_link = strava_link
+                user.updated_at = datetime.utcnow()
+                self.session.commit()
+                self.session.refresh(user)
+                logger.info(f"Updated profile for user {user_id}")
+                return user
+            return None
+        except Exception as e:
+            self.session.rollback()
+            logger.error(f"Error in update_profile: {e}")
+            raise

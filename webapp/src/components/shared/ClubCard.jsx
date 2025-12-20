@@ -1,6 +1,7 @@
 import React from 'react'
 import { useNavigate } from 'react-router-dom'
 import { pluralizeMembers, pluralizeGroups } from '../../data/sample_data'
+import { Avatar } from '../ui'
 
 export default function ClubCard({ club, showJoinButton = false, onJoin }) {
     const navigate = useNavigate()
@@ -21,7 +22,11 @@ export default function ClubCard({ club, showJoinButton = false, onJoin }) {
         >
             <div className="flex items-start justify-between">
                 <div className="flex items-start gap-3 flex-1 min-w-0">
-                    <span className="text-xl flex-shrink-0">{club.icon || '🏆'}</span>
+                    {club.photo ? (
+                        <Avatar src={club.photo} name={club.name} size="md" />
+                    ) : (
+                        <span className="text-xl flex-shrink-0">{club.icon || '🏆'}</span>
+                    )}
                     <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
                             <h3 className="text-base text-gray-800 font-medium truncate flex-1 min-w-0 flex items-center gap-1">

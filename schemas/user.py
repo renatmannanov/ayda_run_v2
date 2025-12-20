@@ -24,6 +24,7 @@ class UserResponse(BaseModel):
 
     # Profile
     photo: Optional[str]  # Telegram avatar file_id
+    strava_link: Optional[str]  # URL to Strava profile
     is_premium: bool
 
     # Onboarding
@@ -36,6 +37,11 @@ class UserResponse(BaseModel):
 
     # Timestamps
     created_at: datetime
+
+class UserProfileUpdate(BaseModel):
+    """Request model for updating user profile"""
+    photo: Optional[str] = None  # Telegram file_id or URL
+    strava_link: Optional[str] = None  # URL to Strava profile
 
 class UserStatsResponse(BaseModel):
     """Response model for user statistics"""

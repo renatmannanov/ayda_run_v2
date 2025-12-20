@@ -173,6 +173,20 @@ async def start_onboarding(update: Update, context: ContextTypes.DEFAULT_TYPE) -
             last_name=telegram_user.last_name
         )
 
+        # Save Telegram profile photo if available and not already saved
+        if not user.photo and telegram_user.photo:
+            try:
+                # Get the largest photo size
+                photo_file = await telegram_user.get_profile_photos(limit=1)
+                if photo_file.total_count > 0:
+                    # Get file_id from the largest photo
+                    largest_photo = photo_file.photos[0][-1]  # Last element is largest
+                    user_storage.update_photo(user.id, largest_photo.file_id)
+                    logger.info(f"Saved Telegram photo for user {telegram_user.id}")
+            except Exception as e:
+                logger.error(f"Error saving Telegram photo: {e}")
+                # Continue without photo - not critical
+
         # Check if user already completed onboarding
         if user.has_completed_onboarding:
             logger.info(f"User {telegram_user.id} already completed onboarding")
