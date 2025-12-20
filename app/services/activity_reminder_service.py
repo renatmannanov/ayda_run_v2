@@ -10,7 +10,7 @@ Runs every hour to check for activities happening in 2 days and sends reminders 
 
 import logging
 import asyncio
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from typing import List, Optional
 
 from telegram import Bot
@@ -96,13 +96,14 @@ class ActivityReminderService:
 
         try:
             # Calculate time window for reminders
-            now = datetime.now(timezone.utc)
+            # Use local time (naive datetime) because activity.date is stored as naive datetime
+            now = datetime.now()
             # For testing: 1 minute ahead. For production: change to days=2
             target_start = now + timedelta(minutes=1)
             target_end = target_start + timedelta(minutes=2)  # 2-minute window
 
             # DEBUG LOGGING
-            logger.info(f"[REMINDER DEBUG] Checking for reminders at {now}")
+            logger.info(f"[REMINDER DEBUG] Checking for reminders at {now} (local time)")
             logger.info(f"[REMINDER DEBUG] Looking for activities between {target_start} and {target_end}")
 
             # Get upcoming activities in the time window
