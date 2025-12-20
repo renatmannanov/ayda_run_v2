@@ -6,6 +6,45 @@
 **MVP Readiness:** 85% - Core flow complete, working on final polish
 **Stack:** FastAPI + SQLAlchemy + python-telegram-bot + React + Vite + Tailwind
 
+## 🔄 Self-Improvement Protocol
+
+**When you discover a new pattern or mistake:**
+
+1. **Identify the pattern** - What went wrong and why
+2. **Check if it's already documented** - Search this file
+3. **If NEW pattern → Propose update** - Ask user:
+   ```
+   "I noticed a pattern: [brief description]
+   Should I add this to .claude/instructions.md?
+   Proposed addition: [1-2 sentence rule]"
+   ```
+4. **If user approves → Update instructions** - Add to relevant section
+5. **Commit the update** - Single commit with clear description
+
+**Examples of patterns worth adding:**
+- ✅ Repeated mistakes (tried same wrong approach 3+ times)
+- ✅ External API quirks (Telegram file_path returns full URL, not relative)
+- ✅ Project-specific gotchas (this field name changed, use this instead)
+- ✅ Performance issues (this query is slow, use this pattern)
+
+**Don't add:**
+- ❌ One-off mistakes
+- ❌ Already documented patterns
+- ❌ General programming knowledge
+- ❌ Obvious fixes
+
+**Update sections in order:**
+1. First check: "Common Gotchas" (#6)
+2. If architectural: "Architecture Patterns" (#5)
+3. If about tools: Relevant tool section (#1-4)
+4. If testing: "Testing Approach" (#7)
+
+**Keep instructions concise:**
+- Maximum 1-2 sentences per rule
+- Use examples for clarity
+- Group related rules together
+- Remove obsolete rules as project evolves
+
 ## Critical Rules
 
 ### 1. Server Management - DO NOT RESTART PYTHON SERVERS
