@@ -455,16 +455,14 @@ async def request_join_activity(
                 'id': activity.id
             }
 
-            # Send notification
+            # Send notification asynchronously
             bot = Bot(token=settings.bot_token)
-            asyncio.create_task(
-                send_join_request_to_organizer(
-                    bot,
-                    creator.telegram_id,
-                    user_data,
-                    entity_data,
-                    join_request.id
-                )
+            await send_join_request_to_organizer(
+                bot,
+                creator.telegram_id,
+                user_data,
+                entity_data,
+                join_request.id
             )
     except Exception as e:
         # Log error but don't fail the request

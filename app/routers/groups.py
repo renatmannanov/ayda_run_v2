@@ -49,7 +49,7 @@ def create_group(
     if not group_dict.get('country'):
         group_dict['country'] = DEFAULT_COUNTRY
 
-    group = Group(**group_dict)
+    group = Group(**group_dict, creator_id=current_user.id)
     
     db.add(group)
     db.commit()
@@ -384,17 +384,21 @@ def request_join_group(
                 'id': group.id
             }
 
-            # Send notification
+            # Send notification synchronously
             bot = Bot(token=settings.bot_token)
-            asyncio.create_task(
-                send_join_request_to_organizer(
-                    bot,
-                    creator.telegram_id,
-                    user_data,
-                    entity_data,
-                    join_request.id
+            loop = asyncio.new_event_loop()
+            try:
+                loop.run_until_complete(
+                    send_join_request_to_organizer(
+                        bot,
+                        creator.telegram_id,
+                        user_data,
+                        entity_data,
+                        join_request.id
+                    )
                 )
-            )
+            finally:
+                loop.close()
     except Exception as e:
         # Log error but don't fail the request
         import logging

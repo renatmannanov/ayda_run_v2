@@ -125,6 +125,7 @@ class User(Base):
     # Relationships
     memberships = relationship("Membership", back_populates="user", cascade="all, delete-orphan")
     created_clubs = relationship("Club", back_populates="creator", foreign_keys="Club.creator_id")
+    created_groups = relationship("Group", back_populates="creator", foreign_keys="Group.creator_id")
     created_activities = relationship("Activity", back_populates="creator", foreign_keys="Activity.creator_id")
     participations = relationship("Participation", back_populates="user", cascade="all, delete-orphan")
 
@@ -186,6 +187,9 @@ class Group(Base):
     # Optional club relationship (NULL = standalone)
     club_id = Column(String(36), ForeignKey('clubs.id'), nullable=True, index=True)
 
+    # Creator
+    creator_id = Column(String(36), ForeignKey('users.id'), nullable=False, index=True)
+
     # Location
     country = Column(String(100), default=DEFAULT_COUNTRY, nullable=False)
     city = Column(String(100), nullable=False, index=True)
@@ -202,6 +206,7 @@ class Group(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
     # Relationships
+    creator = relationship("User", back_populates="created_groups", foreign_keys=[creator_id])
     club = relationship("Club", back_populates="groups")
     activities = relationship("Activity", back_populates="group")
     memberships = relationship("Membership", back_populates="group", cascade="all, delete-orphan")

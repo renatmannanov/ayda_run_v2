@@ -340,17 +340,22 @@ def request_join_club(
                 'id': club.id
             }
 
-            # Send notification
+            # Send notification synchronously
+            import asyncio
             bot = Bot(token=settings.bot_token)
-            asyncio.create_task(
-                send_join_request_to_organizer(
-                    bot,
-                    creator.telegram_id,
-                    user_data,
-                    entity_data,
-                    join_request.id
+            loop = asyncio.new_event_loop()
+            try:
+                loop.run_until_complete(
+                    send_join_request_to_organizer(
+                        bot,
+                        creator.telegram_id,
+                        user_data,
+                        entity_data,
+                        join_request.id
+                    )
                 )
-            )
+            finally:
+                loop.close()
     except Exception as e:
         # Log error but don't fail the request
         import logging
