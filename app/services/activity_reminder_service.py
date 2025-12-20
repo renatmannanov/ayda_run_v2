@@ -78,13 +78,16 @@ class ActivityReminderService:
 
     async def _run(self):
         """Main service loop"""
+        logger.info(f"[REMINDER DEBUG] Service loop started, will check every {self.check_interval}s")
         while self._running:
             try:
+                logger.info("[REMINDER DEBUG] Running scheduled check...")
                 await self._check_and_send_reminders()
             except Exception as e:
                 logger.error(f"Error in activity reminder service: {e}", exc_info=True)
 
             # Wait for next check
+            logger.info(f"[REMINDER DEBUG] Waiting {self.check_interval}s until next check")
             await asyncio.sleep(self.check_interval)
 
     async def _check_and_send_reminders(self):
@@ -98,6 +101,10 @@ class ActivityReminderService:
             target_start = now + timedelta(minutes=1)
             target_end = target_start + timedelta(minutes=2)  # 2-minute window
 
+            # DEBUG LOGGING
+            logger.info(f"[REMINDER DEBUG] Checking for reminders at {now}")
+            logger.info(f"[REMINDER DEBUG] Looking for activities between {target_start} and {target_end}")
+
             # Get upcoming activities in the time window
             activities = session.query(Activity).filter(
                 and_(
@@ -107,11 +114,21 @@ class ActivityReminderService:
                 )
             ).all()
 
+            # DEBUG: Show ALL upcoming activities to compare
+            all_upcoming = session.query(Activity).filter(
+                Activity.status == ActivityStatus.UPCOMING
+            ).all()
+            logger.info(f"[REMINDER DEBUG] Total upcoming activities: {len(all_upcoming)}")
+            for act in all_upcoming:
+                logger.info(f"[REMINDER DEBUG] - {act.title} at {act.date} (id={act.id})")
+
             if not activities:
-                logger.debug("No activities to remind about")
+                logger.info("[REMINDER DEBUG] No activities found in time window")
                 return
 
-            logger.info(f"Found {len(activities)} activities to send reminders for")
+            logger.info(f"[REMINDER DEBUG] Found {len(activities)} activities to send reminders for")
+            for act in activities:
+                logger.info(f"[REMINDER DEBUG] Will remind: {act.title} at {act.date} (id={act.id})")
 
             # Process each activity
             for activity in activities:
