@@ -1,6 +1,7 @@
 // Barrel export for components
 
 // Layout components
+export { default as BottomBar } from './BottomBar'
 export { default as BottomNav } from './BottomNav'
 export { default as CreateMenu } from './CreateMenu'
 export { default as ParticipantsSheet } from './ParticipantsSheet'

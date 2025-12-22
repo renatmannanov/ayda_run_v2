@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ParticipantsSheet, LoadingScreen, ErrorScreen, Button, BottomNav } from '../components'
+import { ParticipantsSheet, LoadingScreen, ErrorScreen, Button, BottomBar } from '../components'
 import { AvatarStack, GpxUpload } from '../components/ui'
 import {
     useActivity,
@@ -410,17 +410,12 @@ export default function ActivityDetail() {
                 actionButton={getActionButton()}
             />
 
-            {/* Bottom fixed container: Action Bar + Navigation */}
-            <div className="fixed bottom-0 left-0 right-0 max-w-md mx-auto z-40">
-                {/* Action Bar - above BottomNav, hidden when popup is open */}
-                {!isPast && !showParticipants && (
-                    <div className="bg-white border-t border-gray-200 px-4 py-3">
-                        {getActionButton()}
-                    </div>
-                )}
-                {/* Bottom Navigation */}
-                <BottomNav onCreateClick={() => window.alert('Создание из деталей активности пока не поддерживается, перейдите на Главную')} />
-            </div>
+            {/* Bottom Bar with Action */}
+            <BottomBar
+                onCreateClick={() => tg.showAlert('Создание из деталей активности пока не поддерживается, перейдите на Главную')}
+                showAction={!isPast && !showParticipants}
+                action={getActionButton()}
+            />
         </div>
     )
 }

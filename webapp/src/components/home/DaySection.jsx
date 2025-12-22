@@ -37,68 +37,90 @@ export function DaySection({
     // Count activities for this day
     const activityCount = hasActivities ? activities.length : 0
 
+    // Get day display name
+    const getDayName = () => {
+        if (isTodayDay) return `Сегодня, ${dayNames[dayOfWeek].toLowerCase()}`
+        return dayNames[dayOfWeek]
+    }
+
+    // Compact row for days without activities
+    if (!hasActivities) {
+        return (
+            <div className="border-b border-gray-100">
+                <button
+                    onClick={() => isPastDay && onToggleExpansion(weekNumber, dayOfWeek)}
+                    className="w-full flex items-center py-3 hover:bg-gray-50 transition-colors relative"
+                    disabled={!isPastDay}
+                >
+                    {/* Day name - left */}
+                    <span className={`text-sm flex-shrink-0 ${isTodayDay ? 'font-medium text-gray-800' : isPastDay ? 'text-gray-400' : 'font-medium text-gray-600'}`}>
+                        {getDayName()}
+                        {isPastDay && (
+                            <span className={`ml-1 text-xs transition-transform inline-block ${isExpanded ? 'rotate-180' : ''}`}>
+                                ▾
+                            </span>
+                        )}
+                    </span>
+
+                    {/* Left line */}
+                    <div className="flex-1 border-b border-gray-200 mx-3" />
+
+                    {/* "нет активностей" - absolutely centered */}
+                    <span className="absolute left-1/2 -translate-x-1/2 text-xs text-gray-400 bg-gray-50 px-2">
+                        нет активностей
+                    </span>
+
+                    {/* Right line */}
+                    <div className="flex-1 border-b border-gray-200 mx-3" />
+
+                    {/* Count - right */}
+                    <span className="text-sm text-gray-400 flex-shrink-0">0</span>
+                </button>
+            </div>
+        )
+    }
+
+    // Regular row for days with activities
     return (
-        <div className="mb-4">
+        <div className="border-b border-gray-100">
             {/* Day Header */}
-            <div className="flex items-center gap-2 mb-3">
-                {isPastDay ? (
-                    <button
-                        onClick={() => onToggleExpansion(weekNumber, dayOfWeek)}
-                        className="flex items-center gap-2 text-sm text-gray-400 hover:text-gray-600 transition-colors"
-                    >
-                        <span>{dayNames[dayOfWeek]}</span>
-                        <span className={`text-xs transition-transform ${isExpanded ? 'rotate-180' : ''}`}>
+            <button
+                onClick={() => isPastDay && onToggleExpansion(weekNumber, dayOfWeek)}
+                className="w-full flex items-center py-3 hover:bg-gray-50 transition-colors"
+                disabled={!isPastDay}
+            >
+                {/* Day name - left */}
+                <span className={`text-sm flex-shrink-0 ${isTodayDay ? 'font-medium text-gray-800' : isPastDay ? 'text-gray-400' : 'font-medium text-gray-600'}`}>
+                    {getDayName()}
+                    {isPastDay && (
+                        <span className={`ml-1 text-xs transition-transform inline-block ${isExpanded ? 'rotate-180' : ''}`}>
                             ▾
                         </span>
-                    </button>
-                ) : (
-                    <span className={`text-sm font-medium ${isTodayDay ? 'text-gray-800' : 'text-gray-500'}`}>
-                        {isTodayDay ? `Сегодня, ${dayNames[dayOfWeek].toLowerCase()}` : dayNames[dayOfWeek]}
-                    </span>
-                )}
-                <div className="flex-1 border-b border-gray-200" />
-                <span className="text-xs text-gray-400">{activityCount}</span>
-            </div>
+                    )}
+                </span>
+
+                {/* Line */}
+                <div className="flex-1 border-b border-gray-200 mx-3" />
+
+                {/* Count - right */}
+                <span className="text-sm text-gray-800 font-medium flex-shrink-0">{activityCount}</span>
+            </button>
 
             {/* Activities */}
-            {isPastDay ? (
-                isExpanded && (
-                    hasActivities ? (
-                        <div className="space-y-3">
-                            {activities.map(activity => {
-                                const isPast = new Date(activity.date) < now
-                                return (
-                                    <div key={activity.id} className={isPast ? 'opacity-50' : ''}>
-                                        <ActivityCard
-                                            activity={activity}
-                                            onJoinToggle={onJoinToggle}
-                                        />
-                                    </div>
-                                )
-                            })}
-                        </div>
-                    ) : (
-                        <p className="text-sm text-gray-300 mb-3 pl-1">В этот день нет активностей</p>
-                    )
-                )
-            ) : (
-                hasActivities ? (
-                    <div className="space-y-3">
-                        {activities.map(activity => {
-                            const isPast = new Date(activity.date) < now
-                            return (
-                                <div key={activity.id} className={isPast ? 'opacity-50' : ''}>
-                                    <ActivityCard
-                                        activity={activity}
-                                        onJoinToggle={onJoinToggle}
-                                    />
-                                </div>
-                            )
-                        })}
-                    </div>
-                ) : (
-                    <p className="text-sm text-gray-300 mb-3 pl-1">В этот день нет активностей</p>
-                )
+            {(!isPastDay || isExpanded) && (
+                <div className="pb-3 space-y-3">
+                    {activities.map(activity => {
+                        const isPast = new Date(activity.date) < now
+                        return (
+                            <div key={activity.id} className={isPast ? 'opacity-50' : ''}>
+                                <ActivityCard
+                                    activity={activity}
+                                    onJoinToggle={onJoinToggle}
+                                />
+                            </div>
+                        )
+                    })}
+                </div>
             )}
         </div>
     )
