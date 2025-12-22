@@ -84,28 +84,40 @@ async def handle_join_from_group(update: Update, context: ContextTypes.DEFAULT_T
             )
             return ConversationHandler.END
 
-    # Check if already member
+    # Check if already member and handle activation
     with MembershipStorage() as ms:
-        existing = ms.is_member_of_club(user.id, club.id)
-        if existing:
-            await update.message.reply_text(
-                f"👋 Ты уже участник клуба «{club.name}»!\n\n"
-                "Открой приложение, чтобы посмотреть расписание."
-            )
-            webapp_url = f"{settings.app_url}?startapp=club_{club.id}"
-            await update.message.reply_text(
-                "Открой приложение:",
-                reply_markup=get_webapp_button(webapp_url, f"🚀 Открыть {club.name}")
-            )
-            return ConversationHandler.END
+        existing = ms.get_membership(user.id, club.id)
 
-        # Add to club
-        ms.add_member_to_club_with_source(
-            user_id=user.id,
-            club_id=club.id,
-            source=MembershipSource.DEEP_LINK,
-            status=MembershipStatus.ACTIVE
-        )
+        if existing:
+            if existing.status == MembershipStatus.ACTIVE:
+                # Already active - just show welcome
+                await update.message.reply_text(
+                    f"👋 Ты уже участник клуба «{club.name}»!\n\n"
+                    "Открой приложение, чтобы посмотреть расписание."
+                )
+                webapp_url = f"{settings.app_url}?startapp=club_{club.id}"
+                await update.message.reply_text(
+                    "Открой приложение:",
+                    reply_markup=get_webapp_button(webapp_url, f"🚀 Открыть {club.name}")
+                )
+                return ConversationHandler.END
+            else:
+                # PENDING or other status - activate via deep link
+                ms.add_member_to_club_with_source(
+                    user_id=user.id,
+                    club_id=club.id,
+                    source=MembershipSource.DEEP_LINK,
+                    status=MembershipStatus.ACTIVE
+                )
+                logger.info(f"Activated pending member {user.id} in club {club.id} via deep link")
+        else:
+            # New member - add to club
+            ms.add_member_to_club_with_source(
+                user_id=user.id,
+                club_id=club.id,
+                source=MembershipSource.DEEP_LINK,
+                status=MembershipStatus.ACTIVE
+            )
 
     # Add to cache
     add_member_to_cache(chat_id, update.effective_user.id)

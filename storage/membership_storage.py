@@ -297,12 +297,13 @@ class MembershipStorage:
             if existing:
                 # Reactivate if was inactive
                 if existing.status != MembershipStatus.ACTIVE:
-                    existing.status = MembershipStatus.ACTIVE
+                    existing.status = status
+                    existing.source = source  # Update source on activation
                     existing.left_at = None
                     existing.last_seen = datetime.utcnow()
                     self.session.commit()
                     self.session.refresh(existing)
-                    logger.info(f"Reactivated member {user_id} in club {club_id}")
+                    logger.info(f"Reactivated member {user_id} in club {club_id} via {source.value}")
                 return existing
 
             membership = Membership(
