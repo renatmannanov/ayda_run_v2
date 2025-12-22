@@ -12,7 +12,7 @@ import {
     formatDate,
     formatTime,
     getDifficultyLabel
-} from '../data/sample_data' // Ensure these helpers are exported or move to utils
+} from '../data/sample_data'
 import { activitiesApi, tg } from '../api'
 
 export default function ActivityDetail() {
@@ -40,46 +40,94 @@ export default function ActivityDetail() {
     const { mutate: leaveActivity, loading: leaving } = useLeaveActivity()
 
     const [showParticipants, setShowParticipants] = useState(false)
-    const [isOrganizer, setIsOrganizer] = useState(false) // TODO: Check from user API vs activity.organizer_id
 
     // Derived state
     const isPast = activity?.isPast
     const isFull = activity ? (activity.maxParticipants !== null && activity.participants >= activity.maxParticipants) : false
     const isJoined = activity?.isJoined
+    const isCreator = activity?.isCreator
+    const isPending = activity?.isPending // TODO: add to API
 
-    // Toggle join
-    const handleJoinToggle = async () => {
+    // Can edit: creator or club/group admin
+    const canEdit = isCreator // TODO: add club/group admin check
+
+    // Join/Leave handler
+    const handleJoin = async () => {
         try {
-            if (isJoined) {
-                await leaveActivity(id)
+            if (activity.isOpen) {
+                await joinActivity(id)
             } else {
-                if (activity.isOpen) {
-                    // Open activity - join directly
-                    await joinActivity(id)
-                } else {
-                    // Closed activity - send join request
-                    await activitiesApi.requestJoin(id)
-                    tg.showAlert('Заявка отправлена! Мы уведомим тебя, когда организатор рассмотрит её.')
-                }
+                await activitiesApi.requestJoin(id)
+                tg.showAlert('Заявка отправлена! Мы уведомим тебя, когда организатор рассмотрит её.')
             }
-            // Refetch both to update UI count and list
             refetchActivity()
             refetchParticipants()
         } catch (e) {
-            console.error('Action failed', e)
-            const errorMessage = e.message || 'Произошла ошибка'
-            tg.showAlert(errorMessage)
+            console.error('Join failed', e)
+            tg.showAlert(e.message || 'Произошла ошибка')
         }
     }
 
-    // Count attended (backend might provide this field on participant object)
+    const handleLeave = async () => {
+        try {
+            await leaveActivity(id)
+            refetchActivity()
+            refetchParticipants()
+        } catch (e) {
+            console.error('Leave failed', e)
+            tg.showAlert(e.message || 'Произошла ошибка')
+        }
+    }
+
+    const handleShare = () => {
+        const shareUrl = `https://t.me/aydarun_bot?start=activity_${activity.id}`
+        navigator.clipboard.writeText(shareUrl)
+        tg.showAlert('Ссылка скопирована!')
+    }
+
+    // Count attended
     const attendedCount = participants.filter(p => p.attended === true).length
-    const displayedParticipants = participants.slice(0, 5)
-    const remainingCount = participants.length - 5
 
     if (activityLoading) return <LoadingScreen text="Загружаем детали..." />
     if (activityError) return <ErrorScreen message={activityError} onRetry={refetchActivity} />
     if (!activity) return <ErrorScreen message="Тренировка не найдена" />
+
+    // Get organizer display text
+    const getOrganizerDisplay = () => {
+        if (activity.club || activity.group) {
+            return (
+                <p className="text-sm text-gray-700">
+                    <span className="cursor-pointer hover:underline">🏆 {activity.club}</span>
+                    {activity.group && (
+                        <>
+                            <span className="text-gray-400"> / </span>
+                            <span className="cursor-pointer hover:underline">{activity.group}</span>
+                        </>
+                    )}
+                </p>
+            )
+        }
+        if (activity.creatorName) {
+            return (
+                <p className="text-sm text-gray-700 flex items-center gap-1">
+                    <span className="text-gray-400">организатор</span>
+                    <span className="cursor-pointer hover:underline">{activity.creatorName}</span>
+                </p>
+            )
+        }
+        return null
+    }
+
+    // Get distance/elevation text (hide if empty)
+    const getDistanceText = () => {
+        const parts = []
+        if (activity.distance) parts.push(`${activity.distance} км`)
+        if (activity.elevation) parts.push(`↗${activity.elevation} м`)
+        if (activity.duration) parts.push(activity.duration)
+        return parts.length > 0 ? parts.join(' · ') : null
+    }
+
+    const distanceText = getDistanceText()
 
     return (
         <div className="h-screen bg-white flex flex-col relative">
@@ -91,25 +139,16 @@ export default function ActivityDetail() {
                 >
                     ← Назад
                 </button>
-
-                {/* Demo toggle for organizer mode - remove in prod or link to real permission */}
-                <button
-                    onClick={() => setIsOrganizer(!isOrganizer)}
-                    className={`text-xs px-2 py-1 rounded ${isOrganizer ? 'bg-orange-100 text-orange-600' : 'bg-gray-100 text-gray-500'}`}
-                >
-                    {isOrganizer ? 'Орг ✓' : 'Орг'}
-                </button>
             </div>
 
             {/* Content */}
             <div className="flex-1 overflow-y-auto px-4 py-4 pb-36">
                 <div className="border border-gray-200 rounded-xl p-4">
-                    {/* Title */}
+                    {/* Title + Icon */}
                     <div className="flex justify-between items-start mb-4">
                         <div>
-                            <h1 className="text-xl text-gray-800 font-medium mb-1 flex items-center gap-2">
-                                {!activity.isOpen && <span className="text-gray-400 text-lg">🔒</span>}
-                                <span>{activity.title}</span>
+                            <h1 className="text-xl text-gray-800 font-medium mb-1">
+                                {activity.title}
                             </h1>
                             {isPast && (
                                 <span className="text-sm text-gray-400">
@@ -120,177 +159,218 @@ export default function ActivityDetail() {
                         <span className="text-3xl">{activity.icon || '🏃'}</span>
                     </div>
 
-                    {/* Info */}
-                    <div className="space-y-3 mb-4">
-                        <div className="flex items-start gap-3">
-                            <span className="text-gray-400">📅</span>
+                    {/* Characteristics */}
+                    <div className="space-y-2 mb-2">
+                        <div className="flex items-center gap-3">
+                            <span className="text-base">📅</span>
                             <span className="text-sm text-gray-700">
                                 {formatDate(activity.date)}, {formatTime(activity.date)}
                             </span>
                         </div>
 
-                        <div className="flex items-start gap-3">
-                            <span className="text-gray-400">📍</span>
+                        <div className="flex items-center gap-3">
+                            <span className="text-base">📍</span>
                             <span className="text-sm text-gray-700">
                                 {activity.location}
                             </span>
                         </div>
 
-                        <div className="flex items-start gap-3">
-                            <span className="text-gray-400">🏃</span>
-                            <span className="text-sm text-gray-700">
-                                {activity.distance} км · ↗{activity.elevation} м · {activity.duration}
-                            </span>
-                        </div>
+                        {distanceText && (
+                            <div className="flex items-center gap-3">
+                                <span className="text-base">🏃</span>
+                                <span className="text-sm text-gray-700">{distanceText}</span>
+                            </div>
+                        )}
 
-                        <div className="flex items-start gap-3">
-                            <span className="text-gray-400">⚡</span>
+                        <div className="flex items-center gap-3">
+                            <span className="text-base">⚡</span>
                             <span className="text-sm text-gray-700">
                                 {getDifficultyLabel(activity.difficulty)}
                             </span>
                         </div>
-
-                        {/* GPX download link (for users with permission) */}
-                        {activity.hasGpx && activity.canDownloadGpx && (
-                            <div className="flex items-start gap-3">
-                                <span className="text-gray-400">📍</span>
-                                <button
-                                    onClick={() => {
-                                        const url = activitiesApi.getGpxDownloadUrl(activity.id)
-                                        // In Telegram WebApp, use openLink to handle downloads
-                                        if (tg.webApp?.openLink) {
-                                            // openLink opens in external browser which handles downloads
-                                            tg.webApp.openLink(window.location.origin + url)
-                                        } else {
-                                            // Fallback for desktop/browser
-                                            window.open(url, '_blank')
-                                        }
-                                    }}
-                                    className="text-sm text-blue-600 hover:text-blue-800 underline underline-offset-2 text-left"
-                                >
-                                    Download GPX: {activity.gpxFilename || 'route.gpx'}
-                                </button>
-                            </div>
-                        )}
                     </div>
 
-                    {/* Divider */}
-                    <div className="border-t border-gray-300 my-4" />
+                    {/* GPX Download Link */}
+                    {activity.hasGpx && activity.canDownloadGpx && (
+                        <div className="mt-3 mb-2">
+                            <button
+                                onClick={() => {
+                                    const url = activitiesApi.getGpxDownloadUrl(activity.id)
+                                    if (tg.webApp?.openLink) {
+                                        tg.webApp.openLink(window.location.origin + url)
+                                    } else {
+                                        window.open(url, '_blank')
+                                    }
+                                }}
+                                className="text-xs text-gray-500 underline hover:text-gray-700 transition-colors"
+                            >
+                                Скачать gpx трек
+                            </button>
+                        </div>
+                    )}
+
+                    <div className="border-t border-gray-200 my-4" />
 
                     {/* Description */}
                     {activity.description && (
                         <>
-                            <p className="text-sm text-gray-700 leading-relaxed mb-4">
+                            <p className="text-sm text-gray-600 leading-relaxed">
                                 {activity.description}
                             </p>
-                            <div className="border-t border-gray-300 my-4" />
+                            <div className="border-t border-gray-200 my-4" />
                         </>
                     )}
 
-                    {/* Participants */}
-                    <div className="mb-4">
-                        <p className="text-sm text-gray-500 mb-3">
-                            Участники · {activity.canViewParticipants
-                                ? (isPast
-                                    ? `${attendedCount} из ${participants.length} были`
-                                    : activity.maxParticipants !== null
-                                        ? `${activity.participants}/${activity.maxParticipants}`
-                                        : `${activity.participants}`
-                                )
-                                : `${activity.participants}`
-                            }
-                            {!activity.canViewParticipants && (
-                                <span className="text-xs text-gray-400"> (только участники)</span>
-                            )}
-                        </p>
-
-                        {activity.canViewParticipants ? (
-                            <button
-                                onClick={() => setShowParticipants(true)}
-                                className="flex items-center gap-2 w-full text-left"
-                                disabled={participantsLoading}
-                            >
-                                {participantsLoading ? (
-                                    <span className="text-sm text-gray-400">Загрузка участников...</span>
-                                ) : (
-                                    <AvatarStack participants={participants} max={5} size="sm" />
-                                )}
-                            </button>
-                        ) : (
-                            <p className="text-sm text-gray-400">
-                                🔒 Список участников доступен только членам активности
-                            </p>
-                        )}
-
-                        {/* User attendance status (past activities) */}
-                        {isPast && isJoined && (
-                            <p className={`text-sm mt-3 ${activity.attended ? 'text-green-600' : 'text-gray-400'
-                                }`}>
-                                {activity.attended ? 'Ты был ✓' : 'Ты пропустил'}
-                            </p>
-                        )}
+                    {/* Organizer */}
+                    <div className="mb-3">
+                        {getOrganizerDisplay()}
                     </div>
 
-                    {/* Club/Group */}
-                    {(activity.club || activity.group) && (
-                        <button className="text-sm text-gray-500 hover:text-gray-700 transition-colors">
-                            {activity.club}{activity.group ? ` / ${activity.group}` : ''} →
-                        </button>
+                    {/* Participants */}
+                    <button
+                        onClick={() => setShowParticipants(true)}
+                        className="flex items-center gap-2 hover:opacity-70 transition-opacity"
+                        disabled={participantsLoading || !activity.canViewParticipants}
+                    >
+                        {activity.canViewParticipants ? (
+                            <>
+                                {participantsLoading ? (
+                                    <span className="text-sm text-gray-400">Загрузка...</span>
+                                ) : (
+                                    <>
+                                        <AvatarStack participants={participants} max={8} size="sm" />
+                                        <span className="text-sm text-gray-500 ml-2">
+                                            {activity.maxParticipants !== null
+                                                ? `${activity.participants}/${activity.maxParticipants}`
+                                                : `${activity.participants}`
+                                            }
+                                        </span>
+                                    </>
+                                )}
+                            </>
+                        ) : (
+                            <span className="text-sm text-gray-400">
+                                🔒 {activity.participants} участников
+                            </span>
+                        )}
+                    </button>
+
+                    {/* User attendance status (past activities) */}
+                    {isPast && isJoined && (
+                        <p className={`text-sm mt-3 ${activity.attended ? 'text-green-600' : 'text-gray-400'}`}>
+                            {activity.attended ? 'Ты был ✓' : 'Ты пропустил'}
+                        </p>
                     )}
 
-                    {/* Creator actions: GPX upload */}
-                    {activity.isCreator && (
-                        <div className="mt-6 pt-4 border-t border-gray-200">
-                            <GpxUpload
-                                activityId={activity.id}
-                                hasGpx={activity.hasGpx}
-                                gpxFilename={activity.gpxFilename}
-                                onSuccess={refetchActivity}
-                            />
-                        </div>
-                    )}
-
-                    {/* Organizer actions */}
-                    {isOrganizer && (
-                        <div className="mt-6 pt-4 border-t border-gray-200">
-                            <div className="flex gap-4 mb-4">
-                                <button className="text-sm text-gray-500 hover:text-gray-700 transition-colors">
-                                    Edit
+                    {/* Creator/Admin actions - moved to bottom */}
+                    {canEdit && (
+                        <>
+                            <div className="border-t border-gray-200 my-4" />
+                            <div className="space-y-2">
+                                {!activity.hasGpx && (
+                                    <GpxUpload
+                                        activityId={activity.id}
+                                        hasGpx={activity.hasGpx}
+                                        gpxFilename={activity.gpxFilename}
+                                        onSuccess={refetchActivity}
+                                    />
+                                )}
+                                {activity.hasGpx && (
+                                    <div className="flex items-center gap-2 text-sm text-gray-500 py-1">
+                                        <span>📍</span>
+                                        <span>GPX добавлен</span>
+                                    </div>
+                                )}
+                                <button className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 transition-colors py-1">
+                                    <span>✏️</span>
+                                    <span>Редактировать</span>
                                 </button>
-                                <button className="text-sm text-gray-500 hover:text-gray-700 transition-colors">
-                                    Share
+                                <button className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 transition-colors py-1">
+                                    <span>🗑</span>
+                                    <span>Удалить</span>
                                 </button>
                             </div>
-                        </div>
+                        </>
                     )}
                 </div>
             </div>
 
-            {/* Bottom CTA */}
+            {/* Bottom Action Bar */}
             {!isPast && (
-                <div className="fixed bottom-20 left-0 right-0 max-w-md mx-auto px-4 pb-2 pt-2 z-30 pointer-events-none">
-                    <div className="pointer-events-auto shadow-lg rounded-xl overflow-hidden bg-white">
-                        {isJoined ? (
-                            <Button
-                                onClick={handleJoinToggle}
-                                variant="success"
-                                loading={joining || leaving}
-                                className="w-full rounded-none h-12"
+                <div className="fixed bottom-20 left-0 right-0 max-w-md mx-auto px-4 pb-2 pt-2 z-30">
+                    <div className="bg-white border-t border-gray-200 px-4 py-4">
+                        {/* Private & not joined & not pending */}
+                        {!activity.isOpen && !isJoined && !isPending && (
+                            <button
+                                onClick={handleJoin}
+                                disabled={joining || isFull}
+                                className="w-full py-4 bg-gray-800 text-white rounded-xl text-sm font-medium hover:bg-gray-700 transition-colors flex items-center justify-center gap-2 disabled:bg-gray-300"
                             >
-                                <span>Иду ✓</span>
-                                <span className="text-green-400">·</span>
-                                <span className="text-green-500 font-normal">Отменить</span>
-                            </Button>
-                        ) : isFull ? (
-                            <Button disabled variant="secondary" className="w-full rounded-none h-12">Мест нет</Button>
-                        ) : (
-                            <Button
-                                onClick={handleJoinToggle}
-                                loading={joining || leaving}
-                                className="w-full rounded-none h-12"
-                            >
-                                {activity.isOpen ? 'Записаться' : 'Отправить заявку'}
-                            </Button>
+                                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                                </svg>
+                                <span>Подать заявку на участие</span>
+                            </button>
+                        )}
+
+                        {/* Private & pending */}
+                        {!activity.isOpen && isPending && (
+                            <div className="flex items-center justify-between">
+                                <button
+                                    onClick={handleLeave}
+                                    disabled={leaving}
+                                    className="text-sm text-gray-400 hover:text-gray-600 transition-colors"
+                                >
+                                    Отменить
+                                </button>
+                                <div className="flex items-center gap-2 text-gray-800">
+                                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                                    </svg>
+                                    <span className="text-sm font-medium">Заявка отправлена</span>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Open & not joined */}
+                        {activity.isOpen && !isJoined && (
+                            isFull ? (
+                                <Button disabled variant="secondary" className="w-full h-12">
+                                    Мест нет
+                                </Button>
+                            ) : (
+                                <Button
+                                    onClick={handleJoin}
+                                    loading={joining}
+                                    className="w-full h-12"
+                                >
+                                    Записаться
+                                </Button>
+                            )
+                        )}
+
+                        {/* Joined (open or private) */}
+                        {isJoined && (
+                            <div className="flex items-center justify-between">
+                                <button
+                                    onClick={handleLeave}
+                                    disabled={leaving}
+                                    className="text-sm text-gray-400 hover:text-gray-600 transition-colors"
+                                >
+                                    {leaving ? 'Отмена...' : 'Отменить'}
+                                </button>
+                                <div className="flex items-center gap-3">
+                                    <span className="text-sm text-gray-800 font-medium">Иду!</span>
+                                    <button
+                                        onClick={handleShare}
+                                        className="w-10 h-10 border border-gray-200 rounded-xl flex items-center justify-center text-gray-500 hover:bg-gray-50 transition-colors"
+                                    >
+                                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
                         )}
                     </div>
                 </div>
