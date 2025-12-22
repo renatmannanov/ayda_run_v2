@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { ParticipantsSheet, LoadingScreen, ErrorScreen, Button, BottomNav } from '../components'
-import { AvatarStack } from '../components/ui'
+import { AvatarStack, GpxUpload } from '../components/ui'
 import {
     useActivity,
     useActivityParticipants,
@@ -150,17 +150,26 @@ export default function ActivityDetail() {
                             </span>
                         </div>
 
-                        {activity.gpxLink && activity.canDownloadGpx && (
+                        {/* GPX download link (for users with permission) */}
+                        {activity.hasGpx && activity.canDownloadGpx && (
                             <div className="flex items-start gap-3">
-                                <span className="text-gray-400">📎</span>
-                                <a
-                                    href={activity.gpxLink}
-                                    className="text-sm text-gray-700 hover:text-gray-900 underline underline-offset-2"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
+                                <span className="text-gray-400">📍</span>
+                                <button
+                                    onClick={() => {
+                                        const url = activitiesApi.getGpxDownloadUrl(activity.id)
+                                        // In Telegram WebApp, use openLink to handle downloads
+                                        if (tg.webApp?.openLink) {
+                                            // openLink opens in external browser which handles downloads
+                                            tg.webApp.openLink(window.location.origin + url)
+                                        } else {
+                                            // Fallback for desktop/browser
+                                            window.open(url, '_blank')
+                                        }
+                                    }}
+                                    className="text-sm text-blue-600 hover:text-blue-800 underline underline-offset-2 text-left"
                                 >
-                                    Маршрут GPX →
-                                </a>
+                                    Download GPX: {activity.gpxFilename || 'route.gpx'}
+                                </button>
                             </div>
                         )}
                     </div>
@@ -229,15 +238,27 @@ export default function ActivityDetail() {
                         </button>
                     )}
 
+                    {/* Creator actions: GPX upload */}
+                    {activity.isCreator && (
+                        <div className="mt-6 pt-4 border-t border-gray-200">
+                            <GpxUpload
+                                activityId={activity.id}
+                                hasGpx={activity.hasGpx}
+                                gpxFilename={activity.gpxFilename}
+                                onSuccess={refetchActivity}
+                            />
+                        </div>
+                    )}
+
                     {/* Organizer actions */}
                     {isOrganizer && (
                         <div className="mt-6 pt-4 border-t border-gray-200">
                             <div className="flex gap-4 mb-4">
                                 <button className="text-sm text-gray-500 hover:text-gray-700 transition-colors">
-                                    ✏️ Редактировать
+                                    Edit
                                 </button>
                                 <button className="text-sm text-gray-500 hover:text-gray-700 transition-colors">
-                                    🔗 Поделиться
+                                    Share
                                 </button>
                             </div>
                         </div>

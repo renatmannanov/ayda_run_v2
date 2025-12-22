@@ -2,6 +2,7 @@ import React from 'react'
 
 export { default as Avatar } from './Avatar'
 export { default as AvatarStack } from './AvatarStack'
+export { default as GpxUpload } from './GpxUpload'
 
 export function Loading({ text = 'Загрузка...' }) {
     return (

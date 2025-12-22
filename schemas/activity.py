@@ -106,9 +106,15 @@ class ActivityResponse(BaseResponse):
     group_id: Optional[str]  # UUID
     creator_id: str  # UUID
 
+    # GPX file
+    gpx_file_id: Optional[str] = None
+    gpx_filename: Optional[str] = None
+    has_gpx: bool = False
+
     # Computed fields
     participants_count: int = 0
     is_joined: bool = False
+    is_creator: bool = False
     can_view_participants: bool = True  # False if closed and not member
     can_download_gpx: bool = True  # False if closed and not member
     club_name: Optional[str] = None

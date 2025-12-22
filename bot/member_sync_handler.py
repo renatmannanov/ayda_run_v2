@@ -233,20 +233,13 @@ async def _handle_member_joined(chat_id: int, club_id: str, telegram_user, is_ad
             user_id=user.id,
             club_id=club_id,
             role=role,
-            source=MembershipSource.CHAT_MEMBER_EVENT
+            source=MembershipSource.CHAT_MEMBER_EVENT,
+            status=MembershipStatus.PENDING  # Needs explicit registration to become ACTIVE
         )
 
     add_member_to_cache(chat_id, telegram_user.id)
 
-    # Try to send welcome DM (optional)
-    try:
-        await bot.send_message(
-            telegram_user.id,
-            f"Welcome! You've been added to a club.\n"
-            f"Open Ayda Run to see activities."
-        )
-    except TelegramError as e:
-        logger.debug(f"Can't send DM to {telegram_user.id}: {e}")
+    logger.info(f"Member {telegram_user.id} joined club {club_id} via chat_member event (PENDING)")
 
 
 async def _handle_member_left(chat_id: int, club_id: str, telegram_id: int, status: str) -> None:

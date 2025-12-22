@@ -315,8 +315,9 @@ async def finalize_club_creation(update: Update, context: ContextTypes.DEFAULT_T
 
         # Phase 6: Get member count and import admins
         try:
-            # 1. Get current member count from Telegram
-            member_count = await context.bot.get_chat_member_count(chat_id)
+            # 1. Get current member count from Telegram (minus 1 for the bot itself)
+            tg_count = await context.bot.get_chat_member_count(chat_id)
+            member_count = max(0, tg_count - 1)  # Exclude bot from count
 
             # 2. Save member count to club
             with ClubStorage() as cs:

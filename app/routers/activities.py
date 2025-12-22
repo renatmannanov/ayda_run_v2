@@ -8,7 +8,9 @@ Handles all activity-related endpoints:
 """
 
 import logging
-from fastapi import APIRouter, HTTPException, Depends, Query
+from fastapi import APIRouter, HTTPException, Depends, Query, UploadFile, File
+from fastapi.responses import StreamingResponse
+import httpx
 from sqlalchemy.orm import Session, joinedload
 from typing import List, Optional
 
@@ -27,6 +29,9 @@ from bot.join_request_notifications import send_join_request_to_organizer
 from bot.activity_notifications import send_new_activity_notification_to_user, send_new_activity_notification_to_group
 from telegram import Bot
 import asyncio
+
+# GPX service
+from app.services.gpx_service import GPXService
 
 logger = logging.getLogger(__name__)
 
@@ -206,12 +211,16 @@ async def get_activity(
         Participation.status.in_([ParticipationStatus.REGISTERED, ParticipationStatus.CONFIRMED])
     ).count()
 
+    # GPX info
+    response.has_gpx = bool(activity.gpx_file_id)
+
     if current_user:
         participation = db.query(Participation).filter(
             Participation.activity_id == activity.id,
             Participation.user_id == current_user.id
         ).first()
         response.is_joined = participation is not None
+        response.is_creator = activity.creator_id == current_user.id
 
     # Populate names
     if activity.club:
@@ -634,6 +643,222 @@ async def reject_activity_join_request(
         "message": "Join request rejected successfully",
         "request_id": request_id,
         "user_id": join_request.user_id
+    }
+
+
+# ============================================================================
+# GPX File Management
+# ============================================================================
+
+@router.post("/{activity_id}/gpx", status_code=201)
+async def upload_gpx(
+    activity_id: str,
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Upload GPX file for an activity.
+    Only the activity creator can upload GPX files.
+    """
+    # 1. Get activity
+    activity = db.query(Activity).filter(Activity.id == activity_id).first()
+
+    if not activity:
+        raise HTTPException(status_code=404, detail="Activity not found")
+
+    # 2. Check permissions (only creator can upload)
+    if activity.creator_id != current_user.id:
+        raise HTTPException(
+            status_code=403,
+            detail="Only activity creator can upload GPX files"
+        )
+
+    # 3. Check if GPX already exists
+    if activity.gpx_file_id:
+        raise HTTPException(
+            status_code=400,
+            detail="GPX file already exists. Delete it first to upload a new one."
+        )
+
+    # 4. Validate GPX file
+    content = await GPXService.validate_gpx(file)
+
+    # 5. Upload to Telegram channel
+    bot = Bot(token=settings.bot_token)
+    file_id, message_id = await GPXService.upload_to_telegram(
+        bot=bot,
+        content=content,
+        filename=file.filename or "route.gpx",
+        activity_title=activity.title,
+        activity_id=activity.id
+    )
+
+    # 6. Update activity in database
+    activity.gpx_file_id = file_id
+    activity.gpx_filename = file.filename or "route.gpx"
+    activity.gpx_file_message_id = message_id
+
+    db.commit()
+
+    logger.info(f"GPX uploaded for activity {activity_id}: {file.filename}")
+
+    return {
+        "success": True,
+        "filename": activity.gpx_filename,
+        "message": "GPX file uploaded successfully"
+    }
+
+
+@router.get("/{activity_id}/gpx")
+async def download_gpx(
+    activity_id: str,
+    current_user: Optional[User] = Depends(get_current_user_optional),
+    db: Session = Depends(get_db)
+):
+    """
+    Download GPX file for an activity.
+    Permission check based on activity visibility and user membership.
+    """
+    # 1. Get activity
+    activity = db.query(Activity).filter(Activity.id == activity_id).first()
+
+    if not activity:
+        raise HTTPException(status_code=404, detail="Activity not found")
+
+    # 2. Check if GPX exists
+    if not activity.gpx_file_id:
+        raise HTTPException(status_code=404, detail="No GPX file for this activity")
+
+    # 3. Check permissions
+    can_download = _check_gpx_permission(activity, current_user, db)
+    if not can_download:
+        raise HTTPException(
+            status_code=403,
+            detail="You don't have permission to download this GPX file"
+        )
+
+    # 4. Get file URL from Telegram
+    bot = Bot(token=settings.bot_token)
+    file_url = await GPXService.get_file_url(bot, activity.gpx_file_id)
+
+    # 5. Download file from Telegram and stream to client
+    async with httpx.AsyncClient() as client:
+        response = await client.get(file_url)
+
+        if response.status_code != 200:
+            raise HTTPException(
+                status_code=500,
+                detail="Failed to download GPX file from storage"
+            )
+
+        # Return file as streaming response
+        return StreamingResponse(
+            iter([response.content]),
+            media_type="application/gpx+xml",
+            headers={
+                "Content-Disposition": f'attachment; filename="{activity.gpx_filename or "route.gpx"}"'
+            }
+        )
+
+
+def _check_gpx_permission(activity: Activity, user: Optional[User], db: Session) -> bool:
+    """
+    Check if user can download GPX file.
+
+    Rules:
+    - Creator always can
+    - Participants always can
+    - For open activities - anyone can
+    - For club activities - club members can
+    - For group activities - group members can
+    """
+    # No user = check if activity is public/open
+    if not user:
+        return activity.is_open or activity.visibility == ActivityVisibility.PUBLIC
+
+    # Creator always can
+    if activity.creator_id == user.id:
+        return True
+
+    # Check if user is participant
+    participation = db.query(Participation).filter(
+        Participation.activity_id == activity.id,
+        Participation.user_id == user.id
+    ).first()
+    if participation:
+        return True
+
+    # For open activities - anyone can
+    if activity.is_open:
+        return True
+
+    # For club activities - club members can
+    if activity.club_id:
+        membership = db.query(Membership).filter(
+            Membership.club_id == activity.club_id,
+            Membership.user_id == user.id
+        ).first()
+        if membership:
+            return True
+
+    # For group activities - group members can
+    if activity.group_id:
+        membership = db.query(Membership).filter(
+            Membership.group_id == activity.group_id,
+            Membership.user_id == user.id
+        ).first()
+        if membership:
+            return True
+
+    return False
+
+
+@router.delete("/{activity_id}/gpx", status_code=200)
+async def delete_gpx(
+    activity_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Delete GPX file from an activity.
+    Only the activity creator can delete GPX files.
+    """
+    # 1. Get activity
+    activity = db.query(Activity).filter(Activity.id == activity_id).first()
+
+    if not activity:
+        raise HTTPException(status_code=404, detail="Activity not found")
+
+    # 2. Check permissions
+    if activity.creator_id != current_user.id:
+        raise HTTPException(
+            status_code=403,
+            detail="Only activity creator can delete GPX files"
+        )
+
+    # 3. Check if GPX exists
+    if not activity.gpx_file_id:
+        raise HTTPException(status_code=404, detail="No GPX file to delete")
+
+    # 4. Delete from Telegram channel (optional, don't fail if it fails)
+    if activity.gpx_file_message_id:
+        bot = Bot(token=settings.bot_token)
+        await GPXService.delete_from_telegram(bot, activity.gpx_file_message_id)
+
+    # 5. Clear GPX fields in database
+    old_filename = activity.gpx_filename
+    activity.gpx_file_id = None
+    activity.gpx_filename = None
+    activity.gpx_file_message_id = None
+
+    db.commit()
+
+    logger.info(f"GPX deleted from activity {activity_id}: {old_filename}")
+
+    return {
+        "success": True,
+        "message": "GPX file deleted successfully"
     }
 
 

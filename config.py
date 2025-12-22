@@ -61,6 +61,13 @@ class Settings(BaseSettings):
         description="Logging level"
     )
 
+    # === GPX Storage ===
+    gpx_channel_id: int = Field(
+        default=-1003313566203,
+        alias="GPX_CHANNEL_ID",
+        description="Telegram channel ID for storing GPX files"
+    )
+
     # === Rate Limiting ===
     rate_limit_enabled: bool = Field(default=True, description="Enable rate limiting")
     rate_limit_global: str = Field(default="200/minute", description="Global rate limit")

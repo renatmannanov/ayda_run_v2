@@ -413,14 +413,6 @@ export default function ActivityCreate() {
                     rows={4}
                 />
 
-                {/* GPX upload placeholder - TODO: implement real upload */}
-                <div className="mb-4">
-                    <label className="text-sm text-gray-700 mb-2 block">Маршрут GPX</label>
-                    <button className="px-4 py-3 border border-dashed border-gray-300 rounded-xl text-sm text-gray-500 hover:border-gray-400 hover:text-gray-600 transition-colors w-full text-left">
-                        + Добавить файл
-                    </button>
-                </div>
-
                 <div className="border-t border-gray-200 my-4" />
 
                 {/* Club/Group selector */}

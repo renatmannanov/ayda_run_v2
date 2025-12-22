@@ -73,23 +73,26 @@
 **New Approach:**
 
 **DO commit when:**
-- ✅ Feature is fully implemented AND tested
+- ✅ Feature/Phase is fully implemented AND **verified with user**
 - ✅ Bug fix is verified to work
 - ✅ Refactoring is complete (not mid-refactor)
-- ✅ Documentation update is substantial
 
 **DO NOT commit:**
 - ❌ After every small file change
 - ❌ "WIP" or incomplete features
 - ❌ Before user confirms the feature works
 - ❌ Multiple times while debugging the same issue
+- ❌ Documentation updates (plan files, README tweaks) - these are noise
+- ❌ Plan file updates - NEVER commit changes to implementation plans
 
 **Pattern to follow:**
 1. Implement feature completely
-2. User tests in browser/Telegram
-3. User reports issues OR confirms it works
-4. If issues → fix them all, then ONE commit
-5. If works → ONE commit with complete feature
+2. **VERIFY it works** (run server, check logs, test endpoint)
+3. Tell user: "Phase X done. Please test [specific action]"
+4. **WAIT for user confirmation** before committing
+5. User reports issues OR confirms it works
+6. If issues → fix them all, then ONE commit
+7. If works → ONE commit with complete feature
 
 **Example - GOOD:**
 ```
@@ -125,6 +128,55 @@ Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>
 
 Types: `feat`, `fix`, `refactor`, `docs`, `test`, `chore`
 Scopes: `backend`, `bot`, `frontend`, `db`, `api`
+
+### 2.1. Multi-Phase Implementation - CRITICAL RULES
+
+**When implementing large features with multiple phases:**
+
+**MANDATORY workflow for each phase:**
+```
+1. Implement Phase N code
+2. VERIFY it works yourself:
+   - Check server starts without errors
+   - Check DB migrations/schema applied
+   - Test basic functionality (API call, etc.)
+3. Report to user: "Phase N complete. Changes: [list]. Please verify [specific test]"
+4. WAIT for user confirmation
+5. Only after user says "OK" or "works" → commit
+6. Only then move to Phase N+1
+```
+
+**NEVER do this:**
+- ❌ Complete Phase 1 → commit → start Phase 2 without user verification
+- ❌ Commit code that doesn't run (server won't start, missing columns, etc.)
+- ❌ Commit plan file updates as separate commits
+- ❌ Mix multiple phases in one commit
+- ❌ Continue to next phase if current phase has errors
+
+**Verification checklist before reporting phase complete:**
+- [ ] Server starts without errors (`python api_server.py` runs)
+- [ ] No missing DB columns errors
+- [ ] Basic smoke test passes (API returns expected data)
+- [ ] No Python import errors
+
+**Example - CORRECT workflow:**
+```
+Claude: "Phase 1 complete. Added TgGroupMembership model and sync endpoint.
+        Changes: models.py, routers/tggroups.py
+        Please restart server and test: GET /api/tggroups/{id}/sync"
+User: "Tested, works"
+Claude: [commits Phase 1]
+Claude: "Starting Phase 2..."
+```
+
+**Example - WRONG workflow:**
+```
+Claude: [implements Phase 1]
+Claude: [commits without testing]
+Claude: [starts Phase 2]
+User: "Server doesn't start, missing column error"
+Claude: [now has to untangle commits]
+```
 
 ### 3. URL Patterns - Get Them Right First Time
 
@@ -409,5 +461,5 @@ CORS_ORIGINS=["http://localhost:5173"]
 
 ---
 
-**Last Updated:** 2025-12-20
-**Version:** 1.0
+**Last Updated:** 2025-12-22
+**Version:** 1.1 - Added multi-phase implementation rules
