@@ -58,14 +58,90 @@ ASKING_STRAVA = 4
 SHOWING_INTRO = 5
 
 
+async def handle_join_from_group(update: Update, context: ContextTypes.DEFAULT_TYPE,
+                                  user, chat_id_str: str) -> int:
+    """
+    Handle /start join_{chat_id} - registration from group button.
+
+    Automatically adds user to the club associated with the Telegram group.
+    """
+    from storage.db import MembershipSource, MembershipStatus
+    from bot.cache import add_member_to_cache
+
+    try:
+        chat_id = int(chat_id_str)
+    except ValueError:
+        await update.message.reply_text("Неверная ссылка.")
+        return ConversationHandler.END
+
+    # Find club by chat_id
+    with ClubStorage() as cs:
+        club = cs.get_club_by_telegram_chat_id(chat_id)
+        if not club:
+            await update.message.reply_text(
+                "❌ Эта группа не связана с клубом в Ayda Run.\n\n"
+                "Попросите организатора создать клуб командой /create_club"
+            )
+            return ConversationHandler.END
+
+    # Check if already member
+    with MembershipStorage() as ms:
+        existing = ms.is_member_of_club(user.id, club.id)
+        if existing:
+            await update.message.reply_text(
+                f"👋 Ты уже участник клуба «{club.name}»!\n\n"
+                "Открой приложение, чтобы посмотреть расписание."
+            )
+            webapp_url = f"{settings.app_url}?startapp=club_{club.id}"
+            await update.message.reply_text(
+                "Открой приложение:",
+                reply_markup=get_webapp_button(webapp_url, f"🚀 Открыть {club.name}")
+            )
+            return ConversationHandler.END
+
+        # Add to club
+        ms.add_member_to_club_with_source(
+            user_id=user.id,
+            club_id=club.id,
+            source=MembershipSource.DEEP_LINK,
+            status=MembershipStatus.ACTIVE
+        )
+
+    # Add to cache
+    add_member_to_cache(chat_id, update.effective_user.id)
+
+    logger.info(f"User {user.id} joined club {club.id} via deep link")
+
+    await update.message.reply_text(
+        f"🎉 Добро пожаловать в клуб «{club.name}»!\n\n"
+        f"Теперь ты можешь:\n"
+        f"▪️ Смотреть расписание тренировок\n"
+        f"▪️ Записываться на мероприятия\n"
+        f"▪️ Общаться с участниками"
+    )
+
+    webapp_url = f"{settings.app_url}?startapp=club_{club.id}"
+    await update.message.reply_text(
+        "Открой приложение:",
+        reply_markup=get_webapp_button(webapp_url, f"🚀 Открыть {club.name}")
+    )
+
+    return ConversationHandler.END
+
+
 async def handle_existing_user_invitation(update: Update, context: ContextTypes.DEFAULT_TYPE,
                                           user, invitation_type: str, invitation_id: str) -> int:
     """
     Handle invitation for existing user who already completed onboarding.
 
     Shows short flow: Welcome back + entity info + Join/Decline buttons.
+    Supports: club, group, join (from group registration button)
     """
     try:
+        # Handle "join" deep link (from group registration button)
+        if invitation_type == "join":
+            return await handle_join_from_group(update, context, user, invitation_id)
+
         if invitation_type == "club":
             with ClubStorage() as club_storage:
                 club_data = club_storage.get_club_preview(invitation_id)
@@ -159,6 +235,11 @@ async def start_onboarding(update: Update, context: ContextTypes.DEFAULT_TYPE) -
             invitation_type = "group"
             invitation_id = param[6:]  # Remove "group_" prefix
             logger.info(f"User {telegram_user.id} clicked group invitation: {invitation_id}")
+        elif param.startswith("join_"):
+            # Deep link from group registration button
+            invitation_type = "join"
+            invitation_id = param[5:]  # This is chat_id
+            logger.info(f"User {telegram_user.id} clicked join deep link for chat: {invitation_id}")
 
     # Store invitation info in context
     if invitation_type:

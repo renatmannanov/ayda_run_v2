@@ -60,9 +60,10 @@ async def handle_sync_command(update: Update, context: ContextTypes.DEFAULT_TYPE
             )
             return
 
-    # Get current Telegram count
+    # Get current Telegram count (minus 1 for the bot itself)
     try:
-        tg_count = await context.bot.get_chat_member_count(chat_id)
+        raw_count = await context.bot.get_chat_member_count(chat_id)
+        tg_count = max(0, raw_count - 1)  # Exclude bot from count
     except TelegramError as e:
         logger.error(f"Error getting member count: {e}")
         tg_count = club.telegram_member_count or 0
