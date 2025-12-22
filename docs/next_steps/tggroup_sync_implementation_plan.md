@@ -68,7 +68,11 @@ if membership.last_seen < (now() - 90 days) and membership.status == ACTIVE:
 
 ---
 
-## Phase 1: Database Schema Updates
+## Phase 1: Database Schema Updates ✅ DONE
+
+> **Completed:** 2024-12-22
+> **Commit:** `f5cf41b`
+> **Migration:** `migrations/001_add_membership_sync_fields.py`
 
 ### 1.1 Добавить новые Enum'ы в `storage/db.py`
 
@@ -141,11 +145,15 @@ alembic upgrade head
 ```
 
 **Файлы:**
-- [ ] `storage/db.py` - добавить enums и поля
+- [x] `storage/db.py` - добавить enums и поля
+- [x] `migrations/001_add_membership_sync_fields.py` - миграция для существующих БД
 
 ---
 
-## Phase 2: Cache Layer
+## Phase 2: Cache Layer ✅ DONE
+
+> **Completed:** 2024-12-22
+> **Commit:** `f5cf41b`
 
 ### 2.1 Создать модуль кеширования `bot/cache.py`
 
@@ -232,7 +240,8 @@ def get_cache_stats() -> dict:
 ```
 
 **Файлы:**
-- [ ] `bot/cache.py` - создать новый файл
+- [x] `bot/cache.py` - создать новый файл
+- [x] `requirements.txt` - добавить cachetools>=5.3.0
 
 ---
 
