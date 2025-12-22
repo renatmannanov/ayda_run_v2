@@ -91,6 +91,7 @@ const transformClub = (c) => !c ? null : ({
     description: c.description,
     country: c.country,
     city: c.city,
+    photo: c.photo, // Telegram file_id for avatar
     isPaid: c.is_paid,
     pricePerActivity: c.price_per_activity,
     telegramChatId: c.telegram_chat_id,
@@ -107,6 +108,7 @@ const transformGroup = (g) => !g ? null : ({
     id: g.id,
     name: g.name,
     description: g.description,
+    photo: g.photo, // Telegram file_id for avatar
     clubId: g.club_id,
     telegramChatId: g.telegram_chat_id,
     isOpen: g.is_open,

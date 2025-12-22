@@ -61,16 +61,13 @@ export default function Avatar({ src, name, size = 'md', className = '' }) {
     const initials = getInitials(name)
     const bgColor = getColorFromName(name)
 
-    // Convert Telegram file path to URL if needed
+    // Convert Telegram file_id to proxy URL
     const getImageUrl = (src) => {
         if (!src) return null
 
-        // If it's already a full URL, use it as is
-        if (src.startsWith('http')) {
-            return src
-        }
-
-        // If it's a Telegram file path (like "profile_photos/file_0.jpg"), construct URL
+        // Always use proxy endpoint for Telegram file_ids
+        // This handles both file_id and legacy file_path formats
+        // The proxy fetches fresh URLs from Telegram API (URLs expire after 1 hour)
         return `/api/media/photo/${encodeURIComponent(src)}`
     }
 

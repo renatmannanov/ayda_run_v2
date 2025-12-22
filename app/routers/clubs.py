@@ -132,16 +132,6 @@ def get_club(
         response.is_member = membership is not None
         response.user_role = membership.role if membership else None
 
-    # DEBUG: Check if photo is in response
-    print(f"DEBUG get_club: club.photo={club.photo}, response.photo={response.photo}")
-    dict_dump = response.model_dump()
-    print(f"DEBUG response dict: {dict_dump}")
-    print(f"DEBUG photo in dict: {'photo' in dict_dump}, value: {dict_dump.get('photo')}")
-
-    json_dump = response.model_dump(mode='json')
-    print(f"DEBUG JSON dump: {json_dump}")
-    print(f"DEBUG photo in JSON: {'photo' in json_dump}, value: {json_dump.get('photo')}")
-
     return response
 
 

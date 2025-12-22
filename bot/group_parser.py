@@ -80,23 +80,20 @@ class TelegramGroupParser:
 
     async def get_group_photo(self, chat_id: int, bot: Bot) -> Optional[str]:
         """
-        Получить URL аватара группы
+        Получить file_id аватара группы
 
         Args:
             chat_id: Telegram chat ID группы
             bot: Telegram Bot instance
 
         Returns:
-            URL к фото или None если аватара нет
+            file_id фото или None если аватара нет
         """
         try:
             chat = await bot.get_chat(chat_id)
             if chat.photo:
-                # Get the actual file object to get the path
-                file = await bot.get_file(chat.photo.big_file_id)
-                # file.file_path is already the relative path, just return it
-                # It will be like "profile_photos/file_0.jpg"
-                return file.file_path
+                # Return file_id instead of file_path (URLs expire after 1 hour)
+                return chat.photo.big_file_id
             return None
         except Exception as e:
             logger.error(f"Error getting group photo for chat {chat_id}: {e}")
