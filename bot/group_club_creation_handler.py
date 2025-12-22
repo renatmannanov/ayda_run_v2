@@ -279,6 +279,7 @@ async def finalize_club_creation(update: Update, context: ContextTypes.DEFAULT_T
     group_data = context.user_data.get('group_data')
     selected_sports = context.user_data.get('selected_sports', [])
     creator_telegram_id = context.user_data.get('creator_telegram_id')
+    chat_id = group_data['chat_id']
 
     try:
         # Получить или создать пользователя
@@ -310,11 +311,30 @@ async def finalize_club_creation(update: Update, context: ContextTypes.DEFAULT_T
                 role=UserRole.ORGANIZER
             )
 
-        logger.info(f"Club {club.id} created from group {group_data['chat_id']}")
+        logger.info(f"Club {club.id} created from group {chat_id}")
+
+        # Phase 6: Get member count and import admins
+        try:
+            # 1. Get current member count from Telegram
+            member_count = await context.bot.get_chat_member_count(chat_id)
+
+            # 2. Save member count to club
+            with ClubStorage() as cs:
+                cs.update_telegram_member_count(club.id, member_count)
+
+            # 3. Import group admins
+            from bot.member_sync_handler import import_group_admins
+            imported_count = await import_group_admins(context.bot, chat_id, club.id)
+
+            logger.info(f"Club {club.id}: {member_count} members in TG, {imported_count} admins imported")
+        except Exception as e:
+            logger.error(f"Error during member sync setup: {e}")
+            member_count = group_data.get('member_count', 0)
+            imported_count = 0
 
         # Отправить уведомления
         await send_club_created_notifications(
-            update, context, club, group_data['chat_id']
+            update, context, club, chat_id, member_count, imported_count
         )
 
         return ConversationHandler.END
@@ -331,32 +351,37 @@ async def send_club_created_notifications(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE,
     club,
-    group_chat_id: int
+    group_chat_id: int,
+    member_count: int = 0,
+    imported_count: int = 0
 ):
     """
-    Отправить уведомления о создании клуба
+    Отправить уведомления о создании клуба с информацией о синхронизации
     """
     query = update.callback_query
 
-    # Уведомление в группу
+    # Уведомление в группу с кнопкой регистрации
     bot_link = f"https://t.me/{settings.bot_username}?start=club_{club.id}"
+    join_link = f"https://t.me/{settings.bot_username}?start=join_{group_chat_id}"
     webapp_url = f"{settings.app_url}?startapp=club_{club.id}" if settings.app_url else bot_link
 
+    remaining = max(0, member_count - imported_count)
+
     group_message = (
-        f"🎉 Клуб создан в Ayda Run!\n\n"
-        f"Теперь \"{club.name}\" доступен в приложении Ayda Run!\n\n"
-        f"🔗 Вступить в клуб: {bot_link}\n\n"
-        f"Что дает вам клуб:\n"
-        f"✅ Календарь тренировок\n"
-        f"✅ Участие в забегах\n"
-        f"✅ Статистика и достижения\n"
-        f"✅ Общение с бегунами"
+        f"🎉 Клуб \"{club.name}\" создан в Ayda Run!\n\n"
+        f"👥 Всего в группе: {member_count}\n"
+        f"✅ Организаторов добавлено: {imported_count}\n"
+        f"⏳ Осталось зарегистрировать: {remaining}\n\n"
+        f"Нажмите кнопку ниже, чтобы зарегистрироваться в клубе и получить доступ к:\n"
+        f"▪️ Календарю тренировок\n"
+        f"▪️ Статистике активностей\n"
+        f"▪️ Записи на мероприятия"
     )
 
-    # В группу отправляем обычную URL кнопку (WebApp не работает в группах)
+    # В группу отправляем кнопку регистрации (deep link)
     from telegram import InlineKeyboardButton, InlineKeyboardMarkup
     group_keyboard = InlineKeyboardMarkup([
-        [InlineKeyboardButton("🔗 Вступить через бота", url=bot_link)]
+        [InlineKeyboardButton("🏃 Зарегистрироваться в Ayda Run", url=join_link)]
     ])
 
     await context.bot.send_message(
@@ -368,9 +393,14 @@ async def send_club_created_notifications(
     # Уведомление организатору в ЛС
     organizer_message = (
         f"✅ Поздравляем! Клуб \"{club.name}\" создан.\n\n"
-        f"Вы назначены организатором клуба.\n\n"
-        f"🔗 Ссылка для вступления:\n{bot_link}\n\n"
-        f"Поделитесь этой ссылкой в группе, чтобы участники могли вступить!"
+        f"📊 Статус синхронизации:\n"
+        f"▪️ В Telegram группе: {member_count} участников\n"
+        f"▪️ Организаторов добавлено: {imported_count}\n"
+        f"▪️ Ожидают регистрации: {remaining}\n\n"
+        f"Участники группы могут зарегистрироваться двумя способами:\n"
+        f"1️⃣ Нажать кнопку в группе\n"
+        f"2️⃣ Автоматически при написании сообщений\n\n"
+        f"Используйте команду /sync в группе для проверки статуса."
     )
 
     await query.edit_message_text(organizer_message)
