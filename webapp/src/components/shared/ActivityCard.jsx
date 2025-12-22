@@ -107,7 +107,17 @@ export default function ActivityCard({ activity }) {
         const parts = []
         if (activity.distance) parts.push(`${activity.distance} км`)
         if (activity.elevation) parts.push(`↗${activity.elevation} м`)
-        if (activity.duration) parts.push(activity.duration)
+        if (activity.duration) {
+            const hours = Math.floor(activity.duration / 60)
+            const mins = activity.duration % 60
+            if (hours > 0 && mins > 0) {
+                parts.push(`${hours}ч ${mins}мин`)
+            } else if (hours > 0) {
+                parts.push(`${hours}ч`)
+            } else {
+                parts.push(`${mins}мин`)
+            }
+        }
         return parts.length > 0 ? parts.join(' · ') : null
     }
 

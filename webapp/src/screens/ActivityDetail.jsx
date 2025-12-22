@@ -10,8 +10,7 @@ import {
 } from '../hooks'
 import {
     formatDate,
-    formatTime,
-    getDifficultyLabel
+    formatTime
 } from '../data/sample_data'
 import { activitiesApi, tg } from '../api'
 
@@ -184,19 +183,31 @@ export default function ActivityDetail() {
 
     // Get organizer display text
     const getOrganizerDisplay = () => {
-        if (activity.club || activity.group) {
+        // Club and/or group
+        if (activity.club && activity.group) {
             return (
                 <p className="text-sm text-gray-700">
                     <span className="cursor-pointer hover:underline">🏆 {activity.club}</span>
-                    {activity.group && (
-                        <>
-                            <span className="text-gray-400"> / </span>
-                            <span className="cursor-pointer hover:underline">{activity.group}</span>
-                        </>
-                    )}
+                    <span className="text-gray-400"> / </span>
+                    <span className="cursor-pointer hover:underline">{activity.group}</span>
                 </p>
             )
         }
+        if (activity.club) {
+            return (
+                <p className="text-sm text-gray-700">
+                    <span className="cursor-pointer hover:underline">🏆 {activity.club}</span>
+                </p>
+            )
+        }
+        if (activity.group) {
+            return (
+                <p className="text-sm text-gray-700">
+                    <span className="cursor-pointer hover:underline">{activity.group}</span>
+                </p>
+            )
+        }
+        // Personal activity - show creator
         if (activity.creatorName) {
             return (
                 <p className="text-sm text-gray-700 flex items-center gap-1">
@@ -213,7 +224,17 @@ export default function ActivityDetail() {
         const parts = []
         if (activity.distance) parts.push(`${activity.distance} км`)
         if (activity.elevation) parts.push(`↗${activity.elevation} м`)
-        if (activity.duration) parts.push(activity.duration)
+        if (activity.duration) {
+            const hours = Math.floor(activity.duration / 60)
+            const mins = activity.duration % 60
+            if (hours > 0 && mins > 0) {
+                parts.push(`${hours}ч ${mins}мин`)
+            } else if (hours > 0) {
+                parts.push(`${hours}ч`)
+            } else {
+                parts.push(`${mins}мин`)
+            }
+        }
         return parts.length > 0 ? parts.join(' · ') : null
     }
 
@@ -232,7 +253,7 @@ export default function ActivityDetail() {
             </div>
 
             {/* Content */}
-            <div className="flex-1 overflow-y-auto px-4 py-4 pb-36">
+            <div className="flex-1 overflow-y-auto px-4 py-4 pb-40">
                 <div className="border border-gray-200 rounded-xl p-4">
                     {/* Title + Icon */}
                     <div className="flex justify-between items-start mb-4">
@@ -271,13 +292,6 @@ export default function ActivityDetail() {
                                 <span className="text-sm text-gray-700">{distanceText}</span>
                             </div>
                         )}
-
-                        <div className="flex items-center gap-3">
-                            <span className="text-base">⚡</span>
-                            <span className="text-sm text-gray-700">
-                                {getDifficultyLabel(activity.difficulty)}
-                            </span>
-                        </div>
                     </div>
 
                     {/* GPX Download Link */}
@@ -385,15 +399,6 @@ export default function ActivityDetail() {
                 </div>
             </div>
 
-            {/* Bottom Action Bar - hidden when popup is open */}
-            {!isPast && !showParticipants && (
-                <div className="fixed bottom-20 left-0 right-0 max-w-md mx-auto px-4 pb-2 pt-2 z-30">
-                    <div className="bg-white border-t border-gray-200 px-4 py-4">
-                        {getActionButton()}
-                    </div>
-                </div>
-            )}
-
             {/* Participants sheet with action button */}
             <ParticipantsSheet
                 isOpen={showParticipants}
@@ -405,8 +410,15 @@ export default function ActivityDetail() {
                 actionButton={getActionButton()}
             />
 
-            {/* Bottom Navigation */}
+            {/* Bottom fixed container: Action Bar + Navigation */}
             <div className="fixed bottom-0 left-0 right-0 max-w-md mx-auto z-40">
+                {/* Action Bar - above BottomNav, hidden when popup is open */}
+                {!isPast && !showParticipants && (
+                    <div className="bg-white border-t border-gray-200 px-4 py-3">
+                        {getActionButton()}
+                    </div>
+                )}
+                {/* Bottom Navigation */}
                 <BottomNav onCreateClick={() => window.alert('Создание из деталей активности пока не поддерживается, перейдите на Главную')} />
             </div>
         </div>

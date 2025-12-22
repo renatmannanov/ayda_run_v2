@@ -65,11 +65,7 @@ export function GpxUpload({ activityId, hasGpx, gpxFilename, onSuccess, onError 
     }
 
     return (
-        <div className="mb-4">
-            <label className="text-sm text-gray-700 mb-2 block font-medium">
-                GPX Route
-            </label>
-
+        <>
             <input
                 ref={inputRef}
                 type="file"
@@ -78,46 +74,21 @@ export function GpxUpload({ activityId, hasGpx, gpxFilename, onSuccess, onError 
                 className="hidden"
             />
 
-            {hasGpx ? (
-                // File exists - show info and delete button
-                <div className="flex items-center gap-2 px-4 py-3 bg-green-50 border border-green-200 rounded-xl">
-                    <span className="text-green-600 text-lg">📍</span>
-                    <span className="text-sm text-green-700 flex-1 truncate">
-                        {gpxFilename || 'route.gpx'}
-                    </span>
-                    <button
-                        onClick={handleDelete}
-                        className="text-red-500 hover:text-red-700 text-sm px-2"
-                        title="Delete GPX file"
-                    >
-                        Delete
-                    </button>
-                </div>
-            ) : (
-                // No file - show upload button
-                <button
-                    onClick={() => inputRef.current?.click()}
-                    disabled={uploading}
-                    className="px-4 py-3 border border-dashed border-gray-300 rounded-xl text-sm text-gray-500 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50 transition-colors w-full text-left disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                    {uploading ? (
-                        <span className="flex items-center gap-2">
-                            <span className="animate-spin">⏳</span>
-                            Uploading...
-                        </span>
-                    ) : (
-                        <span className="flex items-center gap-2">
-                            <span>📍</span>
-                            Add GPX file
-                        </span>
-                    )}
-                </button>
-            )}
+            <button
+                onClick={() => inputRef.current?.click()}
+                disabled={uploading}
+                className="flex items-center gap-2 text-sm text-gray-700 hover:text-gray-900 transition-colors py-1 disabled:opacity-50"
+            >
+                <span>⚡</span>
+                <span className="font-medium">
+                    {uploading ? 'Загрузка...' : 'Добавить GPX файл'}
+                </span>
+            </button>
 
             {error && (
-                <p className="text-red-500 text-sm mt-2">{error}</p>
+                <p className="text-red-500 text-xs mt-1">{error}</p>
             )}
-        </div>
+        </>
     )
 }
 
