@@ -9,6 +9,8 @@ Handles all activity-related endpoints:
 
 import logging
 from fastapi import APIRouter, HTTPException, Depends, Query, UploadFile, File
+from fastapi.responses import StreamingResponse
+import httpx
 from sqlalchemy.orm import Session, joinedload
 from typing import List, Optional
 
@@ -706,6 +708,110 @@ async def upload_gpx(
         "filename": activity.gpx_filename,
         "message": "GPX file uploaded successfully"
     }
+
+
+@router.get("/{activity_id}/gpx")
+async def download_gpx(
+    activity_id: str,
+    current_user: Optional[User] = Depends(get_current_user_optional),
+    db: Session = Depends(get_db)
+):
+    """
+    Download GPX file for an activity.
+    Permission check based on activity visibility and user membership.
+    """
+    # 1. Get activity
+    activity = db.query(Activity).filter(Activity.id == activity_id).first()
+
+    if not activity:
+        raise HTTPException(status_code=404, detail="Activity not found")
+
+    # 2. Check if GPX exists
+    if not activity.gpx_file_id:
+        raise HTTPException(status_code=404, detail="No GPX file for this activity")
+
+    # 3. Check permissions
+    can_download = _check_gpx_permission(activity, current_user, db)
+    if not can_download:
+        raise HTTPException(
+            status_code=403,
+            detail="You don't have permission to download this GPX file"
+        )
+
+    # 4. Get file URL from Telegram
+    bot = Bot(token=settings.bot_token)
+    file_url = await GPXService.get_file_url(bot, activity.gpx_file_id)
+
+    # 5. Download file from Telegram and stream to client
+    async with httpx.AsyncClient() as client:
+        response = await client.get(file_url)
+
+        if response.status_code != 200:
+            raise HTTPException(
+                status_code=500,
+                detail="Failed to download GPX file from storage"
+            )
+
+        # Return file as streaming response
+        return StreamingResponse(
+            iter([response.content]),
+            media_type="application/gpx+xml",
+            headers={
+                "Content-Disposition": f'attachment; filename="{activity.gpx_filename or "route.gpx"}"'
+            }
+        )
+
+
+def _check_gpx_permission(activity: Activity, user: Optional[User], db: Session) -> bool:
+    """
+    Check if user can download GPX file.
+
+    Rules:
+    - Creator always can
+    - Participants always can
+    - For open activities - anyone can
+    - For club activities - club members can
+    - For group activities - group members can
+    """
+    # No user = check if activity is public/open
+    if not user:
+        return activity.is_open or activity.visibility == ActivityVisibility.PUBLIC
+
+    # Creator always can
+    if activity.creator_id == user.id:
+        return True
+
+    # Check if user is participant
+    participation = db.query(Participation).filter(
+        Participation.activity_id == activity.id,
+        Participation.user_id == user.id
+    ).first()
+    if participation:
+        return True
+
+    # For open activities - anyone can
+    if activity.is_open:
+        return True
+
+    # For club activities - club members can
+    if activity.club_id:
+        membership = db.query(Membership).filter(
+            Membership.club_id == activity.club_id,
+            Membership.user_id == user.id
+        ).first()
+        if membership:
+            return True
+
+    # For group activities - group members can
+    if activity.group_id:
+        membership = db.query(Membership).filter(
+            Membership.group_id == activity.group_id,
+            Membership.user_id == user.id
+        ).first()
+        if membership:
+            return True
+
+    return False
 
 
 @router.delete("/{activity_id}/gpx", status_code=200)
