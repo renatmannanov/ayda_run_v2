@@ -418,7 +418,10 @@ async def get_participants(
             status=participation.status,
             attended=participation.attended,
             registered_at=participation.registered_at,
-            preferred_sports=user.preferred_sports
+            preferred_sports=user.preferred_sports,
+            photo=user.photo,
+            strava_link=user.strava_link,
+            is_organizer=(str(user.id) == str(activity.creator_id))
         ))
 
     return result

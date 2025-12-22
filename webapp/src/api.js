@@ -126,6 +126,7 @@ const transformGroup = (g) => !g ? null : ({
 })
 
 const transformMember = (m) => !m ? null : ({
+    id: m.user_id,
     userId: m.user_id,
     telegramId: m.telegram_id,
     username: m.username,
@@ -133,9 +134,11 @@ const transformMember = (m) => !m ? null : ({
     name: m.name,
     role: m.role,
     joinedAt: m.joined_at,
-    avatar: '👤', // Mock avatar
+    photo: m.photo,
+    stravaLink: m.strava_link,
     preferredSports: m.preferred_sports,
-    isOrganizer: m.role === 'admin' || m.role === 'organizer'
+    attended: m.attended,
+    isOrganizer: m.is_organizer || m.role === 'admin' || m.role === 'organizer'
 })
 
 

@@ -64,6 +64,9 @@ class ParticipantResponse(BaseModel):
     attended: bool
     registered_at: datetime
     preferred_sports: Optional[str] = None  # JSON string of sport preferences
+    photo: Optional[str] = None  # Telegram avatar file_id or URL
+    strava_link: Optional[str] = None  # URL to Strava profile
+    is_organizer: bool = False  # True if creator of the activity
 
     @field_serializer('telegram_id', when_used='always')
     def serialize_telegram_id(self, telegram_id: int | str) -> str:

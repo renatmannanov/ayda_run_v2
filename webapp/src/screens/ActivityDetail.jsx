@@ -85,6 +85,96 @@ export default function ActivityDetail() {
         tg.showAlert('Ссылка скопирована!')
     }
 
+    // Get action button content (used in both bottom bar and popup)
+    const getActionButton = () => {
+        if (isPast) return null
+
+        // Private & not joined & not pending
+        if (!activity?.isOpen && !isJoined && !isPending) {
+            return (
+                <button
+                    onClick={handleJoin}
+                    disabled={joining || isFull}
+                    className="w-full py-4 bg-gray-800 text-white rounded-xl text-sm font-medium hover:bg-gray-700 transition-colors flex items-center justify-center gap-2 disabled:bg-gray-300"
+                >
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
+                    <span>Подать заявку на участие</span>
+                </button>
+            )
+        }
+
+        // Private & pending
+        if (!activity?.isOpen && isPending) {
+            return (
+                <div className="flex items-center justify-between">
+                    <button
+                        onClick={handleLeave}
+                        disabled={leaving}
+                        className="text-sm text-gray-400 hover:text-gray-600 transition-colors"
+                    >
+                        Отменить
+                    </button>
+                    <div className="flex items-center gap-2 text-gray-800">
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                        </svg>
+                        <span className="text-sm font-medium">Заявка отправлена</span>
+                    </div>
+                </div>
+            )
+        }
+
+        // Open & not joined
+        if (activity?.isOpen && !isJoined) {
+            if (isFull) {
+                return (
+                    <Button disabled variant="secondary" className="w-full h-12">
+                        Мест нет
+                    </Button>
+                )
+            }
+            return (
+                <Button
+                    onClick={handleJoin}
+                    loading={joining}
+                    className="w-full h-12"
+                >
+                    Записаться
+                </Button>
+            )
+        }
+
+        // Joined (open or private)
+        if (isJoined) {
+            return (
+                <div className="flex items-center justify-between">
+                    <button
+                        onClick={handleLeave}
+                        disabled={leaving}
+                        className="text-sm text-gray-400 hover:text-gray-600 transition-colors"
+                    >
+                        {leaving ? 'Отмена...' : 'Отменить'}
+                    </button>
+                    <div className="flex items-center gap-3">
+                        <span className="text-sm text-gray-800 font-medium">Иду!</span>
+                        <button
+                            onClick={handleShare}
+                            className="w-10 h-10 border border-gray-200 rounded-xl flex items-center justify-center text-gray-500 hover:bg-gray-50 transition-colors"
+                        >
+                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            )
+        }
+
+        return null
+    }
+
     // Count attended
     const attendedCount = participants.filter(p => p.attended === true).length
 
@@ -295,88 +385,16 @@ export default function ActivityDetail() {
                 </div>
             </div>
 
-            {/* Bottom Action Bar */}
-            {!isPast && (
+            {/* Bottom Action Bar - hidden when popup is open */}
+            {!isPast && !showParticipants && (
                 <div className="fixed bottom-20 left-0 right-0 max-w-md mx-auto px-4 pb-2 pt-2 z-30">
                     <div className="bg-white border-t border-gray-200 px-4 py-4">
-                        {/* Private & not joined & not pending */}
-                        {!activity.isOpen && !isJoined && !isPending && (
-                            <button
-                                onClick={handleJoin}
-                                disabled={joining || isFull}
-                                className="w-full py-4 bg-gray-800 text-white rounded-xl text-sm font-medium hover:bg-gray-700 transition-colors flex items-center justify-center gap-2 disabled:bg-gray-300"
-                            >
-                                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                                </svg>
-                                <span>Подать заявку на участие</span>
-                            </button>
-                        )}
-
-                        {/* Private & pending */}
-                        {!activity.isOpen && isPending && (
-                            <div className="flex items-center justify-between">
-                                <button
-                                    onClick={handleLeave}
-                                    disabled={leaving}
-                                    className="text-sm text-gray-400 hover:text-gray-600 transition-colors"
-                                >
-                                    Отменить
-                                </button>
-                                <div className="flex items-center gap-2 text-gray-800">
-                                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                                    </svg>
-                                    <span className="text-sm font-medium">Заявка отправлена</span>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Open & not joined */}
-                        {activity.isOpen && !isJoined && (
-                            isFull ? (
-                                <Button disabled variant="secondary" className="w-full h-12">
-                                    Мест нет
-                                </Button>
-                            ) : (
-                                <Button
-                                    onClick={handleJoin}
-                                    loading={joining}
-                                    className="w-full h-12"
-                                >
-                                    Записаться
-                                </Button>
-                            )
-                        )}
-
-                        {/* Joined (open or private) */}
-                        {isJoined && (
-                            <div className="flex items-center justify-between">
-                                <button
-                                    onClick={handleLeave}
-                                    disabled={leaving}
-                                    className="text-sm text-gray-400 hover:text-gray-600 transition-colors"
-                                >
-                                    {leaving ? 'Отмена...' : 'Отменить'}
-                                </button>
-                                <div className="flex items-center gap-3">
-                                    <span className="text-sm text-gray-800 font-medium">Иду!</span>
-                                    <button
-                                        onClick={handleShare}
-                                        className="w-10 h-10 border border-gray-200 rounded-xl flex items-center justify-center text-gray-500 hover:bg-gray-50 transition-colors"
-                                    >
-                                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
-                                        </svg>
-                                    </button>
-                                </div>
-                            </div>
-                        )}
+                        {getActionButton()}
                     </div>
                 </div>
             )}
 
-            {/* Participants sheet */}
+            {/* Participants sheet with action button */}
             <ParticipantsSheet
                 isOpen={showParticipants}
                 onClose={() => setShowParticipants(false)}
@@ -384,6 +402,7 @@ export default function ActivityDetail() {
                 maxParticipants={activity.maxParticipants}
                 isPast={isPast}
                 attendedCount={attendedCount}
+                actionButton={getActionButton()}
             />
 
             {/* Bottom Navigation */}

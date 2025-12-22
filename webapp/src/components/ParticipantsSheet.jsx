@@ -2,6 +2,22 @@ import React from 'react'
 import { SPORT_TYPES } from '../constants/sports'
 import { Avatar } from './ui'
 
+// Strava Icon Component
+const StravaIcon = ({ url }) => {
+    if (!url) return <div className="w-6" /> // Placeholder for alignment
+    return (
+        <a
+            href={url}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            className="w-6 h-6 rounded bg-orange-500 flex items-center justify-center text-white text-xs font-bold hover:bg-orange-600 transition-colors flex-shrink-0"
+        >
+            S
+        </a>
+    )
+}
+
 export default function ParticipantsSheet({
     isOpen,
     onClose,
@@ -9,7 +25,8 @@ export default function ParticipantsSheet({
     title = 'Участники',
     maxParticipants = null,
     isPast = false,
-    attendedCount = null
+    attendedCount = null,
+    actionButton = null
 }) {
     if (!isOpen) return null
 
@@ -39,12 +56,13 @@ export default function ParticipantsSheet({
 
     return (
         <div
-            className="fixed inset-0 bg-black/30 z-50 flex items-end justify-center"
+            className="fixed inset-0 bg-black/30 z-50 flex flex-col justify-end"
             onClick={onClose}
         >
             <div
-                className="bg-white w-full max-w-md rounded-t-2xl max-h-[60vh] flex flex-col"
+                className="bg-white w-full max-w-md mx-auto rounded-t-2xl flex flex-col"
                 onClick={e => e.stopPropagation()}
+                style={{ maxHeight: '50vh' }}
             >
                 {/* Header */}
                 <div className="flex items-center justify-between px-4 py-4 border-b border-gray-200">
@@ -60,51 +78,76 @@ export default function ParticipantsSheet({
                 </div>
 
                 {/* List */}
-                <div className="flex-1 overflow-auto px-4 py-2 pb-6">
-                    {participants.map(participant => {
-                        const sportIcons = getSportIcons(participant.preferredSports)
-                        return (
-                            <div
-                                key={participant.id}
-                                className={`flex items-center justify-between py-3 ${isPast && participant.attended === false ? 'opacity-50' : ''
-                                    }`}
-                            >
-                                <div className="flex items-center gap-3 flex-1">
+                <div className="flex-1 overflow-auto px-4 py-2">
+                    {participants.length === 0 ? (
+                        <div className="py-8 text-center text-sm text-gray-400">
+                            Пока никто не записался
+                        </div>
+                    ) : (
+                        participants.map(participant => {
+                            const sportIcons = getSportIcons(participant.preferredSports)
+                            return (
+                                <div
+                                    key={participant.id}
+                                    className={`flex items-center py-3 border-b border-gray-100 last:border-0 ${isPast && participant.attended === false ? 'opacity-50' : ''}`}
+                                >
+                                    {/* Avatar */}
                                     <Avatar
                                         src={participant.photo}
                                         name={participant.name}
                                         size="md"
+                                        className="mr-3 flex-shrink-0"
                                     />
-                                    <div className="flex items-center gap-2 flex-1">
+
+                                    {/* Name + Sports - left side */}
+                                    <div className="flex items-center gap-2 flex-1 min-w-0">
                                         <span className={`text-sm ${isPast && participant.attended === false
                                             ? 'text-gray-400 line-through'
                                             : 'text-gray-700'
                                             }`}>
                                             {participant.name}
                                         </span>
-                                        {participant.isOrganizer && (
-                                            <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full font-medium">
-                                                Орг
-                                            </span>
-                                        )}
+
+                                        {/* Sports */}
                                         {sportIcons.length > 0 && (
-                                            <div className="flex gap-1">
+                                            <div className="flex gap-0.5 flex-shrink-0">
                                                 {sportIcons.map((icon, idx) => (
                                                     <span key={idx} className="text-sm">{icon}</span>
                                                 ))}
                                             </div>
                                         )}
                                     </div>
+
+                                    {/* Organizer badge - right side near Strava */}
+                                    {participant.isOrganizer && (
+                                        <span className="text-xs text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded mr-2 flex-shrink-0">
+                                            Орг
+                                        </span>
+                                    )}
+
+                                    {/* Past activity attendance indicator */}
+                                    {isPast && (
+                                        <span className="text-xs text-gray-400 mr-2">
+                                            {participant.attended === true && '✓'}
+                                            {participant.attended === false && '—'}
+                                        </span>
+                                    )}
+
+                                    {/* Strava - right aligned */}
+                                    <StravaIcon url={participant.stravaLink} />
                                 </div>
-                                <span className="text-xs text-gray-400">
-                                    {isPast && participant.attended === true && '✓'}
-                                    {isPast && participant.attended === false && '—'}
-                                </span>
-                            </div>
-                        )
-                    })}
+                            )
+                        })
+                    )}
                 </div>
             </div>
+
+            {/* Action Button Area - stays visible below popup */}
+            {actionButton && (
+                <div className="bg-white w-full max-w-md mx-auto px-4 pb-6 pt-4 border-t border-gray-200">
+                    {actionButton}
+                </div>
+            )}
         </div>
     )
 }
