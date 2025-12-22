@@ -353,8 +353,9 @@ class Activity(Base):
     is_open = Column(Boolean, default=True, nullable=False)  # True = anyone can join
 
     # GPX file storage (in Telegram channel)
-    gpx_file_channel_id = Column(Integer, nullable=True)
-    gpx_file_message_id = Column(Integer, nullable=True)
+    gpx_file_id = Column(String(255), nullable=True)  # Telegram file_id for downloading
+    gpx_filename = Column(String(255), nullable=True)  # Original filename
+    gpx_file_message_id = Column(Integer, nullable=True)  # Message ID in GPX channel
 
     # Status
     status = Column(SQLEnum(ActivityStatus), default=ActivityStatus.UPCOMING, nullable=False, index=True)

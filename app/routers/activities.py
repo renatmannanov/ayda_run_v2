@@ -206,12 +206,16 @@ async def get_activity(
         Participation.status.in_([ParticipationStatus.REGISTERED, ParticipationStatus.CONFIRMED])
     ).count()
 
+    # GPX info
+    response.has_gpx = bool(activity.gpx_file_id)
+
     if current_user:
         participation = db.query(Participation).filter(
             Participation.activity_id == activity.id,
             Participation.user_id == current_user.id
         ).first()
         response.is_joined = participation is not None
+        response.is_creator = activity.creator_id == current_user.id
 
     # Populate names
     if activity.club:
