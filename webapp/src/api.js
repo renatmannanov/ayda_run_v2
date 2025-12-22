@@ -72,6 +72,11 @@ const transformActivity = (a) => !a ? null : ({
     isOpen: a.is_open !== undefined ? a.is_open : true, // Default to open for backwards compatibility
     canViewParticipants: a.can_view_participants !== undefined ? a.can_view_participants : true,
     canDownloadGpx: a.can_download_gpx !== undefined ? a.can_download_gpx : true,
+    // GPX file info
+    gpxFileId: a.gpx_file_id,
+    gpxFilename: a.gpx_filename,
+    hasGpx: a.has_gpx || false,
+    isCreator: a.is_creator || false,
     clubId: a.club_id,
     groupId: a.group_id,
     club: a.club_name,
@@ -191,7 +196,36 @@ export const activitiesApi = {
     requestJoin: (id) => apiFetch(`/activities/${id}/request-join`, { method: 'POST' }),
 
     getParticipants: (id) => apiFetch(`/activities/${id}/participants`)
-        .then(items => items.map(transformMember))
+        .then(items => items.map(transformMember)),
+
+    // GPX file operations
+    uploadGpx: async (activityId, file) => {
+        const formData = new FormData()
+        formData.append('file', file)
+
+        const headers = {}
+        if (window.Telegram?.WebApp?.initData) {
+            headers['X-Telegram-Init-Data'] = window.Telegram.WebApp.initData
+        }
+        // Note: Don't set Content-Type - browser will set it with boundary for FormData
+
+        const response = await fetch(`${API_BASE}/activities/${activityId}/gpx`, {
+            method: 'POST',
+            headers,
+            body: formData
+        })
+
+        if (!response.ok) {
+            const error = await response.json().catch(() => ({}))
+            throw new Error(error.detail || 'Failed to upload GPX file')
+        }
+
+        return response.json()
+    },
+
+    deleteGpx: (activityId) => apiFetch(`/activities/${activityId}/gpx`, { method: 'DELETE' }),
+
+    getGpxDownloadUrl: (activityId) => `${API_BASE}/activities/${activityId}/gpx`
 }
 
 // ============================================================================
