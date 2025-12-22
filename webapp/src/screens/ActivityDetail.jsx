@@ -154,13 +154,22 @@ export default function ActivityDetail() {
                         {activity.hasGpx && activity.canDownloadGpx && (
                             <div className="flex items-start gap-3">
                                 <span className="text-gray-400">📍</span>
-                                <a
-                                    href={activitiesApi.getGpxDownloadUrl(activity.id)}
-                                    download={activity.gpxFilename || 'route.gpx'}
-                                    className="text-sm text-blue-600 hover:text-blue-800 underline underline-offset-2"
+                                <button
+                                    onClick={() => {
+                                        const url = activitiesApi.getGpxDownloadUrl(activity.id)
+                                        // In Telegram WebApp, use openLink to handle downloads
+                                        if (tg.webApp?.openLink) {
+                                            // openLink opens in external browser which handles downloads
+                                            tg.webApp.openLink(window.location.origin + url)
+                                        } else {
+                                            // Fallback for desktop/browser
+                                            window.open(url, '_blank')
+                                        }
+                                    }}
+                                    className="text-sm text-blue-600 hover:text-blue-800 underline underline-offset-2 text-left"
                                 >
                                     Download GPX: {activity.gpxFilename || 'route.gpx'}
-                                </a>
+                                </button>
                             </div>
                         )}
                     </div>
