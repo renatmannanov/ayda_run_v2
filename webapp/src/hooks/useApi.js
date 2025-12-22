@@ -94,7 +94,7 @@ export function useMutation(mutationFn) {
             return result
         } catch (err) {
             setError(err.message || 'Ошибка')
-            tg.haptic('error')
+            tg.hapticNotification('error')
             throw err
         } finally {
             setLoading(false)

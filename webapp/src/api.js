@@ -82,6 +82,7 @@ const transformActivity = (a) => !a ? null : ({
     club: a.club_name,
     group: a.group_name,
     creatorId: a.creator_id,
+    creatorName: a.creator_name,
     createdAt: a.created_at,
     isPast: new Date(a.date) < new Date(),
     icon: (a.sport_type === 'running' || !a.sport_type) ? '🏃' :
@@ -306,8 +307,14 @@ export const tg = {
         return this.webApp?.initDataUnsafe?.user
     },
 
+    // Impact feedback: light, medium, heavy, rigid, soft
     haptic(type = 'medium') {
         this.webApp?.HapticFeedback?.impactOccurred(type)
+    },
+
+    // Notification feedback: error, success, warning
+    hapticNotification(type = 'success') {
+        this.webApp?.HapticFeedback?.notificationOccurred(type)
     },
 
     showAlert(message) {

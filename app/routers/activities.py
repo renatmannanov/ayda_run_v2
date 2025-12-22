@@ -93,6 +93,15 @@ async def create_activity(
     db.commit()
     db.refresh(activity)
 
+    # Automatically add creator as participant
+    creator_participation = Participation(
+        activity_id=activity.id,
+        user_id=current_user.id,
+        status=ParticipationStatus.CONFIRMED
+    )
+    db.add(creator_participation)
+    db.commit()
+
     # Send notifications to club/group members (async, don't block response)
     asyncio.create_task(_send_new_activity_notifications(
         activity_id=activity.id,
@@ -106,8 +115,9 @@ async def create_activity(
 
     # Convert to response
     response = ActivityResponse.model_validate(activity)
-    response.participants_count = 0
-    response.is_joined = False
+    response.participants_count = 1  # Creator is already a participant
+    response.is_joined = True
+    response.is_creator = True
 
     return response
 
@@ -157,7 +167,7 @@ async def list_activities(
     query = query.order_by(Activity.date.asc())
 
     # Eager load relationships
-    query = query.options(joinedload(Activity.club), joinedload(Activity.group))
+    query = query.options(joinedload(Activity.club), joinedload(Activity.group), joinedload(Activity.creator))
 
     # Pagination
     activities = query.offset(offset).limit(limit).all()
@@ -186,6 +196,10 @@ async def list_activities(
         if activity.group:
             response.group_name = activity.group.name
             logger.debug(f"Activity {activity.id}: Set group_name='{activity.group.name}'")
+        if activity.creator:
+            # Build display name from first_name + last_name
+            creator = activity.creator
+            response.creator_name = f"{creator.first_name or ''} {creator.last_name or ''}".strip() or creator.username or "Аноним"
 
         result.append(response)
 
@@ -227,6 +241,10 @@ async def get_activity(
         response.club_name = activity.club.name
     if activity.group:
         response.group_name = activity.group.name
+    if activity.creator:
+        # Build display name from first_name + last_name
+        creator = activity.creator
+        response.creator_name = f"{creator.first_name or ''} {creator.last_name or ''}".strip() or creator.username or "Аноним"
 
     return response
 

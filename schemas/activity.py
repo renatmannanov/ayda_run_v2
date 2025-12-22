@@ -119,3 +119,4 @@ class ActivityResponse(BaseResponse):
     can_download_gpx: bool = True  # False if closed and not member
     club_name: Optional[str] = None
     group_name: Optional[str] = None
+    creator_name: Optional[str] = None  # Creator's display name
