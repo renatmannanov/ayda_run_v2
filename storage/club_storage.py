@@ -11,7 +11,7 @@ import logging
 
 from sqlalchemy.orm import Session
 from sqlalchemy import func
-from storage.db import SessionLocal, Club, Membership
+from storage.db import SessionLocal, Club, Membership, MembershipStatus
 
 logger = logging.getLogger(__name__)
 
@@ -384,3 +384,77 @@ class ClubStorage:
             self.session.rollback()
             logger.error(f"Error in create_club_from_telegram_group: {e}")
             raise
+
+    # ============= Sync methods =============
+
+    def update_telegram_member_count(self, club_id: str, count: int) -> None:
+        """
+        Update Telegram member count from API.
+
+        Args:
+            club_id: Club UUID
+            count: Member count from Telegram API
+        """
+        try:
+            self.session.query(Club).filter(Club.id == club_id).update({
+                "telegram_member_count": count,
+                "last_sync_at": datetime.utcnow()
+            })
+            self.session.commit()
+            logger.info(f"Updated telegram_member_count for club {club_id}: {count}")
+        except Exception as e:
+            self.session.rollback()
+            logger.error(f"Error updating telegram_member_count: {e}")
+
+    def mark_sync_completed(self, club_id: str) -> None:
+        """
+        Mark sync as completed for club.
+
+        Args:
+            club_id: Club UUID
+        """
+        try:
+            self.session.query(Club).filter(Club.id == club_id).update({
+                "sync_completed": True,
+                "last_sync_at": datetime.utcnow()
+            })
+            self.session.commit()
+            logger.info(f"Marked sync completed for club {club_id}")
+        except Exception as e:
+            self.session.rollback()
+            logger.error(f"Error marking sync completed: {e}")
+
+    def reset_sync_status(self, club_id: str) -> None:
+        """
+        Reset sync status (when new members detected in TG).
+
+        Args:
+            club_id: Club UUID
+        """
+        try:
+            self.session.query(Club).filter(Club.id == club_id).update({
+                "sync_completed": False
+            })
+            self.session.commit()
+            logger.info(f"Reset sync status for club {club_id}")
+        except Exception as e:
+            self.session.rollback()
+            logger.error(f"Error resetting sync status: {e}")
+
+    def update_bot_admin_status(self, club_id: str, is_admin: bool) -> None:
+        """
+        Update bot admin status for club.
+
+        Args:
+            club_id: Club UUID
+            is_admin: Whether bot is admin in the group
+        """
+        try:
+            self.session.query(Club).filter(Club.id == club_id).update({
+                "bot_is_admin": is_admin
+            })
+            self.session.commit()
+            logger.info(f"Updated bot_is_admin for club {club_id}: {is_admin}")
+        except Exception as e:
+            self.session.rollback()
+            logger.error(f"Error updating bot_is_admin: {e}")

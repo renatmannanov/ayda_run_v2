@@ -6,10 +6,14 @@ Handles adding users to clubs and groups.
 """
 
 from typing import Optional, List
+from datetime import datetime
 import logging
 
 from sqlalchemy.orm import Session
-from storage.db import SessionLocal, Membership, UserRole
+from storage.db import (
+    SessionLocal, Membership, UserRole,
+    MembershipStatus, MembershipSource
+)
 
 logger = logging.getLogger(__name__)
 
@@ -258,3 +262,200 @@ class MembershipStorage:
             self.session.rollback()
             logger.error(f"Error in remove_member_from_group: {e}")
             return False
+
+    # ============= New methods for member sync =============
+
+    def add_member_to_club_with_source(
+        self,
+        user_id: str,
+        club_id: str,
+        role: UserRole = UserRole.MEMBER,
+        source: MembershipSource = MembershipSource.MANUAL_REGISTRATION,
+        status: MembershipStatus = MembershipStatus.ACTIVE
+    ) -> Optional[Membership]:
+        """
+        Add member with source tracking.
+
+        If member already exists but was inactive, reactivates them.
+
+        Args:
+            user_id: User UUID
+            club_id: Club UUID
+            role: User role in the club
+            source: How member was added
+            status: Initial status
+
+        Returns:
+            Membership object
+        """
+        try:
+            existing = self.session.query(Membership).filter(
+                Membership.user_id == user_id,
+                Membership.club_id == club_id
+            ).first()
+
+            if existing:
+                # Reactivate if was inactive
+                if existing.status != MembershipStatus.ACTIVE:
+                    existing.status = MembershipStatus.ACTIVE
+                    existing.left_at = None
+                    existing.last_seen = datetime.utcnow()
+                    self.session.commit()
+                    self.session.refresh(existing)
+                    logger.info(f"Reactivated member {user_id} in club {club_id}")
+                return existing
+
+            membership = Membership(
+                user_id=user_id,
+                club_id=club_id,
+                role=role,
+                source=source,
+                status=status,
+                last_seen=datetime.utcnow()
+            )
+            self.session.add(membership)
+            self.session.commit()
+            self.session.refresh(membership)
+            logger.info(f"Added member {user_id} to club {club_id} via {source.value}")
+            return membership
+
+        except Exception as e:
+            self.session.rollback()
+            logger.error(f"Error in add_member_to_club_with_source: {e}")
+            raise
+
+    def mark_member_inactive(
+        self,
+        user_id: str,
+        club_id: str,
+        status: MembershipStatus = MembershipStatus.LEFT
+    ) -> bool:
+        """
+        Mark member as inactive (left/kicked/banned).
+
+        Args:
+            user_id: User UUID
+            club_id: Club UUID
+            status: New status (LEFT, KICKED, or BANNED)
+
+        Returns:
+            True if successful, False if not found
+        """
+        try:
+            membership = self.session.query(Membership).filter(
+                Membership.user_id == user_id,
+                Membership.club_id == club_id
+            ).first()
+
+            if not membership:
+                return False
+
+            membership.status = status
+            membership.left_at = datetime.utcnow()
+            self.session.commit()
+            logger.info(f"Marked member {user_id} as {status.value} in club {club_id}")
+            return True
+
+        except Exception as e:
+            self.session.rollback()
+            logger.error(f"Error in mark_member_inactive: {e}")
+            return False
+
+    def update_last_seen(self, user_id: str, club_id: str) -> None:
+        """
+        Update last_seen timestamp for member.
+
+        Args:
+            user_id: User UUID
+            club_id: Club UUID
+        """
+        try:
+            self.session.query(Membership).filter(
+                Membership.user_id == user_id,
+                Membership.club_id == club_id
+            ).update({"last_seen": datetime.utcnow()})
+            self.session.commit()
+        except Exception as e:
+            self.session.rollback()
+            logger.error(f"Error updating last_seen: {e}")
+
+    def get_members_count(self, club_id: str, exclude_archived: bool = False) -> int:
+        """
+        Get count of members in club.
+
+        Args:
+            club_id: Club UUID
+            exclude_archived: If True, exclude ARCHIVED members
+
+        Returns:
+            Number of members
+        """
+        try:
+            query = self.session.query(Membership).filter(
+                Membership.club_id == club_id
+            )
+            if exclude_archived:
+                query = query.filter(Membership.status != MembershipStatus.ARCHIVED)
+            return query.count()
+        except Exception as e:
+            logger.error(f"Error in get_members_count: {e}")
+            return 0
+
+    def get_active_members_count(self, club_id: str) -> int:
+        """
+        Get count of active members in club.
+
+        Args:
+            club_id: Club UUID
+
+        Returns:
+            Number of active members
+        """
+        try:
+            return self.session.query(Membership).filter(
+                Membership.club_id == club_id,
+                Membership.status == MembershipStatus.ACTIVE
+            ).count()
+        except Exception as e:
+            logger.error(f"Error in get_active_members_count: {e}")
+            return 0
+
+    def get_members_by_status(self, club_id: str, status: MembershipStatus) -> List[Membership]:
+        """
+        Get all members with specific status.
+
+        Args:
+            club_id: Club UUID
+            status: Status to filter by
+
+        Returns:
+            List of Membership objects
+        """
+        try:
+            return self.session.query(Membership).filter(
+                Membership.club_id == club_id,
+                Membership.status == status
+            ).all()
+        except Exception as e:
+            logger.error(f"Error in get_members_by_status: {e}")
+            return []
+
+    def get_members_by_source(self, club_id: str, source: MembershipSource) -> List[Membership]:
+        """
+        Get all members by source (for analytics).
+
+        Args:
+            club_id: Club UUID
+            source: Source to filter by
+
+        Returns:
+            List of Membership objects
+        """
+        try:
+            return self.session.query(Membership).filter(
+                Membership.club_id == club_id,
+                Membership.source == source
+            ).all()
+        except Exception as e:
+            logger.error(f"Error in get_members_by_source: {e}")
+            return []
