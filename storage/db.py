@@ -90,6 +90,35 @@ class JoinRequestStatus(str, Enum):
     REJECTED = "rejected"
     EXPIRED = "expired"
 
+
+class MembershipStatus(str, Enum):
+    """
+    Membership status in club/group.
+
+    Lifecycle:
+    PENDING → ACTIVE → LEFT/KICKED/BANNED → (can return to ACTIVE)
+                ↓
+            ARCHIVED (soft-delete after 90 days inactive)
+
+    See docs/next_steps/tggroup_sync_implementation_plan.md for details.
+    """
+    PENDING = "pending"      # Detected but not activated yet (e.g., from message parsing)
+    ACTIVE = "active"        # Active member
+    LEFT = "left"            # Left voluntarily
+    KICKED = "kicked"        # Removed by admin
+    BANNED = "banned"        # Banned from group
+    ARCHIVED = "archived"    # Soft-deleted / inactive for too long
+
+
+class MembershipSource(str, Enum):
+    """How member was added to club/group"""
+    ADMIN_IMPORT = "admin_import"           # Parsed from getChatAdministrators
+    CHAT_MEMBER_EVENT = "chat_member_event" # chat_member webhook event
+    MESSAGE_ACTIVITY = "message_activity"   # Passive tracking from messages
+    MANUAL_REGISTRATION = "manual"          # User clicked "Join" button in app
+    DEEP_LINK = "deep_link"                 # Joined via t.me/bot?start=join_xxx
+
+
 # ============= MODELS =============
 
 class User(Base):
@@ -160,6 +189,12 @@ class Club(Base):
     # Access control
     is_open = Column(Boolean, default=True, nullable=False)  # True = anyone can join
 
+    # Telegram sync metadata
+    bot_is_admin = Column(Boolean, default=False, nullable=False)
+    last_sync_at = Column(DateTime, nullable=True)
+    telegram_member_count = Column(Integer, nullable=True)  # Total members in TG group
+    sync_completed = Column(Boolean, default=False, nullable=False)  # All members collected?
+
     created_at = Column(DateTime, default=datetime.utcnow)
 
     # Relationships
@@ -223,6 +258,8 @@ class Membership(Base):
     Either club_id or group_id must be set (not both)
     - club_id set: club-level membership
     - group_id set: group-level membership
+
+    See MembershipStatus enum for lifecycle documentation.
     """
     __tablename__ = 'memberships'
 
@@ -236,7 +273,14 @@ class Membership(Base):
     # Role in the organization
     role = Column(SQLEnum(UserRole), default=UserRole.MEMBER, nullable=False)
 
+    # Sync tracking fields
+    status = Column(SQLEnum(MembershipStatus), default=MembershipStatus.ACTIVE, nullable=False, index=True)
+    source = Column(SQLEnum(MembershipSource), default=MembershipSource.MANUAL_REGISTRATION, nullable=False)
+    last_seen = Column(DateTime, nullable=True)
+
+    # Timestamps
     joined_at = Column(DateTime, default=datetime.utcnow)
+    left_at = Column(DateTime, nullable=True)  # When user left/was kicked
 
     # Relationships
     user = relationship("User", back_populates="memberships")
@@ -244,7 +288,7 @@ class Membership(Base):
     group = relationship("Group", back_populates="memberships")
 
     def __repr__(self):
-        return f"<Membership(user_id={self.user_id}, role={self.role})>"
+        return f"<Membership(user_id={self.user_id}, role={self.role}, status={self.status})>"
 
 
 class RecurringTemplate(Base):
