@@ -164,6 +164,26 @@ class MembershipStorage:
             logger.error(f"Error in is_member_of_club: {e}")
             return False
 
+    def get_membership(self, user_id: str, club_id: str) -> Optional[Membership]:
+        """
+        Get membership record for user in club.
+
+        Args:
+            user_id: User UUID
+            club_id: Club UUID
+
+        Returns:
+            Membership object or None if not found
+        """
+        try:
+            return self.session.query(Membership).filter(
+                Membership.user_id == user_id,
+                Membership.club_id == club_id
+            ).first()
+        except Exception as e:
+            logger.error(f"Error in get_membership: {e}")
+            return None
+
     def is_member_of_group(self, user_id: str, group_id: str) -> bool:
         """
         Check if user is member of group.
