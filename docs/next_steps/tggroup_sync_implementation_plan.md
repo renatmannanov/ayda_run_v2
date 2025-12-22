@@ -824,7 +824,10 @@ def reset_sync_status(self, club_id: str) -> None:
 
 ---
 
-## Phase 5: Webhook & Handler Registration
+## Phase 5: Webhook & Handler Registration ✅ DONE
+
+> **Completed:** 2024-12-22
+> **Commit:** `e093c51`
 
 ### 5.1 Обновить `api_server.py`
 
@@ -854,11 +857,14 @@ await bot_app.bot.set_webhook(
 ```
 
 **Файлы:**
-- [ ] `api_server.py` - обновить регистрацию handlers и webhook
+- [x] `api_server.py` - обновить регистрацию handlers и webhook
 
 ---
 
-## Phase 6: Welcome Message Updates
+## Phase 6: Welcome Message Updates ✅ DONE
+
+> **Completed:** 2024-12-22
+> **Commit:** `791b3eb`
 
 ### 6.1 Обновить `bot/group_club_creation_handler.py`
 
@@ -899,11 +905,14 @@ await context.bot.send_message(
 ```
 
 **Файлы:**
-- [ ] `bot/group_club_creation_handler.py` - добавить import админов и кнопку регистрации
+- [x] `bot/group_club_creation_handler.py` - добавить import админов и кнопку регистрации
 
 ---
 
-## Phase 7: Sync Command
+## Phase 7: Sync Command ✅ DONE
+
+> **Completed:** 2024-12-22
+> **Commit:** `ead9c47`
 
 ### 7.1 Создать команду `/sync` для организаторов
 
@@ -982,11 +991,14 @@ def get_sync_handlers():
 ```
 
 **Файлы:**
-- [ ] `bot/sync_handler.py` - создать новый файл
+- [x] `bot/sync_handler.py` - создать новый файл
 
 ---
 
-## Phase 8: Testing
+## Phase 8: Testing ✅ DONE
+
+> **Completed:** 2024-12-22
+> **Commit:** `986a8a7`
 
 ### 8.1 Unit Tests
 
@@ -1038,7 +1050,7 @@ def test_sync_completed_flag():
 8. Проверить что статус снова `ACTIVE`
 
 **Файлы:**
-- [ ] `tests/test_member_sync.py` - создать тесты
+- [x] `tests/test_bot/test_member_sync.py` - создать тесты (17 тестов)
 
 ---
 
