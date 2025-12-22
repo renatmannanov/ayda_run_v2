@@ -87,6 +87,12 @@ async def lifespan(app: FastAPI):
     for handler in get_request_management_handlers():
         bot_app.add_handler(handler)
 
+    # Phase 7: Member sync handlers (chat_member events + message activity)
+    from bot.member_sync_handler import get_member_sync_handlers
+    for handler in get_member_sync_handlers():
+        bot_app.add_handler(handler)
+    logger.info("[SUCCESS] Member sync handlers registered")
+
     # Initialize bot (but don't start polling - we use webhook)
     await bot_app.initialize()
     await bot_app.start()
@@ -96,7 +102,16 @@ async def lifespan(app: FastAPI):
     base_url = (settings.base_url or settings.app_url or '').rstrip('/')
     if base_url:
         webhook_url = f"{base_url}/webhook/{settings.bot_token}"
-        await bot_app.bot.set_webhook(url=webhook_url)
+        # Include chat_member events for member sync tracking
+        await bot_app.bot.set_webhook(
+            url=webhook_url,
+            allowed_updates=[
+                "message",           # For message-based sync
+                "callback_query",    # Existing functionality (buttons)
+                "chat_member",       # For join/leave tracking (Strategy 3)
+                "my_chat_member",    # For bot added/removed events
+            ]
+        )
         logger.info(f"[SUCCESS] Telegram bot webhook set to: {webhook_url}")
     else:
         logger.warning("No BASE_URL or WEB_APP_URL set - webhook not configured!")
