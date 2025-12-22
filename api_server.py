@@ -93,6 +93,12 @@ async def lifespan(app: FastAPI):
         bot_app.add_handler(handler)
     logger.info("[SUCCESS] Member sync handlers registered")
 
+    # Phase 7.1: Sync command for organizers
+    from bot.sync_handler import get_sync_handlers
+    for handler in get_sync_handlers():
+        bot_app.add_handler(handler)
+    logger.info("[SUCCESS] Sync command handler registered")
+
     # Initialize bot (but don't start polling - we use webhook)
     await bot_app.initialize()
     await bot_app.start()
