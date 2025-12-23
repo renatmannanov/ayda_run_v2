@@ -147,12 +147,21 @@ async def handle_existing_user_invitation(update: Update, context: ContextTypes.
     Handle invitation for existing user who already completed onboarding.
 
     Shows short flow: Welcome back + entity info + Join/Decline buttons.
-    Supports: club, group, join (from group registration button)
+    Supports: club, group, join (from group registration button), activity (deep link to activity)
     """
     try:
         # Handle "join" deep link (from group registration button)
         if invitation_type == "join":
             return await handle_join_from_group(update, context, user, invitation_id)
+
+        # Handle "activity" deep link - just open webapp with activity
+        if invitation_type == "activity":
+            webapp_url = f"{settings.app_url}?startapp=activity_{invitation_id}"
+            await update.message.reply_text(
+                "📋 Открываю тренировку...",
+                reply_markup=get_webapp_button(webapp_url, "🚀 Открыть тренировку")
+            )
+            return ConversationHandler.END
 
         if invitation_type == "club":
             with ClubStorage() as club_storage:
@@ -252,6 +261,11 @@ async def start_onboarding(update: Update, context: ContextTypes.DEFAULT_TYPE) -
             invitation_type = "join"
             invitation_id = param[5:]  # This is chat_id
             logger.info(f"User {telegram_user.id} clicked join deep link for chat: {invitation_id}")
+        elif param.startswith("activity_"):
+            # Deep link to activity (e.g., from checkin notification)
+            invitation_type = "activity"
+            invitation_id = param[9:]  # Remove "activity_" prefix
+            logger.info(f"User {telegram_user.id} clicked activity deep link: {invitation_id}")
 
     # Store invitation info in context
     if invitation_type:

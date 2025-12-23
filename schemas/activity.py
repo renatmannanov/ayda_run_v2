@@ -1,6 +1,6 @@
 from pydantic import BaseModel, ConfigDict, Field, field_validator, ValidationInfo
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List
 from .common import SportType, Difficulty, BaseResponse, ActivityVisibility, ActivityStatus, ParticipationStatus
 
 class ActivityCreate(BaseModel):
@@ -124,3 +124,29 @@ class ActivityResponse(BaseResponse):
     club_name: Optional[str] = None
     group_name: Optional[str] = None
     creator_name: Optional[str] = None  # Creator's display name
+
+    # Organizer permissions (for club/group activities)
+    is_club_admin: bool = False
+    is_group_admin: bool = False
+    can_mark_attendance: bool = False  # True if past + club/group activity + is organizer
+
+
+# ============================================================================
+# Attendance Marking (for organizers)
+# ============================================================================
+
+class AttendanceItem(BaseModel):
+    """Single attendance mark for a participant"""
+    user_id: str  # UUID
+    attended: Optional[bool] = None  # True = attended, False = missed, None = not marked
+
+
+class MarkAttendanceRequest(BaseModel):
+    """Request to mark attendance for multiple participants"""
+    participants: List[AttendanceItem]
+
+
+class AddParticipantRequest(BaseModel):
+    """Request to add a club/group member as participant"""
+    user_id: str  # UUID
+    attended: bool = True  # Mark as attended by default when manually adding

@@ -35,7 +35,9 @@ export default function GroupCard({ group, showJoinButton = false, onJoin }) {
                                     {group.name}
                                 </span>
                                 {(group.club_name || group.parentClub) && (
-                                    <span className="text-gray-400 font-normal truncate"> / {group.club_name || group.parentClub}</span>
+                                    <span className="text-gray-400 font-normal truncate">
+                                        {' '}/ {group.club_name || group.parentClub}
+                                    </span>
                                 )}
                             </h3>
                             {group.isMember && !showJoinButton && (

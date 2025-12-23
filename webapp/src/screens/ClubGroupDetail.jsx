@@ -241,25 +241,28 @@ export default function ClubGroupDetail({ type = 'club' }) {
             <div className="flex-1 overflow-y-auto px-4 py-4 pb-24">
                 {/* Main Info Card */}
                 <div className="border border-gray-200 rounded-xl p-4 mb-4">
-                    <div className="flex items-start justify-between mb-4">
-                        <div className="flex-1 pr-3">
-                            <h1 className="text-xl text-gray-800 font-medium mb-1 flex items-center gap-2">
-                                {!item.isOpen && <span className="text-gray-400 text-lg">🔒</span>}
-                                <span>{item.name}</span>
-                                {!isClub && (item.club_name || item.parentClub) && (
-                                    <span className="text-gray-400 font-normal"> / {item.club_name || item.parentClub}</span>
+                    <div className="mb-4">
+                        <div className="flex items-center gap-2 mb-1">
+                            {item.photo ? (
+                                <Avatar src={item.photo} name={item.name} size="md" className="flex-shrink-0" />
+                            ) : (
+                                <span className="text-xl flex-shrink-0">{isClub ? '🏆' : '👥'}</span>
+                            )}
+                            {!item.isOpen && <span className="text-gray-400 text-base flex-shrink-0">🔒</span>}
+                            <h1 className="text-lg text-gray-800 font-medium flex-1 min-w-0">
+                                <span className="break-words">{item.name}</span>
+                                {!isClub && (item.club_name || item.parentClub) && item.clubId && (
+                                    <span
+                                        onClick={() => navigate(`/club/${item.clubId}`)}
+                                        className="text-gray-400 font-normal hover:text-gray-600 hover:underline cursor-pointer"
+                                    > / {item.club_name || item.parentClub}</span>
                                 )}
                             </h1>
-                            <p className="text-sm text-gray-500">
-                                {isClub ? '🏆 Клуб' : '👥 Группа'}
-                                {!item.isOpen && ' · Закрытый'}
-                            </p>
                         </div>
-                        {item.photo ? (
-                            <Avatar src={item.photo} name={item.name} size="xl" />
-                        ) : (
-                            <span className="text-3xl flex-shrink-0">{isClub ? '🏆' : '👥'}</span>
-                        )}
+                        <p className="text-sm text-gray-500">
+                            {isClub ? '🏆 Клуб' : '👥 Группа'}
+                            {!item.isOpen && ' · Закрытый'}
+                        </p>
                     </div>
 
                     {item.description && (
@@ -323,7 +326,7 @@ export default function ClubGroupDetail({ type = 'club' }) {
                             onClick={() => setShowCreateMenu(true)}
                             className="text-sm text-gray-600 hover:text-gray-800 transition-colors"
                         >
-                            {isAdmin ? 'Создать тренировку →' : 'Предложить тренировку →'}
+                            {isAdmin ? 'Создать активность →' : 'Предложить активность →'}
                         </button>
                     </div>
                 )}

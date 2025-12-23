@@ -122,6 +122,7 @@ const transformGroup = (g) => !g ? null : ({
     description: g.description,
     photo: g.photo, // Telegram file_id for avatar
     clubId: g.club_id,
+    club_name: g.club_name, // Parent club name (for display)
     telegramChatId: g.telegram_chat_id,
     isOpen: g.is_open,
     createdAt: g.created_at,
@@ -255,7 +256,18 @@ export const activitiesApi = {
 
     deleteGpx: (activityId) => apiFetch(`/activities/${activityId}/gpx`, { method: 'DELETE' }),
 
-    getGpxDownloadUrl: (activityId) => `${API_BASE}/activities/${activityId}/gpx`
+    getGpxDownloadUrl: (activityId) => `${API_BASE}/activities/${activityId}/gpx`,
+
+    // Attendance marking (for organizers)
+    markAttendance: (activityId, participants) => apiFetch(`/activities/${activityId}/mark-attendance`, {
+        method: 'POST',
+        body: JSON.stringify({ participants })
+    }),
+
+    addParticipant: (activityId, userId, attended = true) => apiFetch(`/activities/${activityId}/add-participant`, {
+        method: 'POST',
+        body: JSON.stringify({ user_id: userId, attended })
+    })
 }
 
 // ============================================================================

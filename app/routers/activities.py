@@ -9,7 +9,7 @@ Handles all activity-related endpoints:
 
 import logging
 from datetime import datetime
-from fastapi import APIRouter, HTTPException, Depends, Query, UploadFile, File
+from fastapi import APIRouter, HTTPException, Depends, Query, UploadFile, File, Body
 from fastapi.responses import StreamingResponse
 import httpx
 from sqlalchemy.orm import Session, joinedload
@@ -19,7 +19,7 @@ from storage.db import Activity, Participation, User, Membership, JoinRequest, J
 from app.core.dependencies import get_db, get_current_user, get_current_user_optional
 from permissions import can_create_activity_in_club, can_create_activity_in_group, require_activity_owner
 from schemas.common import SportType, Difficulty, ActivityVisibility, ActivityStatus, ParticipationStatus, PaymentStatus
-from schemas.activity import ActivityCreate, ActivityUpdate, ActivityResponse
+from schemas.activity import ActivityCreate, ActivityUpdate, ActivityResponse, MarkAttendanceRequest
 from schemas.user import ParticipantResponse
 from schemas.join_request import JoinRequestCreate, JoinRequestResponse
 from storage.join_request_storage import JoinRequestStorage
@@ -242,9 +242,15 @@ async def get_activity(
 
     # Convert to response
     response = ActivityResponse.model_validate(activity)
+    # Count all active participants (including those awaiting confirmation and attended)
     response.participants_count = db.query(Participation).filter(
         Participation.activity_id == activity.id,
-        Participation.status.in_([ParticipationStatus.REGISTERED, ParticipationStatus.CONFIRMED])
+        Participation.status.in_([
+            ParticipationStatus.REGISTERED,
+            ParticipationStatus.CONFIRMED,
+            ParticipationStatus.AWAITING,
+            ParticipationStatus.ATTENDED
+        ])
     ).count()
 
     # GPX info
@@ -331,9 +337,15 @@ async def update_activity(
 
     # Convert to response
     response = ActivityResponse.model_validate(activity)
+    # Count all active participants (including those awaiting confirmation and attended)
     response.participants_count = db.query(Participation).filter(
         Participation.activity_id == activity.id,
-        Participation.status.in_([ParticipationStatus.REGISTERED, ParticipationStatus.CONFIRMED])
+        Participation.status.in_([
+            ParticipationStatus.REGISTERED,
+            ParticipationStatus.CONFIRMED,
+            ParticipationStatus.AWAITING,
+            ParticipationStatus.ATTENDED
+        ])
     ).count()
 
     participation = db.query(Participation).filter(
@@ -833,6 +845,170 @@ async def reject_activity_join_request(
         "request_id": request_id,
         "user_id": join_request.user_id
     }
+
+
+# ============================================================================
+# Attendance Marking (for organizers of club/group activities)
+# ============================================================================
+
+@router.post("/{activity_id}/mark-attendance", status_code=200)
+async def mark_attendance(
+    activity_id: str,
+    request: MarkAttendanceRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Mark attendance for multiple participants (organizers only).
+
+    Only available for club/group activities after they have ended.
+    """
+    activity = db.query(Activity).filter(Activity.id == activity_id).first()
+
+    if not activity:
+        raise HTTPException(status_code=404, detail="Activity not found")
+
+    # Check if activity belongs to club or group
+    if not activity.club_id and not activity.group_id:
+        raise HTTPException(
+            status_code=400,
+            detail="Attendance marking is only available for club/group activities"
+        )
+
+    # Check if activity has ended
+    if activity.date > datetime.now():
+        raise HTTPException(status_code=400, detail="Cannot mark attendance for future activities")
+
+    # Check permissions (creator or club/group admin)
+    is_organizer = _is_activity_organizer(db, current_user, activity)
+    if not is_organizer:
+        raise HTTPException(status_code=403, detail="Only organizers can mark attendance")
+
+    # Update participations
+    updated_count = 0
+    for item in request.participants:
+        participation = db.query(Participation).filter(
+            Participation.activity_id == activity_id,
+            Participation.user_id == item.user_id
+        ).first()
+
+        if participation:
+            if item.attended is True:
+                participation.status = ParticipationStatus.ATTENDED
+                participation.attended = True
+            elif item.attended is False:
+                participation.status = ParticipationStatus.MISSED
+                participation.attended = False
+            else:
+                # Reset to awaiting
+                participation.status = ParticipationStatus.AWAITING
+                participation.attended = None
+            updated_count += 1
+
+    db.commit()
+
+    logger.info(f"Organizer {current_user.id} marked attendance for {updated_count} participants in activity {activity_id}")
+
+    return {
+        "message": "Attendance marked successfully",
+        "updated": updated_count
+    }
+
+
+@router.post("/{activity_id}/add-participant", status_code=201)
+async def add_participant(
+    activity_id: str,
+    request: "AddParticipantRequest",
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Add a club/group member as participant (organizers only).
+
+    Used when marking attendance for someone who didn't sign up but attended.
+    """
+    from schemas.activity import AddParticipantRequest
+
+    activity = db.query(Activity).filter(Activity.id == activity_id).first()
+
+    if not activity:
+        raise HTTPException(status_code=404, detail="Activity not found")
+
+    # Check if activity belongs to club or group
+    if not activity.club_id and not activity.group_id:
+        raise HTTPException(
+            status_code=400,
+            detail="Adding participants is only available for club/group activities"
+        )
+
+    # Check permissions
+    is_organizer = _is_activity_organizer(db, current_user, activity)
+    if not is_organizer:
+        raise HTTPException(status_code=403, detail="Only organizers can add participants")
+
+    # Check if user is already a participant
+    existing = db.query(Participation).filter(
+        Participation.activity_id == activity_id,
+        Participation.user_id == request.user_id
+    ).first()
+
+    if existing:
+        raise HTTPException(status_code=400, detail="User is already a participant")
+
+    # Create new participation with attended status
+    participation = Participation(
+        activity_id=activity_id,
+        user_id=request.user_id,
+        status=ParticipationStatus.ATTENDED if request.attended else ParticipationStatus.MISSED,
+        attended=request.attended,
+        payment_status=PaymentStatus.NOT_REQUIRED
+    )
+    db.add(participation)
+    db.commit()
+
+    logger.info(f"Organizer {current_user.id} added participant {request.user_id} to activity {activity_id}")
+
+    return {
+        "message": "Participant added successfully",
+        "user_id": request.user_id,
+        "attended": request.attended
+    }
+
+
+def _is_activity_organizer(db: Session, user: User, activity: Activity) -> bool:
+    """
+    Check if user is an organizer for this activity.
+
+    Returns True if user is:
+    - Activity creator
+    - Club admin/organizer (if activity belongs to club)
+    - Group trainer/admin (if activity belongs to group)
+    """
+    # Creator always can
+    if str(activity.creator_id) == str(user.id):
+        return True
+
+    # Check club admin
+    if activity.club_id:
+        membership = db.query(Membership).filter(
+            Membership.club_id == activity.club_id,
+            Membership.user_id == user.id,
+            Membership.role.in_(['admin', 'organizer'])
+        ).first()
+        if membership:
+            return True
+
+    # Check group trainer/admin
+    if activity.group_id:
+        membership = db.query(Membership).filter(
+            Membership.group_id == activity.group_id,
+            Membership.user_id == user.id,
+            Membership.role.in_(['admin', 'trainer'])
+        ).first()
+        if membership:
+            return True
+
+    return False
 
 
 # ============================================================================

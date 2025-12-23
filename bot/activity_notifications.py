@@ -586,3 +586,97 @@ async def send_activity_updated_notification(
     except TelegramError as e:
         logger.error(f"Error sending activity updated notification to user {user_telegram_id}: {e}")
         return False
+
+
+# ============================================================================
+# Organizer Attendance Check Notification
+# ============================================================================
+
+def format_organizer_checkin_notification(
+    activity_title: str,
+    activity_date: datetime,
+    participants_count: int,
+    webapp_link: str
+) -> str:
+    """
+    Format notification for organizer to mark attendance.
+
+    Sent after activity has passed, asking organizer to confirm attendees.
+
+    Args:
+        activity_title: Activity title
+        activity_date: Activity date and time
+        participants_count: Number of registered participants
+        webapp_link: Link to activity in webapp
+
+    Returns:
+        Formatted message text
+    """
+    date_str = activity_date.strftime("%a, %d %b")
+
+    message = (
+        f"📋 Тренировка завершена!\n\n"
+        f"\"{activity_title}\"\n"
+        f"{date_str} · {participants_count} участников\n\n"
+        f"Давай отметим, кто был на тренировке — "
+        f"это поможет вести статистику посещений и понимать активность участников."
+    )
+
+    return message
+
+
+async def send_organizer_checkin_notification(
+    bot: Bot,
+    organizer_telegram_id: int,
+    activity_id: str,
+    activity_title: str,
+    activity_date: datetime,
+    participants_count: int,
+    webapp_link: str
+) -> bool:
+    """
+    Send notification to organizer to mark attendance.
+
+    Shows button to open attendance marking in webapp.
+    Only sent for club/group activities.
+
+    Args:
+        bot: Telegram Bot instance
+        organizer_telegram_id: Organizer's Telegram ID
+        activity_id: Activity ID (for callback data)
+        activity_title: Activity title
+        activity_date: Activity date and time
+        participants_count: Number of registered participants
+        webapp_link: Link to activity in webapp
+
+    Returns:
+        True if sent successfully, False otherwise
+    """
+    try:
+        from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+
+        message_text = format_organizer_checkin_notification(
+            activity_title=activity_title,
+            activity_date=activity_date,
+            participants_count=participants_count,
+            webapp_link=webapp_link
+        )
+
+        # Create inline button to open webapp
+        keyboard = [[
+            InlineKeyboardButton("Отметить посещение 📋", url=webapp_link)
+        ]]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+
+        await bot.send_message(
+            chat_id=organizer_telegram_id,
+            text=message_text,
+            reply_markup=reply_markup
+        )
+
+        logger.info(f"Sent organizer checkin notification to {organizer_telegram_id} for activity {activity_id}")
+        return True
+
+    except TelegramError as e:
+        logger.error(f"Error sending organizer checkin notification to {organizer_telegram_id}: {e}")
+        return False

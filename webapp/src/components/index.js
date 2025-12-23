@@ -5,6 +5,7 @@ export { default as BottomBar } from './BottomBar'
 export { default as BottomNav } from './BottomNav'
 export { default as CreateMenu } from './CreateMenu'
 export { default as ParticipantsSheet } from './ParticipantsSheet'
+export { default as AttendancePopup } from './AttendancePopup'
 
 // Shared domain components
 export { default as ActivityCard } from './shared/ActivityCard'

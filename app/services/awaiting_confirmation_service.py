@@ -23,7 +23,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import and_
 
 from storage.db import SessionLocal, Participation, Activity, User, ParticipationStatus
-from bot.activity_notifications import send_awaiting_confirmation_notification
+from bot.activity_notifications import send_awaiting_confirmation_notification, send_organizer_checkin_notification
 from config import settings
 
 logger = logging.getLogger(__name__)
@@ -114,10 +114,20 @@ class AwaitingConfirmationService:
 
             logger.info(f"Found {len(participations_to_update)} participations to transition to awaiting")
 
-            # Process each participation
+            # Group participations by activity for organizer notifications
+            activity_participations = {}
+            for participation in participations_to_update:
+                activity_id = participation.activity_id
+                if activity_id not in activity_participations:
+                    activity_participations[activity_id] = []
+                activity_participations[activity_id].append(participation)
+
+            # Process each participation and send appropriate notifications
+            notified_organizers = set()  # Track which organizers we've notified
+
             for participation in participations_to_update:
                 try:
-                    await self._transition_to_awaiting(session, participation)
+                    await self._transition_to_awaiting(session, participation, notified_organizers)
                 except Exception as e:
                     logger.error(f"Error transitioning participation {participation.id}: {e}", exc_info=True)
 
@@ -134,14 +144,19 @@ class AwaitingConfirmationService:
     async def _transition_to_awaiting(
         self,
         session: Session,
-        participation: Participation
+        participation: Participation,
+        notified_organizers: set
     ):
         """
         Transition a single participation to awaiting and send notification.
 
+        For club/group activities: sends notification only to organizer (once per activity)
+        For personal activities: sends notification to participant
+
         Args:
             session: Database session
             participation: Participation to transition
+            notified_organizers: Set of activity IDs for which organizer was already notified
         """
         # Update participation status
         participation.status = ParticipationStatus.AWAITING
@@ -150,27 +165,74 @@ class AwaitingConfirmationService:
         user = session.query(User).filter(User.id == participation.user_id).first()
         activity = session.query(Activity).filter(Activity.id == participation.activity_id).first()
 
-        if not user or not user.telegram_id:
-            logger.warning(f"User {participation.user_id} not found or has no telegram_id")
-            return
-
         if not activity:
             logger.warning(f"Activity {participation.activity_id} not found")
             return
 
-        # Send notification to user
+        # Check if this is a club/group activity
+        is_club_group_activity = activity.club_id or activity.group_id
+
+        if is_club_group_activity:
+            # For club/group activities: notify organizer (once per activity)
+            activity_key = str(activity.id)
+            if activity_key not in notified_organizers:
+                await self._notify_organizer(session, activity)
+                notified_organizers.add(activity_key)
+        else:
+            # For personal activities: notify participant
+            if not user or not user.telegram_id:
+                logger.warning(f"User {participation.user_id} not found or has no telegram_id")
+                return
+
+            try:
+                await send_awaiting_confirmation_notification(
+                    bot=self.bot,
+                    user_telegram_id=user.telegram_id,
+                    activity_id=activity.id,
+                    activity_title=activity.title,
+                    activity_date=activity.date,
+                    location=activity.location or "Не указано"
+                )
+                logger.info(f"Sent awaiting confirmation notification to user {user.id} for activity {activity.id}")
+            except Exception as e:
+                logger.error(f"Failed to send awaiting confirmation notification to user {user.id}: {e}")
+
+    async def _notify_organizer(self, session: Session, activity: Activity):
+        """
+        Send checkin notification to activity organizer.
+
+        Args:
+            session: Database session
+            activity: Activity object
+        """
+        # Get organizer (creator)
+        organizer = session.query(User).filter(User.id == activity.creator_id).first()
+
+        if not organizer or not organizer.telegram_id:
+            logger.warning(f"Organizer {activity.creator_id} not found or has no telegram_id")
+            return
+
+        # Count participants
+        participants_count = session.query(Participation).filter(
+            Participation.activity_id == activity.id
+        ).count()
+
+        # Build webapp link
+        webapp_link = f"https://t.me/{settings.bot_username}?start=activity_{activity.id}"
+
         try:
-            await send_awaiting_confirmation_notification(
+            await send_organizer_checkin_notification(
                 bot=self.bot,
-                user_telegram_id=user.telegram_id,
+                organizer_telegram_id=organizer.telegram_id,
                 activity_id=activity.id,
                 activity_title=activity.title,
                 activity_date=activity.date,
-                location=activity.location or "Не указано"
+                participants_count=participants_count,
+                webapp_link=webapp_link
             )
-            logger.info(f"Sent awaiting confirmation notification to user {user.id} for activity {activity.id}")
+            logger.info(f"Sent organizer checkin notification for activity {activity.id}")
         except Exception as e:
-            logger.error(f"Failed to send awaiting confirmation notification to user {user.id}: {e}")
+            logger.error(f"Failed to send organizer checkin notification for activity {activity.id}: {e}")
 
 
 # Singleton instance

@@ -22,13 +22,30 @@ function App() {
     const location = useLocation()
     const [checkingOnboarding, setCheckingOnboarding] = useState(true)
 
-    // Initialize Telegram WebApp
+    // Initialize Telegram WebApp and handle deep links
     useEffect(() => {
         if (window.Telegram?.WebApp) {
             window.Telegram.WebApp.ready()
             window.Telegram.WebApp.expand()
+
+            // Handle deep link from start_param (e.g., ?startapp=activity_123)
+            const startParam = window.Telegram.WebApp.initDataUnsafe?.start_param
+            if (startParam) {
+                console.log('📱 Deep link start_param:', startParam)
+
+                if (startParam.startsWith('activity_')) {
+                    const activityId = startParam.replace('activity_', '')
+                    navigate(`/activity/${activityId}`)
+                } else if (startParam.startsWith('club_')) {
+                    const clubId = startParam.replace('club_', '')
+                    navigate(`/club/${clubId}`)
+                } else if (startParam.startsWith('group_')) {
+                    const groupId = startParam.replace('group_', '')
+                    navigate(`/group/${groupId}`)
+                }
+            }
         }
-    }, [])
+    }, [navigate])
 
     // Check onboarding status
     useEffect(() => {

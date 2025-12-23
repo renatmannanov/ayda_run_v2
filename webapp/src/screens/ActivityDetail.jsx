@@ -1,6 +1,6 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ParticipantsSheet, LoadingScreen, ErrorScreen, Button, BottomBar } from '../components'
+import { ParticipantsSheet, LoadingScreen, ErrorScreen, Button, BottomBar, AttendancePopup } from '../components'
 import { AvatarStack, GPXUploadPopup } from '../components/ui'
 import {
     useActivity,
@@ -14,7 +14,7 @@ import {
     formatDate,
     formatTime
 } from '../data/sample_data'
-import { activitiesApi, tg } from '../api'
+import { activitiesApi, clubsApi, groupsApi, tg } from '../api'
 
 export default function ActivityDetail() {
     const { id } = useParams()
@@ -44,6 +44,40 @@ export default function ActivityDetail() {
 
     const [showParticipants, setShowParticipants] = useState(false)
     const [showGpxPopup, setShowGpxPopup] = useState(false)
+    const [showAttendance, setShowAttendance] = useState(false)
+    const [attendanceData, setAttendanceData] = useState([])
+    const [clubGroupMembers, setClubGroupMembers] = useState([])
+    const [savingAttendance, setSavingAttendance] = useState(false)
+
+    // Sync participants to attendance data
+    useEffect(() => {
+        if (participants.length > 0) {
+            setAttendanceData(participants.map(p => ({
+                ...p,
+                attended: p.attended // null, true, or false
+            })))
+        }
+    }, [participants])
+
+    // Load club/group members when opening attendance popup
+    useEffect(() => {
+        if (showAttendance && activity) {
+            const loadMembers = async () => {
+                try {
+                    if (activity.clubId) {
+                        const members = await clubsApi.getMembers(activity.clubId)
+                        setClubGroupMembers(members)
+                    } else if (activity.groupId) {
+                        const members = await groupsApi.getMembers(activity.groupId)
+                        setClubGroupMembers(members)
+                    }
+                } catch (e) {
+                    console.error('Failed to load members', e)
+                }
+            }
+            loadMembers()
+        }
+    }, [showAttendance, activity?.clubId, activity?.groupId])
 
     // Derived state
     const isPast = activity?.isPast
@@ -54,6 +88,10 @@ export default function ActivityDetail() {
 
     // Can edit: creator or club/group admin
     const canEdit = isCreator // TODO: add club/group admin check
+
+    // Can mark attendance: organizer + past + club/group activity
+    const isClubGroupActivity = activity?.clubId || activity?.groupId
+    const canMarkAttendance = isCreator && isPast && isClubGroupActivity
 
     // Join/Leave handler
     const handleJoin = async () => {
@@ -170,10 +208,90 @@ export default function ActivityDetail() {
         navigate(`/activity/${id}/edit`)
     }
 
+    // Attendance handlers
+    const handleToggleAttendance = (userId) => {
+        setAttendanceData(prev => prev.map(p => {
+            if ((p.userId || p.id) === userId) {
+                // Cycle: null -> true -> false -> null
+                let newAttended
+                if (p.attended === null || p.attended === undefined) {
+                    newAttended = true
+                } else if (p.attended === true) {
+                    newAttended = false
+                } else {
+                    newAttended = null
+                }
+                return { ...p, attended: newAttended }
+            }
+            return p
+        }))
+    }
+
+    const handleAddParticipant = async (member) => {
+        try {
+            // Add to API
+            await activitiesApi.addParticipant(id, member.userId || member.id, true)
+            // Add to local state
+            setAttendanceData(prev => [...prev, {
+                ...member,
+                attended: true
+            }])
+            tg.hapticNotification('success')
+            refetchParticipants()
+        } catch (e) {
+            console.error('Add participant failed', e)
+            tg.showAlert(e.message || 'Не удалось добавить участника')
+        }
+    }
+
+    const handleSaveAttendance = async () => {
+        setSavingAttendance(true)
+        try {
+            const participantsToUpdate = attendanceData.map(p => ({
+                user_id: p.userId || p.id,
+                attended: p.attended
+            }))
+            await activitiesApi.markAttendance(id, participantsToUpdate)
+            tg.hapticNotification('success')
+            refetchParticipants()
+            setShowAttendance(false)
+        } catch (e) {
+            console.error('Save attendance failed', e)
+            tg.showAlert(e.message || 'Не удалось сохранить')
+        } finally {
+            setSavingAttendance(false)
+        }
+    }
+
     // Get action button content (used in both bottom bar and popup)
     const getActionButton = () => {
-        // Awaiting confirmation - show two buttons
-        if (activity?.participationStatus === 'awaiting') {
+        // ORGANIZER: Show attendance marking button for past club/group activities
+        // This check comes FIRST - organizer always sees check-in button for club/group activities
+        if (canMarkAttendance) {
+            const markedCount = attendanceData.filter(p => p.attended === true).length
+            return (
+                <button
+                    onClick={() => setShowAttendance(true)}
+                    className="w-full py-4 bg-gray-800 text-white rounded-xl text-sm font-medium hover:bg-gray-700 transition-colors flex items-center justify-center gap-2"
+                >
+                    <span>📋</span>
+                    <span>Отметить посещение</span>
+                    {attendanceData.length > 0 && (
+                        <span className="bg-white/20 px-2 py-0.5 rounded-full text-xs">
+                            {markedCount}/{attendanceData.length}
+                        </span>
+                    )}
+                </button>
+            )
+        }
+
+        // For club/group activities: participants should NOT see self-confirmation buttons
+        // Only organizer (handled above) can mark attendance for club/group activities
+        // Self-confirmation is only for PERSONAL activities
+        const isPersonalActivity = !activity?.clubId && !activity?.groupId
+
+        // Awaiting confirmation - show two buttons (ONLY for personal activities)
+        if (isPersonalActivity && activity?.participationStatus === 'awaiting') {
             return (
                 <div className="flex items-center gap-3">
                     <button
@@ -194,7 +312,7 @@ export default function ActivityDetail() {
             )
         }
 
-        // Attended - show green status
+        // Attended - show green status (for all activity types)
         if (activity?.participationStatus === 'attended') {
             return (
                 <div className="flex items-center justify-center gap-2 py-3 text-green-600">
@@ -206,7 +324,7 @@ export default function ActivityDetail() {
             )
         }
 
-        // Missed - show gray status
+        // Missed - show gray status (for all activity types)
         if (activity?.participationStatus === 'missed') {
             return (
                 <div className="flex items-center justify-center gap-2 py-3 text-gray-400">
@@ -591,9 +709,21 @@ export default function ActivityDetail() {
             />
 
             {/* Bottom Bar with Action */}
+            {/* Show action bar when:
+                - Future activity (not past)
+                - OR organizer can mark attendance (past + club/group + creator)
+                - OR personal activity with awaiting status (participant can self-confirm)
+                - OR past activity with attended/missed status (show status)
+            */}
             <BottomBar
                 onCreateClick={() => tg.showAlert('Создание из деталей активности пока не поддерживается, перейдите на Главную')}
-                showAction={(!isPast || activity?.participationStatus === 'awaiting') && !showParticipants}
+                showAction={(
+                    !isPast ||
+                    canMarkAttendance ||
+                    ((!activity?.clubId && !activity?.groupId) && activity?.participationStatus === 'awaiting') ||
+                    activity?.participationStatus === 'attended' ||
+                    activity?.participationStatus === 'missed'
+                ) && !showParticipants && !showAttendance}
                 action={getActionButton()}
             />
 
@@ -608,6 +738,18 @@ export default function ActivityDetail() {
                 mode={activity?.hasGpx ? 'edit' : 'add'}
                 existingFile={activity?.hasGpx ? { name: activity.gpxFilename || 'track.gpx' } : null}
                 activityId={activity?.id}
+            />
+
+            {/* Attendance Popup (for organizers) */}
+            <AttendancePopup
+                isOpen={showAttendance}
+                onClose={() => setShowAttendance(false)}
+                participants={attendanceData}
+                clubMembers={clubGroupMembers}
+                onToggleAttendance={handleToggleAttendance}
+                onAddParticipant={handleAddParticipant}
+                onSave={handleSaveAttendance}
+                saving={savingAttendance}
             />
         </div>
     )
