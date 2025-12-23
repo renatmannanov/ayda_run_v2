@@ -79,7 +79,7 @@ export function GpxUpload({ activityId, hasGpx, gpxFilename, onSuccess, onError 
                 disabled={uploading}
                 className="flex items-center gap-2 text-sm text-gray-700 hover:text-gray-900 transition-colors py-1 disabled:opacity-50"
             >
-                <span>⚡</span>
+                <span className="w-5 text-center">⚡</span>
                 <span className="font-medium">
                     {uploading ? 'Загрузка...' : 'Добавить GPX файл'}
                 </span>
