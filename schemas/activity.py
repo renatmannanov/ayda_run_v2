@@ -62,12 +62,15 @@ class ActivityCreate(BaseModel):
     )
 
 class ActivityUpdate(BaseModel):
-    """Schema for updating activity"""
+    """Schema for updating activity.
+
+    Note: sport_type, club_id, group_id are immutable after creation.
+    """
     title: Optional[str] = Field(None, min_length=3, max_length=200)
     description: Optional[str] = Field(None, max_length=2000)
     date: Optional[datetime] = None
     location: Optional[str] = Field(None, min_length=2, max_length=200)
-    sport_type: Optional[SportType] = None
+    # sport_type is immutable - cannot be changed after creation
     difficulty: Optional[Difficulty] = None
     distance: Optional[float] = Field(None, ge=0, le=500)
     duration: Optional[int] = Field(None, ge=1, le=1440)

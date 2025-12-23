@@ -27,7 +27,12 @@ from config import settings
 
 # Bot notifications
 from bot.join_request_notifications import send_join_request_to_organizer
-from bot.activity_notifications import send_new_activity_notification_to_user, send_new_activity_notification_to_group
+from bot.activity_notifications import (
+    send_new_activity_notification_to_user,
+    send_new_activity_notification_to_group,
+    send_activity_cancelled_notification,
+    send_activity_updated_notification
+)
 from telegram import Bot
 import asyncio
 
@@ -275,10 +280,11 @@ async def get_activity(
 async def update_activity(
     activity_id: str,
     activity_data: ActivityUpdate,
+    notify_participants: bool = Query(False, description="Send notifications to participants about changes"),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Update activity (only creator can update)"""
+    """Update activity (only creator can update, only future activities)"""
     activity = db.query(Activity).filter(Activity.id == activity_id).first()
 
     if not activity:
@@ -287,6 +293,20 @@ async def update_activity(
     # Check permissions
     require_activity_owner(current_user, activity)
 
+    # Check if activity is in the past
+    if activity.date < datetime.now():
+        raise HTTPException(status_code=400, detail="Cannot update past activities")
+
+    # Save old values for change summary
+    old_values = {
+        'title': activity.title,
+        'date': activity.date,
+        'location': activity.location,
+        'distance': activity.distance,
+        'duration': activity.duration,
+        'max_participants': activity.max_participants
+    }
+
     # Update fields
     update_data = activity_data.model_dump(exclude_unset=True)
     for field, value in update_data.items():
@@ -294,6 +314,17 @@ async def update_activity(
 
     db.commit()
     db.refresh(activity)
+
+    # Send notifications to participants if requested
+    if notify_participants:
+        changes_summary = _build_changes_summary(old_values, activity)
+        if changes_summary:
+            asyncio.create_task(_send_activity_updated_notifications(
+                activity_id=activity.id,
+                activity_title=activity.title,
+                changes_summary=changes_summary,
+                current_user_id=current_user.id
+            ))
 
     # Convert to response
     response = ActivityResponse.model_validate(activity)
@@ -314,10 +345,11 @@ async def update_activity(
 @router.delete("/{activity_id}", status_code=204)
 async def delete_activity(
     activity_id: str,
+    notify_participants: bool = Query(False, description="Send notifications to participants about cancellation"),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Delete activity (only creator can delete)"""
+    """Delete activity (only creator can delete, only future activities)"""
     activity = db.query(Activity).filter(Activity.id == activity_id).first()
 
     if not activity:
@@ -326,8 +358,39 @@ async def delete_activity(
     # Check permissions
     require_activity_owner(current_user, activity)
 
+    # Check if activity is in the past
+    if activity.date < datetime.now():
+        raise HTTPException(status_code=400, detail="Cannot delete past activities")
+
+    # Get participants to notify BEFORE deleting
+    participants_to_notify = []
+    if notify_participants:
+        participations = db.query(Participation, User).join(
+            User, Participation.user_id == User.id
+        ).filter(
+            Participation.activity_id == activity_id,
+            Participation.status.in_([ParticipationStatus.REGISTERED, ParticipationStatus.CONFIRMED]),
+            User.id != current_user.id  # Don't notify the creator
+        ).all()
+        participants_to_notify = [(p.status, u) for p, u in participations if u.telegram_id]
+
+    # Save activity data for notifications
+    activity_data = {
+        'title': activity.title,
+        'date': activity.date,
+        'location': activity.location or "Не указано",
+        'organizer_name': current_user.first_name or current_user.username or "Организатор"
+    }
+
     db.delete(activity)
     db.commit()
+
+    # Send notifications asynchronously
+    if participants_to_notify:
+        asyncio.create_task(_send_activity_cancelled_notifications(
+            participants_to_notify,
+            activity_data
+        ))
 
     return None
 
@@ -1088,3 +1151,133 @@ async def _send_new_activity_notifications(
 
     except Exception as e:
         logger.error(f"Error in _send_new_activity_notifications: {e}", exc_info=True)
+
+
+async def _send_activity_cancelled_notifications(
+    participants: list,
+    activity_data: dict
+) -> None:
+    """
+    Send cancellation notifications to participants.
+    Runs asynchronously in background.
+
+    Args:
+        participants: List of (participation_status, user) tuples
+        activity_data: Dict with title, date, location, organizer_name
+    """
+    try:
+        bot = Bot(token=settings.bot_token)
+
+        for _, user in participants:
+            try:
+                await send_activity_cancelled_notification(
+                    bot=bot,
+                    user_telegram_id=user.telegram_id,
+                    activity_title=activity_data['title'],
+                    activity_date=activity_data['date'],
+                    location=activity_data['location'],
+                    organizer_name=activity_data['organizer_name']
+                )
+            except Exception as e:
+                logger.error(f"Failed to send cancellation notification to user {user.telegram_id}: {e}")
+
+        logger.info(f"Sent cancellation notifications to {len(participants)} participants")
+
+    except Exception as e:
+        logger.error(f"Error in _send_activity_cancelled_notifications: {e}", exc_info=True)
+
+
+async def _send_activity_updated_notifications(
+    activity_id: str,
+    activity_title: str,
+    changes_summary: str,
+    current_user_id: str
+) -> None:
+    """
+    Send update notifications to participants.
+    Runs asynchronously in background.
+
+    Args:
+        activity_id: Activity ID
+        activity_title: Activity title
+        changes_summary: Human-readable summary of changes
+        current_user_id: ID of user who made changes (to exclude from notifications)
+    """
+    try:
+        from storage.db import SessionLocal
+        session = SessionLocal()
+
+        try:
+            # Get participants
+            participations = session.query(Participation, User).join(
+                User, Participation.user_id == User.id
+            ).filter(
+                Participation.activity_id == activity_id,
+                Participation.status.in_([ParticipationStatus.REGISTERED, ParticipationStatus.CONFIRMED]),
+                User.id != current_user_id
+            ).all()
+
+            participants = [(p, u) for p, u in participations if u.telegram_id]
+
+            # Build webapp link
+            webapp_link = f"https://t.me/{settings.bot_username}?start=activity_{activity_id}"
+
+            bot = Bot(token=settings.bot_token)
+
+            for _, user in participants:
+                try:
+                    await send_activity_updated_notification(
+                        bot=bot,
+                        user_telegram_id=user.telegram_id,
+                        activity_title=activity_title,
+                        changes_summary=changes_summary,
+                        webapp_link=webapp_link
+                    )
+                except Exception as e:
+                    logger.error(f"Failed to send update notification to user {user.telegram_id}: {e}")
+
+            logger.info(f"Sent update notifications for activity {activity_id} to {len(participants)} participants")
+
+        finally:
+            session.close()
+
+    except Exception as e:
+        logger.error(f"Error in _send_activity_updated_notifications: {e}", exc_info=True)
+
+
+def _build_changes_summary(old_values: dict, activity) -> str:
+    """
+    Build human-readable summary of changes.
+
+    Args:
+        old_values: Dict with old field values
+        activity: Updated activity object
+
+    Returns:
+        String with changes summary, or empty string if no changes
+    """
+    changes = []
+
+    if old_values.get('title') != activity.title:
+        changes.append(f"• Название: {activity.title}")
+
+    if old_values.get('date') != activity.date:
+        date_str = activity.date.strftime("%d %B в %H:%M")
+        changes.append(f"• Дата: {date_str}")
+
+    if old_values.get('location') != activity.location:
+        changes.append(f"• Место: {activity.location}")
+
+    if old_values.get('distance') != activity.distance:
+        if activity.distance:
+            changes.append(f"• Дистанция: {activity.distance} км")
+
+    if old_values.get('duration') != activity.duration:
+        if activity.duration:
+            changes.append(f"• Длительность: {activity.duration} мин")
+
+    if old_values.get('max_participants') != activity.max_participants:
+        if activity.max_participants:
+            changes.append(f"• Макс. участников: {activity.max_participants}")
+
+    return "\n".join(changes)

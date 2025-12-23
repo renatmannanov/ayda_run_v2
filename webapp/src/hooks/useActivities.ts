@@ -55,8 +55,8 @@ export function useUpdateActivity() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: ({ id, data }: { id: number; data: any }) =>
-      activitiesApi.update(id, data),
+    mutationFn: ({ id, data, notifyParticipants = false }: { id: number; data: any; notifyParticipants?: boolean }) =>
+      activitiesApi.update(id, data, notifyParticipants),
     onSuccess: (_, { id }) => {
       // Invalidate specific activity and lists
       queryClient.invalidateQueries({ queryKey: activitiesKeys.detail(id) })
@@ -70,7 +70,8 @@ export function useDeleteActivity() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (id: number) => activitiesApi.delete(id),
+    mutationFn: ({ id, notifyParticipants = false }: { id: number; notifyParticipants?: boolean }) =>
+      activitiesApi.delete(id, notifyParticipants),
     onSuccess: () => {
       // Invalidate lists (detail is now 404, no need to invalidate)
       queryClient.invalidateQueries({ queryKey: activitiesKeys.lists() })

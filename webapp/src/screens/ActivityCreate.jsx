@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { useNavigate, useLocation } from 'react-router-dom'
+import { useNavigate, useLocation, useParams } from 'react-router-dom'
 import {
     FormInput,
     FormTextarea,
@@ -12,17 +12,29 @@ import {
     difficultyLevels,
     getDifficultyLabel
 } from '../data/sample_data'
-import { useCreateActivity, useClubs, useGroups } from '../hooks'
+import { useCreateActivity, useUpdateActivity, useActivity, useActivityParticipants, useClubs, useGroups } from '../hooks'
+import { tg } from '../api'
 
 export default function ActivityCreate() {
+    const { id } = useParams()
+    const isEditMode = !!id
+
     const navigate = useNavigate()
     const location = useLocation()
     const context = location.state // May contain pre-selected club/group
 
     // Debug: log context to see what's passed
-    console.log('🎯 ActivityCreate context:', context)
+    console.log('🎯 ActivityCreate context:', context, 'isEditMode:', isEditMode)
 
-    const { mutate: createActivity, loading } = useCreateActivity()
+    const { mutate: createActivity, loading: creating } = useCreateActivity()
+    const { mutate: updateActivity, isPending: updating } = useUpdateActivity()
+
+    // Fetch existing activity in edit mode
+    const { data: existingActivity, isLoading: loadingActivity } = useActivity(isEditMode ? id : null)
+    const { data: participantsData } = useActivityParticipants(isEditMode ? id : null)
+    const participants = participantsData || []
+
+    const loading = creating || updating
     const { data: clubs = [] } = useClubs()
     // Fetch a flat list of all groups, or fetch lazily.
     // Let's assume useGroups() fetches all visible groups or user groups.
@@ -82,6 +94,50 @@ export default function ActivityCreate() {
         }
     }, [context])
 
+    // Populate form when editing existing activity
+    useEffect(() => {
+        if (existingActivity && isEditMode) {
+            setTitle(existingActivity.title || '')
+            setDescription(existingActivity.description || '')
+
+            // Parse date and time from ISO string
+            if (existingActivity.date) {
+                const dateObj = new Date(existingActivity.date)
+                setDate(dateObj.toISOString().split('T')[0])
+                setTime(dateObj.toTimeString().slice(0, 5))
+            }
+
+            setLocationValue(existingActivity.location || '')
+            setSportType(existingActivity.sportType || 'running')
+            setDistance(existingActivity.distance?.toString() || '')
+            setDuration(existingActivity.duration?.toString() || '')
+            setDifficulty(existingActivity.difficulty || 'medium')
+
+            if (existingActivity.maxParticipants === null) {
+                setNoLimit(true)
+                setMaxParticipants('20')
+            } else {
+                setNoLimit(false)
+                setMaxParticipants(existingActivity.maxParticipants.toString())
+            }
+
+            setIsOpen(existingActivity.isOpen !== false)
+
+            // Club/Group - set from existing activity
+            if (existingActivity.clubId) {
+                setSelectedClub(existingActivity.clubId.toString())
+                setIsPublic(false)
+            }
+            if (existingActivity.groupId) {
+                setSelectedGroup(existingActivity.groupId.toString())
+                setIsPublic(false)
+            }
+            if (!existingActivity.clubId && !existingActivity.groupId) {
+                setIsPublic(true)
+            }
+        }
+    }, [existingActivity, isEditMode])
+
     const validate = () => {
         const newErrors = {}
         if (!title.trim()) newErrors.title = true
@@ -94,27 +150,73 @@ export default function ActivityCreate() {
     const handleSubmit = async () => {
         if (validate()) {
             try {
-                await createActivity({
-                    title,
-                    date: `${date}T${time}:00`, // ISO format
-                    location: locationValue,
-                    sport_type: sportType,
-                    distance: distance ? parseFloat(distance) : null,
-                    duration: duration ? parseInt(duration) : null,
-                    difficulty,
-                    max_participants: noLimit ? null : parseInt(maxParticipants),
-                    description,
-                    club_id: isPublic || !selectedClub ? null : selectedClub,
-                    group_id: isPublic || !selectedGroup ? null : selectedGroup,
-                    is_open: isOpen
-                })
+                if (isEditMode) {
+                    // Update existing activity
+                    // Note: sport_type, club_id, group_id cannot be changed
+                    const payload = {
+                        title,
+                        date: `${date}T${time}:00`,
+                        location: locationValue,
+                        // sport_type is immutable - don't include
+                        distance: distance ? parseFloat(distance) : null,
+                        duration: duration ? parseInt(duration) : null,
+                        difficulty,
+                        max_participants: noLimit ? null : parseInt(maxParticipants),
+                        description,
+                        // club_id, group_id are immutable - don't include
+                        is_open: isOpen
+                    }
 
-                alert('Тренировка создана!')
-                navigate('/')
+                    // Count registered participants (excluding creator)
+                    // Use String() to ensure correct comparison of UUIDs
+                    const creatorId = String(existingActivity?.creatorId || '')
+                    const joinedCount = participants.filter(p =>
+                        String(p.userId) !== creatorId &&
+                        ['registered', 'confirmed'].includes(p.status)
+                    ).length
+
+                    const saveChanges = async (notifyParticipants) => {
+                        await updateActivity({ id, data: payload, notifyParticipants })
+                        tg.showAlert('Изменения сохранены!')
+                        navigate(`/activity/${id}`)
+                    }
+
+                    if (joinedCount > 0) {
+                        const word = joinedCount === 1 ? 'участник' :
+                                    joinedCount < 5 ? 'участника' : 'участников'
+
+                        tg.showConfirm(
+                            `У этой тренировки ${joinedCount} ${word}. Сохранить изменения и уведомить их?`,
+                            (confirmed) => {
+                                if (confirmed) saveChanges(true)
+                            }
+                        )
+                    } else {
+                        await saveChanges(false)
+                    }
+                } else {
+                    // Create new activity
+                    await createActivity({
+                        title,
+                        date: `${date}T${time}:00`, // ISO format
+                        location: locationValue,
+                        sport_type: sportType,
+                        distance: distance ? parseFloat(distance) : null,
+                        duration: duration ? parseInt(duration) : null,
+                        difficulty,
+                        max_participants: noLimit ? null : parseInt(maxParticipants),
+                        description,
+                        club_id: isPublic || !selectedClub ? null : selectedClub,
+                        group_id: isPublic || !selectedGroup ? null : selectedGroup,
+                        is_open: isOpen
+                    })
+
+                    tg.showAlert('Тренировка создана!')
+                    navigate('/')
+                }
             } catch (e) {
-                console.error('Failed to create activity', e)
-                // Покажем детальную ошибку от бэкенда если есть
-                alert(`Ошибка: ${JSON.stringify(e.message || e)}`)
+                console.error('Failed to save activity', e)
+                tg.showAlert(`Ошибка: ${e.message || 'Не удалось сохранить'}`)
             }
         }
     }
@@ -282,9 +384,18 @@ export default function ActivityCreate() {
                 >
                     ✕ Отмена
                 </button>
-                <span className="text-base font-medium text-gray-800">Новая тренировка</span>
+                <span className="text-base font-medium text-gray-800">
+                    {isEditMode ? 'Редактирование' : 'Новая тренировка'}
+                </span>
                 <div className="w-16" />
             </div>
+
+            {/* Loading state for edit mode */}
+            {isEditMode && loadingActivity && (
+                <div className="flex-1 flex items-center justify-center">
+                    <span className="text-gray-500">Загрузка...</span>
+                </div>
+            )}
 
             {/* Form */}
             <div className="flex-1 overflow-auto px-4 py-4">
@@ -332,11 +443,26 @@ export default function ActivityCreate() {
                     required
                 />
 
-                <SportChips
-                    selected={sportType}
-                    onChange={setSportType}
-                    multiple={false}
-                />
+                {/* Sport type - disabled in edit mode */}
+                {isEditMode ? (
+                    <div className="mb-4">
+                        <label className="text-sm text-gray-700 mb-2 block">Тип активности</label>
+                        <div className="px-4 py-3 bg-gray-100 rounded-xl text-sm text-gray-500">
+                            {sportType === 'running' && '🏃 Бег'}
+                            {sportType === 'trail' && '🏔️ Трейл'}
+                            {sportType === 'cycling' && '🚴 Вело'}
+                            {sportType === 'hiking' && '🥾 Хайкинг'}
+                            {sportType === 'other' && '⚡ Другое'}
+                            <span className="text-xs text-gray-400 ml-2">(нельзя изменить)</span>
+                        </div>
+                    </div>
+                ) : (
+                    <SportChips
+                        selected={sportType}
+                        onChange={setSportType}
+                        multiple={false}
+                    />
+                )}
 
                 <div className="border-t border-gray-200 my-4" />
 
@@ -415,12 +541,22 @@ export default function ActivityCreate() {
 
                 <div className="border-t border-gray-200 my-4" />
 
-                {/* Club/Group selector */}
-                <FormSelect
-                    label="Клуб / Группа"
-                    value={getClubGroupDisplay()}
-                    onClick={() => setShowClubPicker(true)}
-                />
+                {/* Club/Group selector - disabled in edit mode */}
+                {isEditMode ? (
+                    <div className="mb-4">
+                        <label className="text-sm text-gray-700 mb-2 block">Клуб / Группа</label>
+                        <div className="px-4 py-3 bg-gray-100 rounded-xl text-sm text-gray-500">
+                            {getClubGroupDisplay() || 'Не выбрано'}
+                            <span className="text-xs text-gray-400 ml-2">(нельзя изменить)</span>
+                        </div>
+                    </div>
+                ) : (
+                    <FormSelect
+                        label="Клуб / Группа"
+                        value={getClubGroupDisplay()}
+                        onClick={() => setShowClubPicker(true)}
+                    />
+                )}
 
                 <div className="border-t border-gray-200 my-4" />
 
@@ -462,8 +598,9 @@ export default function ActivityCreate() {
                 <Button
                     onClick={handleSubmit}
                     loading={loading}
+                    disabled={isEditMode && loadingActivity}
                 >
-                    Создать тренировку
+                    {isEditMode ? 'Сохранить изменения' : 'Создать тренировку'}
                 </Button>
             </div>
 

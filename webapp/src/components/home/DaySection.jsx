@@ -112,7 +112,7 @@ export function DaySection({
                     {activities.map(activity => {
                         const isPast = new Date(activity.date) < now
                         return (
-                            <div key={activity.id} className={isPast ? 'opacity-50' : ''}>
+                            <div key={activity.id} className={isPast ? 'opacity-80' : ''}>
                                 <ActivityCard
                                     activity={activity}
                                     onJoinToggle={onJoinToggle}

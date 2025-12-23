@@ -69,6 +69,7 @@ function App() {
                 <Routes>
                     <Route path="/" element={<Home />} />
                     <Route path="/activity/:id" element={<ActivityDetail />} />
+                    <Route path="/activity/:id/edit" element={<ActivityCreate />} />
                     <Route path="/activity/create" element={<ActivityCreate />} />
                     <Route path="/clubs" element={<ClubsGroups />} />
                     <Route path="/club/:id" element={<ClubGroupDetail type="club" />} />

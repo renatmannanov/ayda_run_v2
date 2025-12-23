@@ -7,7 +7,8 @@ import {
     useActivityParticipants,
     useJoinActivity,
     useLeaveActivity,
-    useConfirmActivity
+    useConfirmActivity,
+    useDeleteActivity
 } from '../hooks'
 import {
     formatDate,
@@ -39,6 +40,7 @@ export default function ActivityDetail() {
     const { mutate: joinActivity, loading: joining } = useJoinActivity()
     const { mutate: leaveActivity, loading: leaving } = useLeaveActivity()
     const { mutate: confirmActivity, isPending: confirming } = useConfirmActivity()
+    const { mutate: deleteActivity, isPending: deleting } = useDeleteActivity()
 
     const [showParticipants, setShowParticipants] = useState(false)
 
@@ -108,6 +110,63 @@ export default function ActivityDetail() {
             console.error('Confirm missed failed', e)
             tg.showAlert(e.message || 'Произошла ошибка')
         }
+    }
+
+    // Delete activity handler
+    const handleDelete = () => {
+        if (isPast) {
+            tg.showAlert('Нельзя удалить прошедшую тренировку')
+            return
+        }
+
+        // Count registered participants (excluding creator)
+        // Use String() to ensure correct comparison of UUIDs
+        const creatorId = String(activity.creatorId)
+        const joinedCount = participants.filter(p =>
+            String(p.userId) !== creatorId &&
+            ['registered', 'confirmed'].includes(p.status)
+        ).length
+
+        const confirmAndDelete = async (notifyParticipants = false) => {
+            try {
+                tg.haptic('medium')
+                await deleteActivity({ id, notifyParticipants })
+                tg.hapticNotification('success')
+                tg.showAlert('Тренировка удалена')
+                navigate('/')
+            } catch (e) {
+                console.error('Delete failed', e)
+                tg.showAlert(e.message || 'Ошибка при удалении')
+            }
+        }
+
+        if (joinedCount > 0) {
+            const word = joinedCount === 1 ? 'участник' :
+                        joinedCount < 5 ? 'участника' : 'участников'
+
+            tg.showConfirm(
+                `У этой тренировки ${joinedCount} ${word}, которые рассчитывали на неё. Удалить и уведомить их об отмене?`,
+                (confirmed) => {
+                    if (confirmed) confirmAndDelete(true)
+                }
+            )
+        } else {
+            tg.showConfirm(
+                'Удалить тренировку?',
+                (confirmed) => {
+                    if (confirmed) confirmAndDelete(false)
+                }
+            )
+        }
+    }
+
+    // Edit activity handler
+    const handleEdit = () => {
+        if (isPast) {
+            tg.showAlert('Нельзя редактировать прошедшую тренировку')
+            return
+        }
+        navigate(`/activity/${id}/edit`)
     }
 
     // Get action button content (used in both bottom bar and popup)
@@ -467,13 +526,29 @@ export default function ActivityDetail() {
                                         <span>GPX добавлен</span>
                                     </div>
                                 )}
-                                <button className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 transition-colors py-1">
+                                <button
+                                    onClick={handleEdit}
+                                    disabled={isPast}
+                                    className={`flex items-center gap-2 text-sm py-1 transition-colors ${
+                                        isPast
+                                            ? 'text-gray-300 cursor-not-allowed opacity-80'
+                                            : 'text-gray-500 hover:text-gray-700'
+                                    }`}
+                                >
                                     <span className="w-5 text-center">✏️</span>
                                     <span>Редактировать</span>
                                 </button>
-                                <button className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 transition-colors py-1">
+                                <button
+                                    onClick={handleDelete}
+                                    disabled={isPast || deleting}
+                                    className={`flex items-center gap-2 text-sm py-1 transition-colors ${
+                                        isPast
+                                            ? 'text-gray-300 cursor-not-allowed opacity-80'
+                                            : 'text-gray-500 hover:text-red-600'
+                                    }`}
+                                >
                                     <span className="w-5 text-center">🗑</span>
-                                    <span>Удалить</span>
+                                    <span>{deleting ? 'Удаление...' : 'Удалить'}</span>
                                 </button>
                             </div>
                         </>

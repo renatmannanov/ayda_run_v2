@@ -445,3 +445,144 @@ async def send_awaiting_confirmation_notification(
     except TelegramError as e:
         logger.error(f"Error sending awaiting confirmation notification to user {user_telegram_id}: {e}")
         return False
+
+
+def format_activity_cancelled_notification(
+    activity_title: str,
+    activity_date: datetime,
+    location: str,
+    organizer_name: str
+) -> str:
+    """
+    Format notification about activity cancellation.
+
+    Args:
+        activity_title: Activity title
+        activity_date: Activity date and time
+        location: Activity location
+        organizer_name: Name of the organizer who cancelled
+
+    Returns:
+        Formatted message text
+    """
+    date_str = activity_date.strftime("%d %B в %H:%M")
+
+    message = (
+        f"Тренировка отменена\n\n"
+        f"{activity_title}\n"
+        f"{date_str} · {location}\n\n"
+        f"Организатор {organizer_name} отменил тренировку"
+    )
+
+    return message
+
+
+async def send_activity_cancelled_notification(
+    bot: Bot,
+    user_telegram_id: int,
+    activity_title: str,
+    activity_date: datetime,
+    location: str,
+    organizer_name: str
+) -> bool:
+    """
+    Send activity cancellation notification to a participant.
+
+    Args:
+        bot: Telegram Bot instance
+        user_telegram_id: User's Telegram ID
+        activity_title: Activity title
+        activity_date: Activity date and time
+        location: Activity location
+        organizer_name: Name of the organizer
+
+    Returns:
+        True if sent successfully, False otherwise
+    """
+    try:
+        message_text = format_activity_cancelled_notification(
+            activity_title=activity_title,
+            activity_date=activity_date,
+            location=location,
+            organizer_name=organizer_name
+        )
+
+        await bot.send_message(
+            chat_id=user_telegram_id,
+            text=message_text
+        )
+
+        logger.info(f"Sent activity cancelled notification to user {user_telegram_id}")
+        return True
+
+    except TelegramError as e:
+        logger.error(f"Error sending activity cancelled notification to user {user_telegram_id}: {e}")
+        return False
+
+
+def format_activity_updated_notification(
+    activity_title: str,
+    changes_summary: str,
+    webapp_link: str
+) -> str:
+    """
+    Format notification about activity changes.
+
+    Args:
+        activity_title: Activity title
+        changes_summary: Human-readable summary of changes
+        webapp_link: Link to activity in webapp
+
+    Returns:
+        Formatted message text
+    """
+    message = (
+        f"Тренировка изменена\n\n"
+        f"{activity_title}\n\n"
+        f"Изменения:\n{changes_summary}\n\n"
+        f"[Подробнее]({webapp_link})"
+    )
+
+    return message
+
+
+async def send_activity_updated_notification(
+    bot: Bot,
+    user_telegram_id: int,
+    activity_title: str,
+    changes_summary: str,
+    webapp_link: str
+) -> bool:
+    """
+    Send activity update notification to a participant.
+
+    Args:
+        bot: Telegram Bot instance
+        user_telegram_id: User's Telegram ID
+        activity_title: Activity title
+        changes_summary: Human-readable summary of changes
+        webapp_link: Link to activity in webapp
+
+    Returns:
+        True if sent successfully, False otherwise
+    """
+    try:
+        message_text = format_activity_updated_notification(
+            activity_title=activity_title,
+            changes_summary=changes_summary,
+            webapp_link=webapp_link
+        )
+
+        await bot.send_message(
+            chat_id=user_telegram_id,
+            text=message_text,
+            parse_mode="Markdown",
+            disable_web_page_preview=True
+        )
+
+        logger.info(f"Sent activity updated notification to user {user_telegram_id}")
+        return True
+
+    except TelegramError as e:
+        logger.error(f"Error sending activity updated notification to user {user_telegram_id}: {e}")
+        return False

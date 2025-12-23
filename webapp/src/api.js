@@ -134,6 +134,7 @@ const transformMember = (m) => !m ? null : ({
     firstName: m.first_name,
     name: m.name,
     role: m.role,
+    status: m.status, // Participation status (registered, confirmed, awaiting, attended, missed)
     joinedAt: m.joined_at,
     photo: m.photo,
     stravaLink: m.strava_link,
@@ -187,12 +188,18 @@ export const activitiesApi = {
         body: JSON.stringify(data)
     }).then(transformActivity),
 
-    update: (id, data) => apiFetch(`/activities/${id}`, {
-        method: 'PATCH',
-        body: JSON.stringify(data)
-    }).then(transformActivity),
+    update: (id, data, notifyParticipants = false) => apiFetch(
+        `/activities/${id}?notify_participants=${notifyParticipants}`,
+        {
+            method: 'PATCH',
+            body: JSON.stringify(data)
+        }
+    ).then(transformActivity),
 
-    delete: (id) => apiFetch(`/activities/${id}`, { method: 'DELETE' }),
+    delete: (id, notifyParticipants = false) => apiFetch(
+        `/activities/${id}?notify_participants=${notifyParticipants}`,
+        { method: 'DELETE' }
+    ),
 
     join: (id) => apiFetch(`/activities/${id}/join`, { method: 'POST' }),
 
