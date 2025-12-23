@@ -108,17 +108,54 @@ export default function ClubGroupDetail({ type = 'club' }) {
     }
 
     const handleDelete = async () => {
-        tg.showConfirm(`Вы действительно хотите удалить этот ${isClub ? 'клуб' : 'группу'}?`, async (confirmed) => {
-            if (confirmed) {
-                try {
-                    if (isClub) await deleteClub(id)
-                    else await deleteGroup(id)
-                    navigate('/clubs')
-                } catch (e) {
-                    console.error('Delete failed', e)
-                    // TODO: show alert
+        const entityType = isClub ? 'клуб' : 'группу'
+        const membersCount = (participants?.length || 1) - 1 // Exclude current user
+
+        // Step 1: Confirm deletion
+        tg.showConfirm(`Вы действительно хотите удалить этот ${entityType}?`, (confirmed) => {
+            if (!confirmed) return
+
+            // Step 2: Ask about activities
+            tg.showConfirm(
+                'Удалить связанные тренировки?\n\nCancel = оставить тренировки\nOK = удалить тренировки',
+                (deleteActivities) => {
+                    // Step 3: Ask about notifications if there are other members
+                    if (membersCount > 0) {
+                        tg.showConfirm(
+                            `Уведомить ${membersCount} участников об удалении?\n\nCancel = не уведомлять\nOK = уведомить`,
+                            async (notifyMembers) => {
+                                try {
+                                    if (isClub) {
+                                        await deleteClub({ id, notifyMembers, deleteActivities })
+                                    } else {
+                                        await deleteGroup({ id, notifyMembers, deleteActivities })
+                                    }
+                                    navigate('/clubs')
+                                } catch (e) {
+                                    console.error('Delete failed', e)
+                                    tg.showAlert(e.message || 'Ошибка удаления')
+                                }
+                            }
+                        )
+                    } else {
+                        // No other members - just delete
+                        const doDelete = async () => {
+                            try {
+                                if (isClub) {
+                                    await deleteClub({ id, notifyMembers: false, deleteActivities })
+                                } else {
+                                    await deleteGroup({ id, notifyMembers: false, deleteActivities })
+                                }
+                                navigate('/clubs')
+                            } catch (e) {
+                                console.error('Delete failed', e)
+                                tg.showAlert(e.message || 'Ошибка удаления')
+                            }
+                        }
+                        doDelete()
+                    }
                 }
-            }
+            )
         })
     }
 

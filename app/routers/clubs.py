@@ -1,15 +1,16 @@
 """
 Clubs API Router
 """
-
-from fastapi import APIRouter, HTTPException, Depends
+import logging
+from datetime import datetime
+from fastapi import APIRouter, HTTPException, Depends, Query
 from sqlalchemy.orm import Session, joinedload
 from typing import List, Optional
 
-from storage.db import Club, Group, Membership, User, JoinRequest, JoinRequestStatus
+from storage.db import Club, Group, Membership, User, JoinRequest, JoinRequestStatus, Activity, MembershipStatus
 from app.core.dependencies import get_db, get_current_user
 from permissions import require_club_permission, can_manage_club
-from schemas.common import UserRole
+from schemas.common import UserRole, ActivityVisibility
 from schemas.club import ClubCreate, ClubUpdate, ClubResponse
 from schemas.group import MemberResponse
 from schemas.join_request import JoinRequestCreate, JoinRequestResponse
@@ -17,9 +18,12 @@ from storage.join_request_storage import JoinRequestStorage
 
 # Bot notifications
 from bot.join_request_notifications import send_join_request_to_organizer
+from bot.club_group_notifications import send_club_deleted_notification
 from telegram import Bot
 from config import settings
 import asyncio
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/clubs", tags=["clubs"])
 
@@ -177,20 +181,77 @@ def update_club(
 @router.delete("/{club_id}", status_code=204)
 def delete_club(
     club_id: str,
+    notify_members: bool = Query(False, description="Send notification to all members"),
+    delete_activities: bool = Query(True, description="Delete activities or detach to creators"),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Delete club (admin only)"""
+    """Delete club (admin only)
+
+    Args:
+        notify_members: If True, send Telegram notification to all club members
+        delete_activities: If True, delete all club activities. If False, detach activities to their creators
+    """
     club = db.query(Club).filter(Club.id == club_id).first()
-    
+
     if not club:
         raise HTTPException(status_code=404, detail="Club not found")
-    
+
     # Check permissions (admin only)
     require_club_permission(db, current_user, club_id, UserRole.ADMIN)
-    
+
+    # Store data for notifications before deletion
+    club_name = club.name
+    admin_name = current_user.first_name or current_user.username or "Admin"
+
+    # Get members to notify (excluding current user)
+    members_to_notify = []
+    if notify_members:
+        memberships = db.query(Membership).filter(
+            Membership.club_id == club_id,
+            Membership.user_id != current_user.id
+        ).all()
+
+        for membership in memberships:
+            user = db.query(User).filter(User.id == membership.user_id).first()
+            if user and user.telegram_id:
+                members_to_notify.append(user.telegram_id)
+
+    # Handle activities
+    if delete_activities:
+        # Activities will be cascade-deleted with the club
+        pass
+    else:
+        # Detach activities - set club_id to NULL (keep creator ownership)
+        db.query(Activity).filter(Activity.club_id == club_id).update(
+            {Activity.club_id: None},
+            synchronize_session=False
+        )
+
+    # Delete club (cascades to groups, memberships)
     db.delete(club)
     db.commit()
+
+    # Send notifications asynchronously
+    if members_to_notify:
+        try:
+            bot = Bot(token=settings.bot_token)
+            loop = asyncio.new_event_loop()
+            try:
+                for telegram_id in members_to_notify:
+                    loop.run_until_complete(
+                        send_club_deleted_notification(
+                            bot,
+                            telegram_id,
+                            club_name,
+                            admin_name,
+                            activities_deleted=delete_activities
+                        )
+                    )
+            finally:
+                loop.close()
+        except Exception as e:
+            logger.error(f"Failed to send club deletion notifications: {e}")
 
     return None
 

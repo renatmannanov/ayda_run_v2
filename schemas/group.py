@@ -19,9 +19,15 @@ class GroupCreate(BaseModel):
     photo: Optional[str] = Field(None, max_length=255)
 
 class GroupUpdate(BaseModel):
-    """Schema for updating group"""
+    """Schema for updating group.
+
+    Note: telegram_chat_id and club_id are immutable after creation.
+    """
     name: Optional[str] = Field(None, min_length=3, max_length=100)
     description: Optional[str] = Field(None, max_length=1000)
+    # telegram_chat_id is immutable - cannot be changed after linking
+    # club_id is immutable - cannot change group's club affiliation
+    is_open: Optional[bool] = None
 
 class GroupResponse(BaseResponse):
     """Schema for group response"""

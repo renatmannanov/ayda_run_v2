@@ -1,12 +1,12 @@
 """
 Groups API Router
 """
-
-from fastapi import APIRouter, HTTPException, Depends
+import logging
+from fastapi import APIRouter, HTTPException, Depends, Query
 from sqlalchemy.orm import Session, joinedload
 from typing import List, Optional
 
-from storage.db import Club, Group, Membership, User, JoinRequest, JoinRequestStatus
+from storage.db import Club, Group, Membership, User, JoinRequest, JoinRequestStatus, Activity
 from app.core.dependencies import get_db, get_current_user
 from permissions import require_group_permission, require_club_permission
 from schemas.common import UserRole
@@ -16,9 +16,12 @@ from storage.join_request_storage import JoinRequestStorage
 
 # Bot notifications
 from bot.join_request_notifications import send_join_request_to_organizer
+from bot.club_group_notifications import send_group_deleted_notification
 from telegram import Bot
 from config import settings
 import asyncio
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/groups", tags=["groups"])
 
@@ -189,15 +192,22 @@ def update_group(
 @router.delete("/{group_id}", status_code=204)
 def delete_group(
     group_id: str,
+    notify_members: bool = Query(False, description="Send notification to all members"),
+    delete_activities: bool = Query(True, description="Delete activities or detach to creators"),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Delete group (admin only for standalone, organizer+ for club groups)"""
+    """Delete group (admin only for standalone, organizer+ for club groups)
+
+    Args:
+        notify_members: If True, send Telegram notification to all group members
+        delete_activities: If True, delete all group activities. If False, detach activities to their creators
+    """
     group = db.query(Group).filter(Group.id == group_id).first()
-    
+
     if not group:
         raise HTTPException(status_code=404, detail="Group not found")
-    
+
     # Check permissions based on group type
     if group.club_id:
         # Club group - organizer can delete
@@ -205,10 +215,65 @@ def delete_group(
     else:
         # Standalone group - admin only
         require_group_permission(db, current_user, group_id, UserRole.ADMIN)
-    
+
+    # Store data for notifications before deletion
+    group_name = group.name
+    club_name = None
+    if group.club_id:
+        club = db.query(Club).filter(Club.id == group.club_id).first()
+        club_name = club.name if club else None
+    admin_name = current_user.first_name or current_user.username or "Admin"
+
+    # Get members to notify (excluding current user)
+    members_to_notify = []
+    if notify_members:
+        memberships = db.query(Membership).filter(
+            Membership.group_id == group_id,
+            Membership.user_id != current_user.id
+        ).all()
+
+        for membership in memberships:
+            user = db.query(User).filter(User.id == membership.user_id).first()
+            if user and user.telegram_id:
+                members_to_notify.append(user.telegram_id)
+
+    # Handle activities
+    if delete_activities:
+        # Activities will be cascade-deleted with the group
+        pass
+    else:
+        # Detach activities - set group_id to NULL (keep creator ownership)
+        db.query(Activity).filter(Activity.group_id == group_id).update(
+            {Activity.group_id: None},
+            synchronize_session=False
+        )
+
+    # Delete group (cascades memberships)
     db.delete(group)
     db.commit()
-    
+
+    # Send notifications asynchronously
+    if members_to_notify:
+        try:
+            bot = Bot(token=settings.bot_token)
+            loop = asyncio.new_event_loop()
+            try:
+                for telegram_id in members_to_notify:
+                    loop.run_until_complete(
+                        send_group_deleted_notification(
+                            bot,
+                            telegram_id,
+                            group_name,
+                            admin_name,
+                            club_name=club_name,
+                            activities_deleted=delete_activities
+                        )
+                    )
+            finally:
+                loop.close()
+        except Exception as e:
+            logger.error(f"Failed to send group deletion notifications: {e}")
+
     return None
 
 

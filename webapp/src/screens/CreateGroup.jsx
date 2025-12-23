@@ -96,7 +96,7 @@ export default function CreateGroup() {
                 }
 
                 if (isEditMode) {
-                    await updateGroup(id, payload)
+                    await updateGroup({ id, data: payload })
                     navigate(-1)
                 } else {
                     const result = await createGroup(payload)
@@ -251,9 +251,9 @@ export default function CreateGroup() {
                 <div className="mb-4">
                     <label className="text-sm text-gray-700 mb-2 block">Часть клуба?</label>
                     <button
-                        onClick={() => !isIndependent && setShowClubPicker(true)}
-                        disabled={isIndependent} // Only disable interaction, don't hide
-                        className={`w-full px-4 py-3 border rounded-xl text-sm text-left flex items-center justify-between transition-colors ${isIndependent
+                        onClick={() => !isIndependent && !isEditMode && setShowClubPicker(true)}
+                        disabled={isIndependent || isEditMode}
+                        className={`w-full px-4 py-3 border rounded-xl text-sm text-left flex items-center justify-between transition-colors ${isIndependent || isEditMode
                             ? 'border-gray-100 bg-gray-50 text-gray-400'
                             : errors.club
                                 ? 'border-red-300 bg-red-50 text-gray-800'
@@ -263,16 +263,21 @@ export default function CreateGroup() {
                         <span className={selectedClub && !isIndependent ? 'text-gray-800' : 'text-gray-400'}>
                             {getSelectedClubName()}
                         </span>
-                        {!isIndependent && <span className="text-gray-400">▾</span>}
+                        {!isIndependent && !isEditMode && <span className="text-gray-400">▾</span>}
                     </button>
+                    {isEditMode && (
+                        <p className="text-xs text-gray-400 mt-1">Нельзя изменить привязку к клубу</p>
+                    )}
 
-                    <div className="mt-3">
-                        <FormCheckbox
-                            label="Независимая группа"
-                            checked={isIndependent}
-                            onChange={toggleIndependent}
-                        />
-                    </div>
+                    {!isEditMode && (
+                        <div className="mt-3">
+                            <FormCheckbox
+                                label="Независимая группа"
+                                checked={isIndependent}
+                                onChange={toggleIndependent}
+                            />
+                        </div>
+                    )}
                 </div>
 
                 <div className="border-t border-gray-200 my-4" />
@@ -282,7 +287,8 @@ export default function CreateGroup() {
                     value={telegramChat}
                     onChange={setTelegramChat}
                     placeholder="@srg_intervals"
-                    helper="Можно использовать тот же чат, что у клуба"
+                    helper={isEditMode && existingGroup?.telegramChatId ? "Нельзя изменить после привязки" : "Можно использовать тот же чат, что у клуба"}
+                    disabled={isEditMode && !!existingGroup?.telegramChatId}
                 />
 
                 <div className="border-t border-gray-200 my-4" />

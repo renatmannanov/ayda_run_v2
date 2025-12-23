@@ -68,7 +68,15 @@ export function useDeleteClub() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (id: number) => clubsApi.delete(id),
+    mutationFn: ({
+      id,
+      notifyMembers = false,
+      deleteActivities = true
+    }: {
+      id: number
+      notifyMembers?: boolean
+      deleteActivities?: boolean
+    }) => clubsApi.delete(id, notifyMembers, deleteActivities),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: clubsKeys.lists() })
     },

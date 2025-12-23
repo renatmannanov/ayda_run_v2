@@ -35,9 +35,13 @@ class ClubCreate(BaseModel):
     )
 
 class ClubUpdate(BaseModel):
-    """Schema for updating club"""
+    """Schema for updating club.
+
+    Note: telegram_chat_id is immutable after creation.
+    """
     name: Optional[str] = Field(None, min_length=3, max_length=100)
     description: Optional[str] = Field(None, max_length=1000)
+    # telegram_chat_id is immutable - cannot be changed after linking
     is_paid: Optional[bool] = None
     price_per_activity: Optional[float] = Field(None, ge=0, le=10000)
     is_open: Optional[bool] = None

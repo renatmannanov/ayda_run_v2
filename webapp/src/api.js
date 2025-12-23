@@ -264,7 +264,10 @@ export const clubsApi = {
         body: JSON.stringify(data)
     }).then(transformClub),
 
-    delete: (id) => apiFetch(`/clubs/${id}`, { method: 'DELETE' }),
+    delete: (id, notifyMembers = false, deleteActivities = true) => apiFetch(
+        `/clubs/${id}?notify_members=${notifyMembers}&delete_activities=${deleteActivities}`,
+        { method: 'DELETE' }
+    ),
 
     join: (id) => apiFetch(`/clubs/${id}/join`, { method: 'POST' }),
 
@@ -298,7 +301,10 @@ export const groupsApi = {
         body: JSON.stringify(data)
     }).then(transformGroup),
 
-    delete: (id) => apiFetch(`/groups/${id}`, { method: 'DELETE' }),
+    delete: (id, notifyMembers = false, deleteActivities = true) => apiFetch(
+        `/groups/${id}?notify_members=${notifyMembers}&delete_activities=${deleteActivities}`,
+        { method: 'DELETE' }
+    ),
 
     join: (id) => apiFetch(`/groups/${id}/join`, { method: 'POST' }),
 

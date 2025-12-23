@@ -63,7 +63,7 @@ export default function CreateClub() {
                 }
 
                 if (isEditMode) {
-                    await updateClub(id, payload)
+                    await updateClub({ id, data: payload })
                     navigate(-1) // Go back to detail
                 } else {
                     const result = await createClub(payload)
@@ -186,7 +186,8 @@ export default function CreateClub() {
                     value={telegramChat}
                     onChange={setTelegramChat}
                     placeholder="@trailrunners_almaty"
-                    helper="Бот будет отправлять уведомления о тренировках"
+                    helper={isEditMode && existingClub?.telegramChatId ? "Нельзя изменить после привязки" : "Бот будет отправлять уведомления о тренировках"}
+                    disabled={isEditMode && !!existingClub?.telegramChatId}
                 />
 
                 <div className="border-t border-gray-200 my-4" />
