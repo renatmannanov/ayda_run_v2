@@ -2,6 +2,8 @@ import React, { useState, useEffect, useMemo } from 'react'
 import { BottomBar, CreateMenu, Loading, ErrorMessage, EmptyState } from '../components'
 import { DaySection } from '../components/home/DaySection'
 import { ModeToggle } from '../components/home/ModeToggle'
+import { SportFilterButton } from '../components/home/SportFilterButton'
+import { SportFilterPopup } from '../components/home/SportFilterPopup'
 import { useActivities, useJoinActivity } from '../hooks'
 import { groupActivitiesByWeekAndDay, getWeekRangeText, getWeekActivityCount } from '../utils/weekUtils'
 
@@ -11,13 +13,26 @@ export default function Home() {
     const [currentWeekIndex, setCurrentWeekIndex] = useState(null)
     const [expandedDays, setExpandedDays] = useState({})
 
+    // Sport filter state
+    const [selectedSports, setSelectedSports] = useState([])
+    const [showSportFilter, setShowSportFilter] = useState(false)
+
     // Swipe state
     const [touchStart, setTouchStart] = useState(null)
     const [touchEnd, setTouchEnd] = useState(null)
     const minSwipeDistance = 50
 
-    // Fetch activities
-    const { data: activities = [], isLoading: loading, error, refetch } = useActivities()
+    // Build API filters
+    const apiFilters = useMemo(() => {
+        const filters = {}
+        if (selectedSports.length > 0) {
+            filters.sport_types = selectedSports.join(',')
+        }
+        return filters
+    }, [selectedSports])
+
+    // Fetch activities with filters
+    const { data: activities = [], isLoading: loading, error, refetch } = useActivities(apiFilters)
 
     // Join/Leave mutation
     const joinMutation = useJoinActivity()
@@ -130,6 +145,19 @@ export default function Home() {
         }))
     }
 
+    // Sport filter handlers
+    const toggleSport = (sportId) => {
+        setSelectedSports(prev =>
+            prev.includes(sportId)
+                ? prev.filter(id => id !== sportId)
+                : [...prev, sportId]
+        )
+    }
+
+    const clearSportFilters = () => {
+        setSelectedSports([])
+    }
+
     // Calculate total activities count for the current week
     const totalCount = getWeekActivityCount(displayedWeek)
     const hasActivities = totalCount > 0
@@ -155,8 +183,23 @@ export default function Home() {
             {/* Header */}
             <div className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between sticky top-0 z-10">
                 <ModeToggle mode={mode} onModeChange={setMode} />
-                <span className="text-sm text-gray-400">{totalCount}</span>
+                <div className="flex items-center gap-2">
+                    <SportFilterButton
+                        selectedCount={selectedSports.length}
+                        onClick={() => setShowSportFilter(true)}
+                    />
+                    <span className="text-sm text-gray-400">{totalCount}</span>
+                </div>
             </div>
+
+            {/* Sport Filter Popup */}
+            <SportFilterPopup
+                isOpen={showSportFilter}
+                onClose={() => setShowSportFilter(false)}
+                selectedSports={selectedSports}
+                onToggle={toggleSport}
+                onClear={clearSportFilters}
+            />
 
             {/* Content - with swipe */}
             <div

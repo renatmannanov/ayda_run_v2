@@ -25,3 +25,19 @@ body {
   width: 0;
   height: 0;
 }
+
+/* Slide-up animation for bottom sheet popups */
+@keyframes slide-up {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-up {
+  animation: slide-up 0.2s ease-out;
+}

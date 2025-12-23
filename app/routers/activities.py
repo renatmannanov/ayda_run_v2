@@ -132,7 +132,7 @@ async def create_activity(
 async def list_activities(
     club_id: Optional[str] = Query(None),
     group_id: Optional[str] = Query(None),
-    sport_type: Optional[SportType] = Query(None),
+    sport_types: Optional[str] = Query(None, description="Comma-separated sport types (e.g., running,trail,yoga)"),
     difficulty: Optional[Difficulty] = Query(None),
     visibility: Optional[ActivityVisibility] = Query(None),
     status: ActivityStatus = Query(ActivityStatus.UPCOMING),
@@ -155,8 +155,11 @@ async def list_activities(
         query = query.filter(Activity.club_id == club_id)
     if group_id:
         query = query.filter(Activity.group_id == group_id)
-    if sport_type:
-        query = query.filter(Activity.sport_type == sport_type)
+    if sport_types:
+        # Support multiple sport types (comma-separated)
+        types_list = [SportType(t.strip()) for t in sport_types.split(',') if t.strip()]
+        if types_list:
+            query = query.filter(Activity.sport_type.in_(types_list))
     if difficulty:
         query = query.filter(Activity.difficulty == difficulty)
     if visibility:

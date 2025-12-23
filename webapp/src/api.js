@@ -89,7 +89,9 @@ const transformActivity = (a) => !a ? null : ({
     icon: (a.sport_type === 'running' || !a.sport_type) ? '🏃' :
         a.sport_type === 'trail' ? '⛰️' :
             a.sport_type === 'cycling' ? '🚴' :
-                a.sport_type === 'hiking' ? '🥾' : '🏃'
+                a.sport_type === 'hiking' ? '🥾' :
+                    a.sport_type === 'yoga' ? '🧘' :
+                        a.sport_type === 'workout' ? '💪' : '🏃'
 })
 
 const transformClub = (c) => !c ? null : ({
