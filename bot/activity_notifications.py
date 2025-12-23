@@ -426,10 +426,10 @@ async def send_awaiting_confirmation_notification(
             location=location
         )
 
-        # Create inline buttons for confirmation
+        # Create inline buttons for confirmation (order matches web UI)
         keyboard = [[
-            InlineKeyboardButton("Участвовал ✓", callback_data=f"confirm_attended_{activity_id}"),
-            InlineKeyboardButton("Пропустил ✕", callback_data=f"confirm_missed_{activity_id}")
+            InlineKeyboardButton("Пропустил ✕", callback_data=f"confirm_missed_{activity_id}"),
+            InlineKeyboardButton("Участвовал ✓", callback_data=f"confirm_attended_{activity_id}")
         ]]
         reply_markup = InlineKeyboardMarkup(keyboard)
 

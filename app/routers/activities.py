@@ -8,6 +8,7 @@ Handles all activity-related endpoints:
 """
 
 import logging
+from datetime import datetime
 from fastapi import APIRouter, HTTPException, Depends, Query, UploadFile, File
 from fastapi.responses import StreamingResponse
 import httpx
@@ -194,7 +195,13 @@ async def list_activities(
             ).first()
             response.is_joined = participation is not None
             if participation:
-                response.participation_status = participation.status
+                # Show awaiting status "on the fly" if activity has passed
+                # This ensures UI shows correct state even before background service runs
+                if (participation.status in [ParticipationStatus.REGISTERED, ParticipationStatus.CONFIRMED]
+                    and activity.date < datetime.now()):
+                    response.participation_status = ParticipationStatus.AWAITING
+                else:
+                    response.participation_status = participation.status
 
         # Populate names (eager loaded now)
         if activity.club:
@@ -243,7 +250,13 @@ async def get_activity(
         response.is_joined = participation is not None
         response.is_creator = activity.creator_id == current_user.id
         if participation:
-            response.participation_status = participation.status
+            # Show awaiting status "on the fly" if activity has passed
+            # This ensures UI shows correct state even before background service runs
+            if (participation.status in [ParticipationStatus.REGISTERED, ParticipationStatus.CONFIRMED]
+                and activity.date < datetime.now()):
+                response.participation_status = ParticipationStatus.AWAITING
+            else:
+                response.participation_status = participation.status
 
     # Populate names
     if activity.club:
@@ -430,11 +443,25 @@ async def confirm_attendance(
     if not participation:
         raise HTTPException(status_code=404, detail="You are not registered for this activity")
 
-    # Check if participation is in awaiting status
-    if participation.status != ParticipationStatus.AWAITING:
+    # Check if participation is in awaiting status (or REGISTERED/CONFIRMED for past activities)
+    # We allow confirmation for REGISTERED/CONFIRMED because UI shows them as "awaiting" after activity ends
+    allowed_statuses = [
+        ParticipationStatus.AWAITING,
+        ParticipationStatus.REGISTERED,
+        ParticipationStatus.CONFIRMED
+    ]
+    if participation.status not in allowed_statuses:
         raise HTTPException(
             status_code=400,
             detail=f"Cannot confirm attendance. Current status: {participation.status.value}"
+        )
+
+    # Verify activity has actually ended (can only confirm past activities)
+    activity = db.query(Activity).filter(Activity.id == activity_id).first()
+    if activity and activity.date > datetime.now():
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot confirm attendance for future activities"
         )
 
     # Update status based on attendance

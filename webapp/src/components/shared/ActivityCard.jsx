@@ -27,11 +27,11 @@ const StatusButton = ({ status, isPrivate, isPast, isFull, participationStatus }
         )
     }
 
-    // Был на тренировке - зелёная галочка
+    // Был на тренировке - зелёная галочка (без opacity, opacity на карточке)
     if (participationStatus === 'attended') {
         return (
             <div className="flex items-center gap-1.5">
-                <div className="w-7 h-7 rounded-full border-2 border-green-500 flex items-center justify-center opacity-50">
+                <div className="w-7 h-7 rounded-full border-2 border-green-500 flex items-center justify-center">
                     <svg className="w-3.5 h-3.5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                     </svg>
@@ -40,11 +40,11 @@ const StatusButton = ({ status, isPrivate, isPast, isFull, participationStatus }
         )
     }
 
-    // Пропустил - серый крестик
+    // Пропустил - серый крестик (без opacity, opacity на карточке)
     if (participationStatus === 'missed') {
         return (
             <div className="flex items-center gap-1.5">
-                <div className="w-7 h-7 rounded-full border-2 border-gray-400 flex items-center justify-center opacity-50">
+                <div className="w-7 h-7 rounded-full border-2 border-gray-400 flex items-center justify-center">
                     <svg className="w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                     </svg>
@@ -146,13 +146,13 @@ export default function ActivityCard({ activity }) {
     const organizerText = getOrganizerText()
     const distanceText = getDistanceText()
 
-    // Определить нужен ли opacity для прошедших с подтверждённым статусом
-    const isPastConfirmed = activity.participationStatus === 'attended' || activity.participationStatus === 'missed'
+    // Opacity только для завершённых статусов (attended/missed), НЕ для awaiting
+    const isConfirmedPast = activity.participationStatus === 'attended' || activity.participationStatus === 'missed'
 
     return (
         <div
             onClick={handleCardClick}
-            className={`bg-white border border-gray-200 rounded-xl p-4 mb-3 cursor-pointer hover:border-gray-300 transition-colors ${isPastConfirmed ? 'opacity-50' : ''}`}
+            className={`bg-white border border-gray-200 rounded-xl p-4 mb-3 cursor-pointer hover:border-gray-300 transition-colors ${isConfirmedPast ? 'opacity-50' : ''}`}
         >
             {/* Название + иконка спорта */}
             <div className="flex justify-between items-start mb-1">

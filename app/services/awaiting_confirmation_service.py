@@ -91,7 +91,7 @@ class AwaitingConfirmationService:
         session = SessionLocal()
 
         try:
-            now = datetime.utcnow()
+            now = datetime.now()  # Use local time (dates in DB are local)
 
             # Find all participations where:
             # - status is REGISTERED or CONFIRMED

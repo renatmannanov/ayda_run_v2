@@ -29,14 +29,14 @@ export default function ClubGroupDetail({ type = 'club' }) {
     // Pass null if not applicable (hooks in useApi.js are now guarded)
     const {
         data: clubData,
-        loading: clubLoading,
+        isLoading: clubLoading,
         error: clubError,
         refetch: refetchClub
     } = useClub(isClub ? id : null)
 
     const {
         data: groupData,
-        loading: groupLoading,
+        isLoading: groupLoading,
         error: groupError,
         refetch: refetchGroup
     } = useGroup(!isClub ? id : null)
@@ -56,7 +56,7 @@ export default function ClubGroupDetail({ type = 'club' }) {
     const filters = isClub ? { club_id: id } : { group_id: id }
     const {
         data: activitiesData,
-        loading: activitiesLoading
+        isLoading: activitiesLoading
     } = useActivities(filters)
 
     const activities = activitiesData || []

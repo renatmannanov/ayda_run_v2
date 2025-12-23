@@ -22,7 +22,7 @@ export default function ActivityDetail() {
     // Fetch activity
     const {
         data: activity,
-        loading: activityLoading,
+        isLoading: activityLoading,
         error: activityError,
         refetch: refetchActivity
     } = useActivity(id)
@@ -30,7 +30,7 @@ export default function ActivityDetail() {
     // Fetch participants
     const {
         data: participantsData,
-        loading: participantsLoading,
+        isLoading: participantsLoading,
         refetch: refetchParticipants
     } = useActivityParticipants(id)
 

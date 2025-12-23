@@ -3,8 +3,8 @@ import { BottomNav, CreateMenu, ClubCard, GroupCard, LoadingScreen, ErrorScreen 
 import { useClubs, useGroups, useJoinClub, useJoinGroup } from '../hooks'
 
 export default function ClubsGroups() {
-    const { data: clubs = [], loading: clubsLoading, error: clubsError, refetch: refetchClubs } = useClubs()
-    const { data: groups = [], loading: groupsLoading, error: groupsError, refetch: refetchGroups } = useGroups()
+    const { data: clubs = [], isLoading: clubsLoading, error: clubsError, refetch: refetchClubs } = useClubs()
+    const { data: groups = [], isLoading: groupsLoading, error: groupsError, refetch: refetchGroups } = useGroups()
 
     const { mutate: joinClub } = useJoinClub()
     const { mutate: joinGroup } = useJoinGroup()
