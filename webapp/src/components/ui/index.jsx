@@ -3,6 +3,7 @@ import React from 'react'
 export { default as Avatar } from './Avatar'
 export { default as AvatarStack } from './AvatarStack'
 export { default as GpxUpload } from './GpxUpload'
+export { default as ProgressBar } from './ProgressBar'
 
 export function Loading({ text = 'Загрузка...' }) {
     return (

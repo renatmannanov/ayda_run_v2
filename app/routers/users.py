@@ -2,14 +2,14 @@
 Users API Router
 """
 
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Query
 from sqlalchemy.orm import Session
 from typing import Optional
 
 from storage.db import User
 from storage.user_storage import UserStorage
 from app.core.dependencies import get_db, get_current_user
-from schemas.user import UserResponse, UserProfileUpdate
+from schemas.user import UserResponse, UserProfileUpdate, UserDetailedStatsResponse
 
 router = APIRouter(prefix="/api/users", tags=["users"])
 
@@ -32,10 +32,11 @@ def update_user_profile(
     db: Session = Depends(get_db)
 ) -> UserResponse:
     """
-    Update current user profile (photo, strava_link)
+    Update current user profile (photo, strava_link, show_photo)
 
     - photo: Telegram file_id or URL to user avatar
     - strava_link: URL to user's Strava profile
+    - show_photo: Show photo instead of initials in avatar
     """
     user_storage = UserStorage(session=db)
 
@@ -43,10 +44,30 @@ def update_user_profile(
     updated_user = user_storage.update_profile(
         user_id=current_user.id,
         photo=profile_data.photo,
-        strava_link=profile_data.strava_link
+        strava_link=profile_data.strava_link,
+        show_photo=profile_data.show_photo
     )
 
     if not updated_user:
         raise HTTPException(status_code=404, detail="User not found")
 
     return UserResponse.model_validate(updated_user)
+
+
+@router.get("/me/stats", response_model=UserDetailedStatsResponse)
+def get_user_stats(
+    period: str = Query("month", description="Period: month, quarter, year, all"),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+) -> UserDetailedStatsResponse:
+    """
+    Get detailed user statistics for period.
+
+    - period: Time period for stats (month, quarter, year, all)
+    """
+    user_storage = UserStorage(session=db)
+    stats = user_storage.get_detailed_stats(
+        user_id=current_user.id,
+        period=period
+    )
+    return UserDetailedStatsResponse(**stats)

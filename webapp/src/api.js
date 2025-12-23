@@ -49,7 +49,10 @@ const transformUser = (u) => !u ? null : ({
     country: u.country,
     city: u.city,
     createdAt: u.created_at,
-    preferredSports: u.preferred_sports
+    preferredSports: u.preferred_sports,
+    photo: u.photo,
+    stravaLink: u.strava_link,
+    showPhoto: u.show_photo === true,  // default false
 })
 
 const transformActivity = (a) => !a ? null : ({
@@ -169,7 +172,17 @@ export const api = {
 
 export const usersApi = {
     getMe: () => apiFetch('/users/me').then(transformUser),
-    getStats: () => apiFetch('/users/me/stats')
+
+    getStats: (period = 'month') => apiFetch(`/users/me/stats?period=${period}`),
+
+    updateProfile: (data) => apiFetch('/users/me', {
+        method: 'PATCH',
+        body: JSON.stringify({
+            photo: data.photo,
+            strava_link: data.stravaLink,
+            show_photo: data.showPhoto,
+        })
+    }).then(transformUser),
 }
 
 // ============================================================================

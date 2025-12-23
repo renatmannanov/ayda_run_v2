@@ -1,5 +1,5 @@
 from pydantic import BaseModel, field_serializer, ConfigDict
-from typing import Optional
+from typing import Optional, List
 from datetime import datetime
 from .common import ParticipationStatus
 
@@ -26,6 +26,7 @@ class UserResponse(BaseModel):
     photo: Optional[str] = None  # Telegram avatar file_id
     strava_link: Optional[str] = None  # URL to Strava profile
     is_premium: bool = False
+    show_photo: bool = True  # Show photo instead of initials
 
     # Onboarding
     has_completed_onboarding: bool
@@ -42,6 +43,7 @@ class UserProfileUpdate(BaseModel):
     """Request model for updating user profile"""
     photo: Optional[str] = None  # Telegram file_id or URL
     strava_link: Optional[str] = None  # URL to Strava profile
+    show_photo: Optional[bool] = None  # Show photo instead of initials
 
 class UserStatsResponse(BaseModel):
     """Response model for user statistics"""
@@ -72,3 +74,36 @@ class ParticipantResponse(BaseModel):
     def serialize_telegram_id(self, telegram_id: int | str) -> str:
         """Convert telegram_id to string for JSON safety"""
         return str(telegram_id)
+
+
+# ============================================================================
+# Detailed Statistics Schemas
+# ============================================================================
+
+class ClubStats(BaseModel):
+    """Statistics per club/group"""
+    id: str
+    name: str
+    avatar: Optional[str] = None  # emoji or file_id
+    initials: Optional[str] = None
+    type: str  # 'club' or 'group'
+    registered: int
+    attended: int
+
+
+class SportStats(BaseModel):
+    """Statistics per sport type"""
+    id: str  # 'running', 'trail', etc.
+    icon: str  # emoji
+    name: str  # 'Бег', 'Трейл', etc.
+    count: int
+
+
+class UserDetailedStatsResponse(BaseModel):
+    """Detailed user statistics response"""
+    period: str  # 'month', 'quarter', 'year', 'all'
+    registered: int  # Total registered activities
+    attended: int  # Total attended activities
+    attendance_rate: int  # Percentage
+    clubs: List[ClubStats]  # Stats by club/group
+    sports: List[SportStats]  # Stats by sport type

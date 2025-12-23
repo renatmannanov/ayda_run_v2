@@ -11,7 +11,13 @@ import json
 import logging
 
 from sqlalchemy.orm import Session
-from storage.db import SessionLocal, User
+from sqlalchemy import func
+from datetime import timedelta
+from collections import defaultdict
+from storage.db import (
+    SessionLocal, User, Participation, Activity, Club, Group,
+    ParticipationStatus, SportType
+)
 
 logger = logging.getLogger(__name__)
 
@@ -245,14 +251,16 @@ class UserStorage:
             raise
 
     def update_profile(self, user_id: str, photo: Optional[str] = None,
-                      strava_link: Optional[str] = None) -> Optional[User]:
+                      strava_link: Optional[str] = None,
+                      show_photo: Optional[bool] = None) -> Optional[User]:
         """
-        Update user's profile (photo and/or strava_link).
+        Update user's profile (photo, strava_link, show_photo).
 
         Args:
             user_id: User UUID
             photo: Optional photo file_id or URL
             strava_link: Optional Strava profile URL
+            show_photo: Optional flag to show photo instead of initials
 
         Returns:
             Updated User object or None if user not found
@@ -264,6 +272,8 @@ class UserStorage:
                     user.photo = photo
                 if strava_link is not None:
                     user.strava_link = strava_link
+                if show_photo is not None:
+                    user.show_photo = show_photo
                 user.updated_at = datetime.utcnow()
                 self.session.commit()
                 self.session.refresh(user)
@@ -274,3 +284,164 @@ class UserStorage:
             self.session.rollback()
             logger.error(f"Error in update_profile: {e}")
             raise
+
+    def get_detailed_stats(self, user_id: str, period: str = "month") -> dict:
+        """
+        Get detailed statistics for user.
+
+        Args:
+            user_id: User UUID
+            period: 'month', 'quarter', 'year', 'all'
+
+        Returns:
+            Dict with registered, attended, clubs stats, sports stats
+        """
+        # Sport type mappings
+        SPORT_NAMES = {
+            SportType.RUNNING: ("running", "Бег", "🏃"),
+            SportType.TRAIL: ("trail", "Трейл", "⛰️"),
+            SportType.HIKING: ("hiking", "Хайкинг", "🥾"),
+            SportType.CYCLING: ("cycling", "Вело", "🚴"),
+            SportType.YOGA: ("yoga", "Йога", "🧘"),
+            SportType.WORKOUT: ("workout", "Workout", "💪"),
+            SportType.OTHER: ("other", "Другое", "🏋️"),
+        }
+
+        try:
+            # Calculate date range based on period
+            now = datetime.utcnow()
+            if period == "month":
+                start_date = now - timedelta(days=30)
+            elif period == "quarter":
+                start_date = now - timedelta(days=90)
+            elif period == "year":
+                start_date = now - timedelta(days=365)
+            else:  # all
+                start_date = None
+
+            # Query participations with activities
+            query = self.session.query(Participation).join(Activity).filter(
+                Participation.user_id == user_id
+            )
+
+            if start_date:
+                query = query.filter(Activity.date >= start_date)
+
+            participations = query.all()
+
+            # Count registered and attended
+            total_registered = len(participations)
+            total_attended = sum(
+                1 for p in participations
+                if p.status == ParticipationStatus.ATTENDED or p.attended
+            )
+
+            # Aggregate by club/group
+            club_stats = defaultdict(lambda: {"registered": 0, "attended": 0})
+            group_stats = defaultdict(lambda: {"registered": 0, "attended": 0})
+            sport_counts = defaultdict(int)
+
+            for p in participations:
+                activity = p.activity
+                is_attended = p.status == ParticipationStatus.ATTENDED or p.attended
+
+                # Count by club
+                if activity.club_id:
+                    club_stats[activity.club_id]["registered"] += 1
+                    if is_attended:
+                        club_stats[activity.club_id]["attended"] += 1
+
+                # Count by group
+                if activity.group_id:
+                    group_stats[activity.group_id]["registered"] += 1
+                    if is_attended:
+                        group_stats[activity.group_id]["attended"] += 1
+
+                # Count by sport type (only attended)
+                if is_attended and activity.sport_type:
+                    sport_counts[activity.sport_type] += 1
+
+            # Get club details
+            clubs_result = []
+            if club_stats:
+                clubs = self.session.query(Club).filter(
+                    Club.id.in_(club_stats.keys())
+                ).all()
+                for club in clubs:
+                    stats = club_stats[club.id]
+                    # Get initials from name
+                    words = club.name.split()
+                    initials = "".join(w[0].upper() for w in words[:2]) if words else "?"
+                    clubs_result.append({
+                        "id": club.id,
+                        "name": club.name,
+                        "avatar": club.photo,
+                        "initials": initials,
+                        "type": "club",
+                        "registered": stats["registered"],
+                        "attended": stats["attended"],
+                    })
+
+            # Get group details
+            if group_stats:
+                groups = self.session.query(Group).filter(
+                    Group.id.in_(group_stats.keys())
+                ).all()
+                for group in groups:
+                    stats = group_stats[group.id]
+                    words = group.name.split()
+                    initials = "".join(w[0].upper() for w in words[:2]) if words else "?"
+                    clubs_result.append({
+                        "id": group.id,
+                        "name": group.name,
+                        "avatar": group.photo,
+                        "initials": initials,
+                        "type": "group",
+                        "registered": stats["registered"],
+                        "attended": stats["attended"],
+                    })
+
+            # Sort by attended count descending
+            clubs_result.sort(key=lambda x: x["attended"], reverse=True)
+
+            # Build sports stats
+            sports_result = []
+            for sport_type, count in sport_counts.items():
+                if sport_type in SPORT_NAMES:
+                    sport_id, name, icon = SPORT_NAMES[sport_type]
+                    sports_result.append({
+                        "id": sport_id,
+                        "icon": icon,
+                        "name": name,
+                        "count": count,
+                    })
+
+            # Sort by count descending
+            sports_result.sort(key=lambda x: x["count"], reverse=True)
+
+            # Calculate attendance rate
+            attendance_rate = (
+                round(total_attended / total_registered * 100)
+                if total_registered > 0
+                else 0
+            )
+
+            return {
+                "period": period,
+                "registered": total_registered,
+                "attended": total_attended,
+                "attendance_rate": attendance_rate,
+                "clubs": clubs_result,
+                "sports": sports_result,
+            }
+
+        except Exception as e:
+            logger.error(f"Error in get_detailed_stats: {e}")
+            return {
+                "period": period,
+                "registered": 0,
+                "attended": 0,
+                "attendance_rate": 0,
+                "clubs": [],
+                "sports": [],
+            }

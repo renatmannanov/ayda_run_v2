@@ -155,6 +155,7 @@ class User(Base):
     photo = Column(String(255), nullable=True)  # Telegram avatar file_id
     strava_link = Column(String(500), nullable=True)  # URL to Strava profile
     is_premium = Column(Boolean, default=False, nullable=False)
+    show_photo = Column(Boolean, default=False, nullable=False)  # Show photo instead of initials
 
     # Onboarding
     has_completed_onboarding = Column(Boolean, default=False, nullable=False)

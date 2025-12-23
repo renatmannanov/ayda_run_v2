@@ -1,4 +1,5 @@
 import React from 'react'
+import { useUser } from '../../contexts/UserContext'
 
 /**
  * Avatar component with fallback to initials
@@ -6,10 +7,12 @@ import React from 'react'
  * @param {Object} props
  * @param {string} props.src - Image URL or Telegram file_id
  * @param {string} props.name - Name for initials fallback
- * @param {string} props.size - Size: 'sm', 'md', 'lg', 'xl' (default: 'md')
+ * @param {string} props.size - Size: 'sm', 'md', 'lg', 'xl', '2xl' (default: 'md')
  * @param {string} props.className - Additional CSS classes
+ * @param {boolean} props.forcePhoto - Force show photo regardless of global setting
  */
-export default function Avatar({ src, name, size = 'md', className = '' }) {
+export default function Avatar({ src, name, size = 'md', className = '', forcePhoto = false }) {
+    const { showPhoto: globalShowPhoto } = useUser()
     const [imageError, setImageError] = React.useState(false)
 
     // Size mappings
@@ -17,7 +20,8 @@ export default function Avatar({ src, name, size = 'md', className = '' }) {
         'sm': 'w-8 h-8 text-xs',
         'md': 'w-10 h-10 text-sm',
         'lg': 'w-12 h-12 text-base',
-        'xl': 'w-16 h-16 text-lg'
+        'xl': 'w-16 h-16 text-lg',
+        '2xl': 'w-20 h-20 text-2xl'  // 80px for profile
     }
 
     const sizeClass = sizeClasses[size] || sizeClasses.md
@@ -72,7 +76,10 @@ export default function Avatar({ src, name, size = 'md', className = '' }) {
     }
 
     const imageUrl = getImageUrl(src)
-    const showImage = imageUrl && !imageError
+
+    // Respect global showPhoto setting unless forcePhoto is true
+    const shouldShowPhoto = forcePhoto || globalShowPhoto
+    const showImage = imageUrl && !imageError && shouldShowPhoto
 
     // Debug logging
     React.useEffect(() => {
