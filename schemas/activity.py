@@ -1,7 +1,7 @@
 from pydantic import BaseModel, ConfigDict, Field, field_validator, ValidationInfo
 from datetime import datetime
 from typing import Optional
-from .common import SportType, Difficulty, BaseResponse, ActivityVisibility, ActivityStatus
+from .common import SportType, Difficulty, BaseResponse, ActivityVisibility, ActivityStatus, ParticipationStatus
 
 class ActivityCreate(BaseModel):
     """Schema for creating activity"""
@@ -115,6 +115,7 @@ class ActivityResponse(BaseResponse):
     participants_count: int = 0
     is_joined: bool = False
     is_creator: bool = False
+    participation_status: Optional[ParticipationStatus] = None  # User's participation status (awaiting, attended, missed, etc.)
     can_view_participants: bool = True  # False if closed and not member
     can_download_gpx: bool = True  # False if closed and not member
     club_name: Optional[str] = None

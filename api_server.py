@@ -99,6 +99,11 @@ async def lifespan(app: FastAPI):
         bot_app.add_handler(handler)
     logger.info("[SUCCESS] Sync command handler registered")
 
+    # Phase 8: Confirmation handler for attendance confirmation
+    from bot.confirmation_handler import get_confirmation_handler
+    bot_app.add_handler(get_confirmation_handler())
+    logger.info("[SUCCESS] Confirmation handler registered")
+
     # Initialize bot (but don't start polling - we use webhook)
     await bot_app.initialize()
     await bot_app.start()
@@ -137,9 +142,19 @@ async def lifespan(app: FastAPI):
     await activity_reminder_service.start()
     logger.info("[SUCCESS] Activity reminder service started")
 
+    # Phase 8: Start awaiting confirmation service (transition to awaiting after activity)
+    from app.services.awaiting_confirmation_service import get_awaiting_confirmation_service
+    awaiting_confirmation_service = get_awaiting_confirmation_service(bot_app.bot)
+    await awaiting_confirmation_service.start()
+    logger.info("[SUCCESS] Awaiting confirmation service started")
+
     yield
 
     # Shutdown
+    # Stop awaiting confirmation service
+    await awaiting_confirmation_service.stop()
+    logger.info("[SUCCESS] Awaiting confirmation service stopped")
+
     # Stop activity reminder service
     await activity_reminder_service.stop()
     logger.info("[SUCCESS] Activity reminder service stopped")

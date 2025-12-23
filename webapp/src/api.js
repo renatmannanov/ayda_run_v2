@@ -70,6 +70,7 @@ const transformActivity = (a) => !a ? null : ({
     participants: a.participants_count, // Map count to prop expected by UI
     isJoined: a.is_joined,
     isOpen: a.is_open !== undefined ? a.is_open : true, // Default to open for backwards compatibility
+    participationStatus: a.participation_status, // User's participation status (awaiting, attended, missed, etc.)
     canViewParticipants: a.can_view_participants !== undefined ? a.can_view_participants : true,
     canDownloadGpx: a.can_download_gpx !== undefined ? a.can_download_gpx : true,
     // GPX file info
@@ -198,6 +199,9 @@ export const activitiesApi = {
     leave: (id) => apiFetch(`/activities/${id}/leave`, { method: 'POST' }),
 
     requestJoin: (id) => apiFetch(`/activities/${id}/request-join`, { method: 'POST' }),
+
+    // Confirm attendance for past activity (attended=true or missed=false)
+    confirm: (id, attended) => apiFetch(`/activities/${id}/confirm?attended=${attended}`, { method: 'POST' }),
 
     getParticipants: (id) => apiFetch(`/activities/${id}/participants`)
         .then(items => items.map(transformMember)),

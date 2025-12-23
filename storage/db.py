@@ -65,9 +65,23 @@ class ActivityStatus(str, Enum):
     CANCELLED = "cancelled"
 
 class ParticipationStatus(str, Enum):
-    """Participation status"""
+    """
+    Participation status
+
+    Flow:
+    - REGISTERED: User signed up for activity (before start time)
+    - CONFIRMED: Confirmed participation (legacy, same as registered)
+    - AWAITING: Activity time passed, waiting for user confirmation
+    - ATTENDED: User confirmed they participated
+    - MISSED: User confirmed they missed the activity
+    - COMPLETED: Legacy status
+    - CANCELLED: User cancelled before activity
+    """
     REGISTERED = "registered"
     CONFIRMED = "confirmed"
+    AWAITING = "awaiting"      # Waiting for user to confirm attendance
+    ATTENDED = "attended"      # User confirmed they attended
+    MISSED = "missed"          # User confirmed they missed
     COMPLETED = "completed"
     CANCELLED = "cancelled"
 

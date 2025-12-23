@@ -179,7 +179,12 @@ async def list_activities(
         response = ActivityResponse.model_validate(activity)
         response.participants_count = db.query(Participation).filter(
             Participation.activity_id == activity.id,
-            Participation.status.in_([ParticipationStatus.REGISTERED, ParticipationStatus.CONFIRMED])
+            Participation.status.in_([
+                ParticipationStatus.REGISTERED,
+                ParticipationStatus.CONFIRMED,
+                ParticipationStatus.AWAITING,
+                ParticipationStatus.ATTENDED
+            ])
         ).count()
 
         if current_user:
@@ -188,6 +193,8 @@ async def list_activities(
                 Participation.user_id == current_user.id
             ).first()
             response.is_joined = participation is not None
+            if participation:
+                response.participation_status = participation.status
 
         # Populate names (eager loaded now)
         if activity.club:
@@ -235,6 +242,8 @@ async def get_activity(
         ).first()
         response.is_joined = participation is not None
         response.is_creator = activity.creator_id == current_user.id
+        if participation:
+            response.participation_status = participation.status
 
     # Populate names
     if activity.club:
@@ -346,7 +355,12 @@ async def join_activity(
     if activity.max_participants:
         current_count = db.query(Participation).filter(
             Participation.activity_id == activity_id,
-            Participation.status.in_([ParticipationStatus.REGISTERED, ParticipationStatus.CONFIRMED])
+            Participation.status.in_([
+                ParticipationStatus.REGISTERED,
+                ParticipationStatus.CONFIRMED,
+                ParticipationStatus.AWAITING,
+                ParticipationStatus.ATTENDED
+            ])
         ).count()
 
         if current_count >= activity.max_participants:
@@ -385,6 +399,62 @@ async def leave_activity(
     db.commit()
 
     return {"message": "Successfully left activity", "activity_id": activity_id}
+
+
+@router.post("/{activity_id}/confirm", status_code=200)
+async def confirm_attendance(
+    activity_id: str,
+    attended: bool,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Confirm attendance for a past activity.
+
+    Called when user confirms whether they attended or missed the activity.
+    Only works for participations in 'awaiting' status.
+
+    Args:
+        activity_id: Activity ID
+        attended: True if user attended, False if missed
+
+    Returns:
+        New participation status (attended or missed)
+    """
+    # Get participation
+    participation = db.query(Participation).filter(
+        Participation.activity_id == activity_id,
+        Participation.user_id == current_user.id
+    ).first()
+
+    if not participation:
+        raise HTTPException(status_code=404, detail="You are not registered for this activity")
+
+    # Check if participation is in awaiting status
+    if participation.status != ParticipationStatus.AWAITING:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Cannot confirm attendance. Current status: {participation.status.value}"
+        )
+
+    # Update status based on attendance
+    if attended:
+        participation.status = ParticipationStatus.ATTENDED
+        participation.attended = True
+    else:
+        participation.status = ParticipationStatus.MISSED
+        participation.attended = False
+
+    db.commit()
+
+    new_status = "attended" if attended else "missed"
+    logger.info(f"User {current_user.id} confirmed {new_status} for activity {activity_id}")
+
+    return {
+        "message": f"Attendance confirmed: {new_status}",
+        "status": new_status,
+        "activity_id": activity_id
+    }
 
 
 @router.get("/{activity_id}/participants", response_model=List[ParticipantResponse])
@@ -595,7 +665,12 @@ async def approve_activity_join_request(
     if activity.max_participants:
         current_count = db.query(Participation).filter(
             Participation.activity_id == activity_id,
-            Participation.status.in_([ParticipationStatus.REGISTERED, ParticipationStatus.CONFIRMED])
+            Participation.status.in_([
+                ParticipationStatus.REGISTERED,
+                ParticipationStatus.CONFIRMED,
+                ParticipationStatus.AWAITING,
+                ParticipationStatus.ATTENDED
+            ])
         ).count()
 
         if current_count >= activity.max_participants:

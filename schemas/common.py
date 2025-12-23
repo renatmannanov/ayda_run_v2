@@ -39,6 +39,9 @@ class UserRole(str, Enum):
 class ParticipationStatus(str, Enum):
     REGISTERED = "registered"
     CONFIRMED = "confirmed"
+    AWAITING = "awaiting"      # Activity passed, waiting for confirmation
+    ATTENDED = "attended"      # User confirmed they attended
+    MISSED = "missed"          # User confirmed they missed
     DECLINED = "declined"
     WAITLIST = "waitlist"
 

@@ -359,3 +359,89 @@ async def send_activity_reminder_to_group(
     except TelegramError as e:
         logger.error(f"Error sending activity reminder to group {group_chat_id}: {e}")
         return False
+
+
+def format_awaiting_confirmation_notification(
+    activity_title: str,
+    activity_date: datetime,
+    location: str
+) -> str:
+    """
+    Format awaiting confirmation notification.
+
+    Sent after activity has passed, asking user to confirm attendance.
+
+    Args:
+        activity_title: Activity title
+        activity_date: Activity date and time
+        location: Activity location
+
+    Returns:
+        Formatted message text
+    """
+    # Format date
+    date_str = activity_date.strftime("%a, %d %b · %H:%M")
+
+    message = (
+        f"🏃 Тренировка завершена!\n\n"
+        f"\"{activity_title}\"\n"
+        f"{date_str} · {location}\n\n"
+        f"Ты был на тренировке?"
+    )
+
+    return message
+
+
+async def send_awaiting_confirmation_notification(
+    bot: Bot,
+    user_telegram_id: int,
+    activity_id: str,
+    activity_title: str,
+    activity_date: datetime,
+    location: str
+) -> bool:
+    """
+    Send awaiting confirmation notification to user.
+
+    Asks user to confirm whether they attended or missed the activity.
+    Includes inline buttons for quick response.
+
+    Args:
+        bot: Telegram Bot instance
+        user_telegram_id: User's Telegram ID
+        activity_id: Activity ID (for callback data)
+        activity_title: Activity title
+        activity_date: Activity date and time
+        location: Activity location
+
+    Returns:
+        True if sent successfully, False otherwise
+    """
+    try:
+        from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+
+        message_text = format_awaiting_confirmation_notification(
+            activity_title=activity_title,
+            activity_date=activity_date,
+            location=location
+        )
+
+        # Create inline buttons for confirmation
+        keyboard = [[
+            InlineKeyboardButton("Участвовал ✓", callback_data=f"confirm_attended_{activity_id}"),
+            InlineKeyboardButton("Пропустил ✕", callback_data=f"confirm_missed_{activity_id}")
+        ]]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+
+        await bot.send_message(
+            chat_id=user_telegram_id,
+            text=message_text,
+            reply_markup=reply_markup
+        )
+
+        logger.info(f"Sent awaiting confirmation notification to user {user_telegram_id} for activity {activity_id}")
+        return True
+
+    except TelegramError as e:
+        logger.error(f"Error sending awaiting confirmation notification to user {user_telegram_id}: {e}")
+        return False

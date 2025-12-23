@@ -107,3 +107,18 @@ export function useLeaveActivity() {
     },
   })
 }
+
+// Confirm attendance for past activity
+export function useConfirmActivity() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ id, attended }: { id: number; attended: boolean }) =>
+      activitiesApi.confirm(id, attended),
+    onSuccess: (_, { id }) => {
+      // Invalidate activity details and lists
+      queryClient.invalidateQueries({ queryKey: activitiesKeys.detail(id) })
+      queryClient.invalidateQueries({ queryKey: activitiesKeys.lists() })
+    },
+  })
+}

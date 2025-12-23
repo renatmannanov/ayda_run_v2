@@ -6,7 +6,8 @@ import {
     useActivity,
     useActivityParticipants,
     useJoinActivity,
-    useLeaveActivity
+    useLeaveActivity,
+    useConfirmActivity
 } from '../hooks'
 import {
     formatDate,
@@ -37,6 +38,7 @@ export default function ActivityDetail() {
 
     const { mutate: joinActivity, loading: joining } = useJoinActivity()
     const { mutate: leaveActivity, loading: leaving } = useLeaveActivity()
+    const { mutate: confirmActivity, isPending: confirming } = useConfirmActivity()
 
     const [showParticipants, setShowParticipants] = useState(false)
 
@@ -84,8 +86,78 @@ export default function ActivityDetail() {
         tg.showAlert('Ссылка скопирована!')
     }
 
+    // Confirm attendance handlers
+    const handleConfirmAttended = async () => {
+        try {
+            tg.haptic('medium')
+            await confirmActivity({ id, attended: true })
+            tg.hapticNotification('success')
+            refetchActivity()
+        } catch (e) {
+            console.error('Confirm attended failed', e)
+            tg.showAlert(e.message || 'Произошла ошибка')
+        }
+    }
+
+    const handleConfirmMissed = async () => {
+        try {
+            tg.haptic('light')
+            await confirmActivity({ id, attended: false })
+            refetchActivity()
+        } catch (e) {
+            console.error('Confirm missed failed', e)
+            tg.showAlert(e.message || 'Произошла ошибка')
+        }
+    }
+
     // Get action button content (used in both bottom bar and popup)
     const getActionButton = () => {
+        // Awaiting confirmation - show two buttons
+        if (activity?.participationStatus === 'awaiting') {
+            return (
+                <div className="flex items-center gap-3">
+                    <button
+                        onClick={handleConfirmMissed}
+                        disabled={confirming}
+                        className="flex-1 py-4 border border-gray-300 text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors disabled:opacity-50"
+                    >
+                        Пропустил
+                    </button>
+                    <button
+                        onClick={handleConfirmAttended}
+                        disabled={confirming}
+                        className="flex-1 py-4 bg-gray-800 text-white rounded-xl text-sm font-medium hover:bg-gray-700 transition-colors disabled:opacity-50"
+                    >
+                        Участвовал
+                    </button>
+                </div>
+            )
+        }
+
+        // Attended - show green status
+        if (activity?.participationStatus === 'attended') {
+            return (
+                <div className="flex items-center justify-center gap-2 py-3 text-green-600">
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                    <span className="text-sm font-medium">Участвовал</span>
+                </div>
+            )
+        }
+
+        // Missed - show gray status
+        if (activity?.participationStatus === 'missed') {
+            return (
+                <div className="flex items-center justify-center gap-2 py-3 text-gray-400">
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                    <span className="text-sm font-medium">Пропустил</span>
+                </div>
+            )
+        }
+
         if (isPast) return null
 
         // Private & not joined & not pending
@@ -360,9 +432,19 @@ export default function ActivityDetail() {
                     </button>
 
                     {/* User attendance status (past activities) */}
-                    {isPast && isJoined && (
-                        <p className={`text-sm mt-3 ${activity.attended ? 'text-green-600' : 'text-gray-400'}`}>
-                            {activity.attended ? 'Ты был ✓' : 'Ты пропустил'}
+                    {activity.participationStatus === 'awaiting' && (
+                        <p className="text-sm mt-3 text-orange-500">
+                            Ожидает подтверждения
+                        </p>
+                    )}
+                    {activity.participationStatus === 'attended' && (
+                        <p className="text-sm mt-3 text-green-600">
+                            Ты был ✓
+                        </p>
+                    )}
+                    {activity.participationStatus === 'missed' && (
+                        <p className="text-sm mt-3 text-gray-400">
+                            Ты пропустил
                         </p>
                     )}
 
@@ -413,7 +495,7 @@ export default function ActivityDetail() {
             {/* Bottom Bar with Action */}
             <BottomBar
                 onCreateClick={() => tg.showAlert('Создание из деталей активности пока не поддерживается, перейдите на Главную')}
-                showAction={!isPast && !showParticipants}
+                showAction={(!isPast || activity?.participationStatus === 'awaiting') && !showParticipants}
                 action={getActionButton()}
             />
         </div>
