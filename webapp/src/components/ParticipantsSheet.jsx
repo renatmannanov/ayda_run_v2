@@ -54,6 +54,13 @@ export default function ParticipantsSheet({
         return participants.length.toString()
     }
 
+    // Sort participants: organizer first, then others
+    const sortedParticipants = [...participants].sort((a, b) => {
+        if (a.isOrganizer && !b.isOrganizer) return -1
+        if (!a.isOrganizer && b.isOrganizer) return 1
+        return 0
+    })
+
     return (
         <div
             className="fixed inset-0 bg-black/30 z-50 flex flex-col justify-end"
@@ -79,12 +86,12 @@ export default function ParticipantsSheet({
 
                 {/* List */}
                 <div className="flex-1 overflow-auto px-4 py-2">
-                    {participants.length === 0 ? (
+                    {sortedParticipants.length === 0 ? (
                         <div className="py-8 text-center text-sm text-gray-400">
                             Пока никто не записался
                         </div>
                     ) : (
-                        participants.map(participant => {
+                        sortedParticipants.map(participant => {
                             const sportIcons = getSportIcons(participant.preferredSports)
                             return (
                                 <div

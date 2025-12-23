@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { ParticipantsSheet, LoadingScreen, ErrorScreen, Button, BottomBar } from '../components'
-import { AvatarStack, GpxUpload } from '../components/ui'
+import { AvatarStack, GPXUploadPopup } from '../components/ui'
 import {
     useActivity,
     useActivityParticipants,
@@ -43,6 +43,7 @@ export default function ActivityDetail() {
     const { mutate: deleteActivity, isPending: deleting } = useDeleteActivity()
 
     const [showParticipants, setShowParticipants] = useState(false)
+    const [showGpxPopup, setShowGpxPopup] = useState(false)
 
     // Derived state
     const isPast = activity?.isPast
@@ -278,6 +279,24 @@ export default function ActivityDetail() {
 
         // Joined (open or private)
         if (isJoined) {
+            // Creator sees "Invite participants" instead of cancel button
+            if (isCreator) {
+                return (
+                    <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-500">Пригласи участников</span>
+                        <button
+                            onClick={handleShare}
+                            className="w-10 h-10 border border-gray-200 rounded-xl flex items-center justify-center text-gray-500 hover:bg-gray-50 transition-colors"
+                        >
+                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                            </svg>
+                        </button>
+                    </div>
+                )
+            }
+
+            // Regular participant sees cancel button
             return (
                 <div className="flex items-center justify-between">
                     <button
@@ -384,7 +403,7 @@ export default function ActivityDetail() {
             </div>
 
             {/* Content */}
-            <div className="flex-1 overflow-y-auto px-4 py-4 pb-40">
+            <div className="flex-1 overflow-y-auto px-4 py-4 pb-32">
                 <div className="border border-gray-200 rounded-xl p-4">
                     {/* Title + Icon */}
                     <div className="flex justify-between items-start mb-4">
@@ -512,19 +531,23 @@ export default function ActivityDetail() {
                         <>
                             <div className="border-t border-gray-200 my-4" />
                             <div className="space-y-2">
-                                {!activity.hasGpx && (
-                                    <GpxUpload
-                                        activityId={activity.id}
-                                        hasGpx={activity.hasGpx}
-                                        gpxFilename={activity.gpxFilename}
-                                        onSuccess={refetchActivity}
-                                    />
-                                )}
-                                {activity.hasGpx && (
-                                    <div className="flex items-center gap-2 text-sm text-gray-500 py-1">
+                                {!activity.hasGpx ? (
+                                    <button
+                                        onClick={() => setShowGpxPopup(true)}
+                                        className="flex items-center gap-2 text-sm text-gray-700 hover:text-gray-900 py-1 transition-colors"
+                                    >
                                         <span className="w-5 text-center">📍</span>
-                                        <span>GPX добавлен</span>
-                                    </div>
+                                        <span className="font-medium">Добавить маршрут</span>
+                                    </button>
+                                ) : (
+                                    <button
+                                        onClick={() => setShowGpxPopup(true)}
+                                        className="flex items-center gap-2 text-sm text-gray-700 hover:text-gray-900 py-1 transition-colors"
+                                    >
+                                        <span className="w-5 text-center">📍</span>
+                                        <span>{activity.gpxFilename || 'track.gpx'}</span>
+                                        <span className="text-gray-400 text-xs">✎</span>
+                                    </button>
                                 )}
                                 <button
                                     onClick={handleEdit}
@@ -572,6 +595,19 @@ export default function ActivityDetail() {
                 onCreateClick={() => tg.showAlert('Создание из деталей активности пока не поддерживается, перейдите на Главную')}
                 showAction={(!isPast || activity?.participationStatus === 'awaiting') && !showParticipants}
                 action={getActionButton()}
+            />
+
+            {/* GPX Upload Popup */}
+            <GPXUploadPopup
+                isOpen={showGpxPopup}
+                onClose={() => setShowGpxPopup(false)}
+                onUpload={() => {
+                    setShowGpxPopup(false)
+                    refetchActivity()
+                }}
+                mode={activity?.hasGpx ? 'edit' : 'add'}
+                existingFile={activity?.hasGpx ? { name: activity.gpxFilename || 'track.gpx' } : null}
+                activityId={activity?.id}
             />
         </div>
     )

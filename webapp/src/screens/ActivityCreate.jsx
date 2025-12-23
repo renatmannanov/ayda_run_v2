@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { useNavigate, useLocation, useParams } from 'react-router-dom'
 import {
     FormInput,
@@ -8,6 +8,7 @@ import {
     SportChips,
     Button
 } from '../components'
+import { DropdownPicker, ToggleButtons, GPXUploadPopup, SuccessPopup } from '../components/ui'
 import {
     difficultyLevels,
     getDifficultyLabel
@@ -23,11 +24,8 @@ export default function ActivityCreate() {
     const location = useLocation()
     const context = location.state // May contain pre-selected club/group
 
-    // Debug: log context to see what's passed
-    console.log('🎯 ActivityCreate context:', context, 'isEditMode:', isEditMode)
-
-    const { mutate: createActivity, loading: creating } = useCreateActivity()
-    const { mutate: updateActivity, isPending: updating } = useUpdateActivity()
+    const { mutateAsync: createActivity, isPending: creating } = useCreateActivity()
+    const { mutateAsync: updateActivity, isPending: updating } = useUpdateActivity()
 
     // Fetch existing activity in edit mode
     const { data: existingActivity, isLoading: loadingActivity } = useActivity(isEditMode ? id : null)
@@ -36,14 +34,9 @@ export default function ActivityCreate() {
 
     const loading = creating || updating
     const { data: clubs = [] } = useClubs()
-    // Fetch a flat list of all groups, or fetch lazily.
-    // Let's assume useGroups() fetches all visible groups or user groups.
-    // Better to fetch all user's groups or just fetch all if list is small.
-    // For now let's use useGroups() w/o filter to get all, filter client side for picker.
     const { data: allGroups = [] } = useGroups()
 
     // Form state
-    // ... (keeping state as before but integrating API submission)
     const [title, setTitle] = useState('')
     const [date, setDate] = useState('')
     const [time, setTime] = useState('07:00')
@@ -56,26 +49,89 @@ export default function ActivityCreate() {
     const [maxParticipants, setMaxParticipants] = useState('20')
     const [noLimit, setNoLimit] = useState(false)
     const [description, setDescription] = useState('')
-    const [selectedClub, setSelectedClub] = useState(
-        (context?.clubId && context.clubId !== null) ? context.clubId.toString() : ''
-    )
-    const [selectedGroup, setSelectedGroup] = useState(
-        (context?.groupId && context.groupId !== null) ? context.groupId.toString() : ''
-    )
-    const [isPublic, setIsPublic] = useState(false)
-    const [isOpen, setIsOpen] = useState(true) // true = anyone can join, false = by request only
+
+    // New unified visibility/access state
+    const [visibility, setVisibility] = useState('public')
+    const [access, setAccess] = useState('open')
+
+    // Flow state for create mode
+    const [flowStep, setFlowStep] = useState('form') // 'form' | 'gpx' | 'success'
+    const [createdActivityId, setCreatedActivityId] = useState(null)
+    const [shareLink, setShareLink] = useState('')
 
     const [showDifficultyPicker, setShowDifficultyPicker] = useState(false)
-    const [showClubPicker, setShowClubPicker] = useState(false)
     const [errors, setErrors] = useState({})
+
+    // Build visibility options
+    const visibilityOptions = useMemo(() => {
+        const options = [
+            { id: 'public', icon: '🌐', label: 'Публичная', sublabel: 'видят все' }
+        ]
+
+        // Add clubs user is member of
+        clubs.filter(c => c.isMember).forEach(club => {
+            options.push({
+                id: `club_${club.id}`,
+                icon: '🏆',
+                label: club.name,
+                sublabel: 'клуб'
+            })
+        })
+
+        // Add groups user is member of
+        allGroups.filter(g => g.isMember).forEach(group => {
+            options.push({
+                id: `group_${group.id}`,
+                icon: '👥',
+                label: group.name,
+                sublabel: group.clubName || 'группа'
+            })
+        })
+
+        return options
+    }, [clubs, allGroups])
+
+    // Access options
+    const accessOptions = [
+        { id: 'open', label: 'Все желающие' },
+        { id: 'request', icon: '🔒', label: 'По заявке' }
+    ]
+
+    const getAccessHint = () => {
+        if (access === 'open') {
+            return visibility === 'public'
+                ? 'Любой может записаться на тренировку'
+                : 'Любой участник может записаться'
+        }
+        return 'Нужно одобрение организатора'
+    }
+
+    // Parse visibility to club_id/group_id for API
+    const parseVisibility = (vis) => {
+        if (vis === 'public') {
+            return { club_id: null, group_id: null }
+        }
+        if (vis.startsWith('club_')) {
+            return { club_id: vis.replace('club_', ''), group_id: null }
+        }
+        if (vis.startsWith('group_')) {
+            return { club_id: null, group_id: vis.replace('group_', '') }
+        }
+        return { club_id: null, group_id: null }
+    }
+
+    // Get visibility display for edit mode
+    const getVisibilityDisplay = () => {
+        const option = visibilityOptions.find(o => o.id === visibility)
+        if (!option) return 'Публичная'
+        return `${option.icon} ${option.label}`
+    }
 
     // Fix for Telegram Desktop WebApp input focus bug
     useEffect(() => {
-        // Remove any stuck focus
         if (document.activeElement) {
             document.activeElement.blur()
         }
-        // Small delay to ensure Telegram WebApp is ready
         const timer = setTimeout(() => {
             if (document.activeElement) {
                 document.activeElement.blur()
@@ -84,13 +140,12 @@ export default function ActivityCreate() {
         return () => clearTimeout(timer)
     }, [])
 
-    // Auto-populate group/club from context
+    // Auto-populate visibility from context
     useEffect(() => {
         if (context?.groupId) {
-            setSelectedGroup(context.groupId.toString())
-        }
-        if (context?.clubId && context.clubId !== null) {
-            setSelectedClub(context.clubId.toString())
+            setVisibility(`group_${context.groupId}`)
+        } else if (context?.clubId && context.clubId !== null) {
+            setVisibility(`club_${context.clubId}`)
         }
     }, [context])
 
@@ -100,7 +155,6 @@ export default function ActivityCreate() {
             setTitle(existingActivity.title || '')
             setDescription(existingActivity.description || '')
 
-            // Parse date and time from ISO string
             if (existingActivity.date) {
                 const dateObj = new Date(existingActivity.date)
                 setDate(dateObj.toISOString().split('T')[0])
@@ -121,19 +175,15 @@ export default function ActivityCreate() {
                 setMaxParticipants(existingActivity.maxParticipants.toString())
             }
 
-            setIsOpen(existingActivity.isOpen !== false)
+            setAccess(existingActivity.isOpen !== false ? 'open' : 'request')
 
-            // Club/Group - set from existing activity
-            if (existingActivity.clubId) {
-                setSelectedClub(existingActivity.clubId.toString())
-                setIsPublic(false)
-            }
+            // Set visibility from existing activity
             if (existingActivity.groupId) {
-                setSelectedGroup(existingActivity.groupId.toString())
-                setIsPublic(false)
-            }
-            if (!existingActivity.clubId && !existingActivity.groupId) {
-                setIsPublic(true)
+                setVisibility(`group_${existingActivity.groupId}`)
+            } else if (existingActivity.clubId) {
+                setVisibility(`club_${existingActivity.clubId}`)
+            } else {
+                setVisibility('public')
             }
         }
     }, [existingActivity, isEditMode])
@@ -148,111 +198,111 @@ export default function ActivityCreate() {
     }
 
     const handleSubmit = async () => {
-        if (validate()) {
-            try {
-                if (isEditMode) {
-                    // Update existing activity
-                    // Note: sport_type, club_id, group_id cannot be changed
-                    const payload = {
-                        title,
-                        date: `${date}T${time}:00`,
-                        location: locationValue,
-                        // sport_type is immutable - don't include
-                        distance: distance ? parseFloat(distance) : null,
-                        duration: duration ? parseInt(duration) : null,
-                        difficulty,
-                        max_participants: noLimit ? null : parseInt(maxParticipants),
-                        description,
-                        // club_id, group_id are immutable - don't include
-                        is_open: isOpen
-                    }
+        if (!validate()) return
 
-                    // Count registered participants (excluding creator)
-                    // Use String() to ensure correct comparison of UUIDs
-                    const creatorId = String(existingActivity?.creatorId || '')
-                    const joinedCount = participants.filter(p =>
-                        String(p.userId) !== creatorId &&
-                        ['registered', 'confirmed'].includes(p.status)
-                    ).length
-
-                    const saveChanges = async (notifyParticipants) => {
-                        await updateActivity({ id, data: payload, notifyParticipants })
-                        tg.showAlert('Изменения сохранены!')
-                        navigate(`/activity/${id}`)
-                    }
-
-                    if (joinedCount > 0) {
-                        const word = joinedCount === 1 ? 'участник' :
-                                    joinedCount < 5 ? 'участника' : 'участников'
-
-                        tg.showConfirm(
-                            `У этой тренировки ${joinedCount} ${word}. Сохранить изменения и уведомить их?`,
-                            (confirmed) => {
-                                if (confirmed) saveChanges(true)
-                            }
-                        )
-                    } else {
-                        await saveChanges(false)
-                    }
-                } else {
-                    // Create new activity
-                    await createActivity({
-                        title,
-                        date: `${date}T${time}:00`, // ISO format
-                        location: locationValue,
-                        sport_type: sportType,
-                        distance: distance ? parseFloat(distance) : null,
-                        duration: duration ? parseInt(duration) : null,
-                        difficulty,
-                        max_participants: noLimit ? null : parseInt(maxParticipants),
-                        description,
-                        club_id: isPublic || !selectedClub ? null : selectedClub,
-                        group_id: isPublic || !selectedGroup ? null : selectedGroup,
-                        is_open: isOpen
-                    })
-
-                    tg.showAlert('Тренировка создана!')
-                    navigate('/')
+        try {
+            if (isEditMode) {
+                // Update existing activity
+                const payload = {
+                    title,
+                    date: `${date}T${time}:00`,
+                    location: locationValue,
+                    distance: distance ? parseFloat(distance) : null,
+                    duration: duration ? parseInt(duration) : null,
+                    difficulty,
+                    max_participants: noLimit ? null : parseInt(maxParticipants),
+                    description,
+                    is_open: access === 'open'
                 }
-            } catch (e) {
-                console.error('Failed to save activity', e)
-                tg.showAlert(`Ошибка: ${e.message || 'Не удалось сохранить'}`)
+
+                const creatorId = String(existingActivity?.creatorId || '')
+                const joinedCount = participants.filter(p =>
+                    String(p.userId) !== creatorId &&
+                    ['registered', 'confirmed'].includes(p.status)
+                ).length
+
+                const saveChanges = async (notifyParticipants) => {
+                    await updateActivity({ id, data: payload, notifyParticipants })
+                    tg.showAlert('Изменения сохранены!')
+                    navigate(`/activity/${id}`)
+                }
+
+                if (joinedCount > 0) {
+                    const word = joinedCount === 1 ? 'участник' :
+                                joinedCount < 5 ? 'участника' : 'участников'
+
+                    tg.showConfirm(
+                        `У этой тренировки ${joinedCount} ${word}. Сохранить изменения и уведомить их?`,
+                        (confirmed) => {
+                            if (confirmed) saveChanges(true)
+                        }
+                    )
+                } else {
+                    await saveChanges(false)
+                }
+            } else {
+                // Create new activity
+                const { club_id, group_id } = parseVisibility(visibility)
+
+                const result = await createActivity({
+                    title,
+                    date: `${date}T${time}:00`,
+                    location: locationValue,
+                    sport_type: sportType,
+                    distance: distance ? parseFloat(distance) : null,
+                    duration: duration ? parseInt(duration) : null,
+                    difficulty,
+                    max_participants: noLimit ? null : parseInt(maxParticipants),
+                    description,
+                    club_id,
+                    group_id,
+                    is_open: access === 'open'
+                })
+
+                if (!result?.id) {
+                    throw new Error('Не удалось создать активность')
+                }
+
+                setCreatedActivityId(result.id)
+                setShareLink(`https://t.me/aydarun_bot?start=activity_${result.id}`)
+                setFlowStep('gpx')
             }
+        } catch (e) {
+            console.error('Failed to save activity', e)
+            tg.showAlert(`Ошибка: ${e.message || 'Не удалось сохранить'}`)
         }
     }
 
-    // Get selected club object
-    const getSelectedClubObj = () => {
-        return clubs.find(c => c.id.toString() === selectedClub)
+    const handleGpxUpload = () => {
+        setFlowStep('success')
     }
 
-    // Format club/group display
-    const getClubGroupDisplay = () => {
-        if (isPublic) return 'Публичная (видят все)'
+    const handleGpxSkip = () => {
+        setFlowStep('success')
+    }
 
-        // Standalone group (no club)
-        if (selectedGroup && !selectedClub) {
-            const group = allGroups.find(g => g.id.toString() === selectedGroup)
-            return group ? `👥 ${group.name}` : null
+    // Copy link
+    const handleCopyLink = () => {
+        navigator.clipboard.writeText(shareLink)
+        tg.showAlert('Ссылка скопирована!')
+    }
+
+    // Share via Telegram
+    const handleShare = () => {
+        if (tg.webApp?.openTelegramLink) {
+            const text = encodeURIComponent(`Присоединяйся к активности "${title}"!`)
+            tg.webApp.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(shareLink)}&text=${text}`)
+        } else {
+            navigator.clipboard.writeText(shareLink)
+            tg.showAlert('Ссылка скопирована!')
         }
-
-        // Club or club group
-        if (!selectedClub) return null
-        const club = getSelectedClubObj()
-        if (!club) return null
-        if (selectedGroup) {
-            const group = allGroups.find(g => g.id.toString() === selectedGroup)
-            return `${club.name} / ${group?.name || ''}`
-        }
-        return club.name
     }
 
-    // Get all groups (no filtering by selectedClub)
-    const getAllGroups = () => {
-        return allGroups
+    const handleSuccessDone = () => {
+        navigate(`/activity/${createdActivityId}`)
     }
 
-    // ... (Pickers UI same as before, updated data source from hooks) ...
+    // Difficulty Picker
     const DifficultyPicker = () => (
         <div
             className="fixed inset-0 bg-black/30 z-50 flex items-end justify-center"
@@ -270,102 +320,15 @@ export default function ActivityCreate() {
                             setDifficulty(level.id)
                             setShowDifficultyPicker(false)
                         }}
-                        className={`w-full text-left py-3 px-2 rounded-lg transition-colors ${difficulty === level.id ? 'bg-gray-100' : 'hover:bg-gray-50'
-                            }`}
+                        className={`w-full text-left py-3 px-2 rounded-lg transition-colors ${
+                            difficulty === level.id ? 'bg-gray-100' : 'hover:bg-gray-50'
+                        }`}
                     >
                         <span className="text-sm text-gray-700">{level.label}</span>
                     </button>
                 ))}
                 <button
                     onClick={() => setShowDifficultyPicker(false)}
-                    className="w-full mt-4 py-3 text-gray-400 text-sm"
-                >
-                    Отмена
-                </button>
-            </div>
-        </div>
-    )
-
-    const ClubGroupPicker = () => (
-        <div
-            className="fixed inset-0 bg-black/30 z-50 flex items-end justify-center"
-            onClick={() => setShowClubPicker(false)}
-        >
-            <div
-                className="bg-white w-full max-w-md rounded-t-2xl p-6 max-h-[70vh] overflow-auto"
-                onClick={e => e.stopPropagation()}
-            >
-                <h3 className="text-base font-medium text-gray-800 mb-4">Клуб / Группа</h3>
-
-                {/* Public option */}
-                <button
-                    onClick={() => {
-                        setIsPublic(true)
-                        setSelectedClub('')
-                        setSelectedGroup('')
-                        setShowClubPicker(false)
-                    }}
-                    className={`w-full text-left py-3 px-2 rounded-lg mb-2 transition-colors ${isPublic ? 'bg-gray-100' : 'hover:bg-gray-50'
-                        }`}
-                >
-                    <span className="text-sm text-gray-700">🌍 Публичная (видят все)</span>
-                </button>
-
-                <div className="border-t border-gray-200 my-3" />
-
-                {/* Clubs */}
-                {clubs.filter(c => c.isMember).map(club => (
-                    <button
-                        key={club.id}
-                        onClick={() => {
-                            setIsPublic(false)
-                            setSelectedClub(club.id.toString())
-                            setSelectedGroup('')
-                            setShowClubPicker(false)
-                        }}
-                        className={`w-full text-left py-3 px-2 rounded-lg mb-2 transition-colors ${selectedClub === club.id.toString() && !selectedGroup ? 'bg-gray-100' : 'hover:bg-gray-50'
-                            }`}
-                    >
-                        <span className="text-sm text-gray-700">🏆 {club.name}</span>
-                    </button>
-                ))}
-
-                {/* Groups within clubs */}
-                {getAllGroups().filter(g => g.clubId && g.isMember).map(group => (
-                    <button
-                        key={group.id}
-                        onClick={() => {
-                            setIsPublic(false)
-                            setSelectedClub(group.clubId.toString())
-                            setSelectedGroup(group.id.toString())
-                            setShowClubPicker(false)
-                        }}
-                        className={`w-full text-left py-3 px-2 rounded-lg mb-2 transition-colors ${selectedGroup === group.id.toString() ? 'bg-gray-100' : 'hover:bg-gray-50'
-                            }`}
-                    >
-                        <span className="text-sm text-gray-600">→ {group.name}</span>
-                    </button>
-                ))}
-
-                {/* Independent Groups (clubId === null) */}
-                {getAllGroups().filter(g => !g.clubId && g.isMember).map(group => (
-                    <button
-                        key={group.id}
-                        onClick={() => {
-                            setIsPublic(false)
-                            setSelectedClub('')
-                            setSelectedGroup(group.id.toString())
-                            setShowClubPicker(false)
-                        }}
-                        className={`w-full text-left py-3 px-2 rounded-lg mb-2 transition-colors ${selectedGroup === group.id.toString() ? 'bg-gray-100' : 'hover:bg-gray-50'
-                            }`}
-                    >
-                        <span className="text-sm text-gray-700">👥 {group.name}</span>
-                    </button>
-                ))}
-
-                <button
-                    onClick={() => setShowClubPicker(false)}
                     className="w-full mt-4 py-3 text-gray-400 text-sm"
                 >
                     Отмена
@@ -419,8 +382,9 @@ export default function ActivityCreate() {
                             value={date}
                             min={new Date().toISOString().split('T')[0]}
                             onChange={(e) => setDate(e.target.value)}
-                            className={`w-full px-4 py-3 border rounded-xl text-sm text-gray-800 outline-none transition-colors ${errors.date ? 'border-red-300 bg-red-50' : 'border-gray-200 focus:border-gray-400'
-                                }`}
+                            className={`w-full px-4 py-3 border rounded-xl text-sm text-gray-800 outline-none transition-colors ${
+                                errors.date ? 'border-red-300 bg-red-50' : 'border-gray-200 focus:border-gray-400'
+                            }`}
                         />
                     </div>
                     <div className="w-28">
@@ -466,29 +430,31 @@ export default function ActivityCreate() {
 
                 <div className="border-t border-gray-200 my-4" />
 
-                {/* Stats row */}
-                <div className="flex gap-3 mb-4">
-                    <div className="flex-1">
-                        <FormInput
-                            label="Дистанция"
-                            value={distance}
-                            onChange={setDistance}
-                            placeholder="10"
-                            type="number"
-                            suffix="км"
-                        />
+                {/* Stats row - hide distance/elevation for yoga and workout */}
+                {!['yoga', 'workout'].includes(sportType) && (
+                    <div className="flex gap-3 mb-4">
+                        <div className="flex-1">
+                            <FormInput
+                                label="Дистанция"
+                                value={distance}
+                                onChange={setDistance}
+                                placeholder="10"
+                                type="number"
+                                suffix="км"
+                            />
+                        </div>
+                        <div className="flex-1">
+                            <FormInput
+                                label="Набор"
+                                value={elevation}
+                                onChange={setElevation}
+                                placeholder="150"
+                                type="number"
+                                suffix="м"
+                            />
+                        </div>
                     </div>
-                    <div className="flex-1">
-                        <FormInput
-                            label="Набор"
-                            value={elevation}
-                            onChange={setElevation}
-                            placeholder="150"
-                            type="number"
-                            suffix="м"
-                        />
-                    </div>
-                </div>
+                )}
 
                 <div className="flex gap-3 mb-4">
                     <div className="flex-1">
@@ -518,8 +484,9 @@ export default function ActivityCreate() {
                             value={maxParticipants}
                             onChange={(e) => setMaxParticipants(e.target.value)}
                             disabled={noLimit}
-                            className={`w-24 px-4 py-3 border border-gray-200 rounded-xl text-sm text-gray-800 outline-none focus:border-gray-400 transition-colors ${noLimit ? 'bg-gray-50 text-gray-400' : ''
-                                }`}
+                            className={`w-24 px-4 py-3 border border-gray-200 rounded-xl text-sm text-gray-800 outline-none focus:border-gray-400 transition-colors ${
+                                noLimit ? 'bg-gray-50 text-gray-400' : ''
+                            }`}
                         />
                         <FormCheckbox
                             label="Без лимита"
@@ -541,55 +508,36 @@ export default function ActivityCreate() {
 
                 <div className="border-t border-gray-200 my-4" />
 
-                {/* Club/Group selector - disabled in edit mode */}
+                {/* Visibility */}
                 {isEditMode ? (
                     <div className="mb-4">
-                        <label className="text-sm text-gray-700 mb-2 block">Клуб / Группа</label>
+                        <label className="text-sm text-gray-700 mb-2 block">Видимость</label>
                         <div className="px-4 py-3 bg-gray-100 rounded-xl text-sm text-gray-500">
-                            {getClubGroupDisplay() || 'Не выбрано'}
+                            {getVisibilityDisplay()}
                             <span className="text-xs text-gray-400 ml-2">(нельзя изменить)</span>
                         </div>
                     </div>
                 ) : (
-                    <FormSelect
-                        label="Клуб / Группа"
-                        value={getClubGroupDisplay()}
-                        onClick={() => setShowClubPicker(true)}
-                    />
+                    <div className="mb-4">
+                        <label className="text-sm text-gray-700 mb-2 block">Видимость</label>
+                        <DropdownPicker
+                            value={visibility}
+                            options={visibilityOptions}
+                            onChange={setVisibility}
+                            placeholder="Выбрать..."
+                        />
+                    </div>
                 )}
 
-                <div className="border-t border-gray-200 my-4" />
-
-                {/* Access control */}
+                {/* Access */}
                 <div className="mb-4">
                     <label className="text-sm text-gray-700 mb-2 block">Кто может записаться?</label>
-                    <div className="flex gap-2">
-                        <button
-                            onClick={() => setIsOpen(true)}
-                            className={`flex-1 py-3 px-4 rounded-xl text-sm border transition-colors ${
-                                isOpen
-                                    ? 'border-gray-800 bg-gray-800 text-white'
-                                    : 'border-gray-200 text-gray-600 hover:border-gray-300'
-                            }`}
-                        >
-                            Все желающие
-                        </button>
-                        <button
-                            onClick={() => setIsOpen(false)}
-                            className={`flex-1 py-3 px-4 rounded-xl text-sm border transition-colors ${
-                                !isOpen
-                                    ? 'border-gray-800 bg-gray-800 text-white'
-                                    : 'border-gray-200 text-gray-600 hover:border-gray-300'
-                            }`}
-                        >
-                            🔒 По заявке
-                        </button>
-                    </div>
-                    <p className="text-xs text-gray-400 mt-2">
-                        {isOpen
-                            ? 'Любой может записаться на тренировку'
-                            : 'Участники отправляют заявку, вы одобряете'}
-                    </p>
+                    <ToggleButtons
+                        options={accessOptions}
+                        selected={access}
+                        onChange={setAccess}
+                        hint={getAccessHint()}
+                    />
                 </div>
             </div>
 
@@ -600,13 +548,34 @@ export default function ActivityCreate() {
                     loading={loading}
                     disabled={isEditMode && loadingActivity}
                 >
-                    {isEditMode ? 'Сохранить изменения' : 'Создать тренировку'}
+                    {isEditMode ? 'Сохранить изменения' : 'Создать активность'}
                 </Button>
             </div>
 
             {/* Pickers */}
             {showDifficultyPicker && <DifficultyPicker />}
-            {showClubPicker && <ClubGroupPicker />}
+
+            {/* GPX Upload Popup (create mode only) */}
+            <GPXUploadPopup
+                isOpen={flowStep === 'gpx'}
+                onClose={() => setFlowStep('form')}
+                onSkip={handleGpxSkip}
+                onUpload={handleGpxUpload}
+                mode="create"
+                activityId={createdActivityId}
+            />
+
+            {/* Success Popup */}
+            <SuccessPopup
+                isOpen={flowStep === 'success'}
+                title="Активность создана!"
+                description="Пригласи участников по ссылке"
+                shareLink={shareLink}
+                onCopyLink={handleCopyLink}
+                onShare={handleShare}
+                onDone={handleSuccessDone}
+                doneButtonText="Перейти к активности →"
+            />
         </div>
     )
 }

@@ -1,19 +1,26 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { FormInput, FormTextarea, FormRadioGroup, SportChips, Button, LoadingScreen, ErrorScreen } from '../components'
+import { FormInput, FormTextarea, SportChips, Button, LoadingScreen, ErrorScreen } from '../components'
+import { DropdownPicker, ToggleButtons, FixedAccess, SuccessPopup } from '../components/ui'
 import { useCreateClub, useUpdateClub, useClub } from '../hooks'
+import { tg } from '../api'
 
 export default function CreateClub() {
     const { id } = useParams()
     const isEditMode = !!id
     const navigate = useNavigate()
+    const scrollRef = useRef(null)
 
-    const { mutate: createClub, loading: creating } = useCreateClub()
-    const { mutate: updateClub, loading: updating } = useUpdateClub()
+    const { mutateAsync: createClub, isPending: creating } = useCreateClub()
+    const { mutateAsync: updateClub, isPending: updating } = useUpdateClub()
 
     // Fetch club if in edit mode
-    // We pass id only if editing, else null to skip fetch
-    const { data: existingClub, loading: loadingClub, error: errorClub } = useClub(isEditMode ? id : null)
+    const { data: existingClub, isLoading: loadingClub, error: errorClub } = useClub(isEditMode ? id : null)
+
+    // Scroll to top on mount
+    useEffect(() => {
+        scrollRef.current?.scrollTo(0, 0)
+    }, [])
 
     // Form state
     const [name, setName] = useState('')
@@ -21,26 +28,62 @@ export default function CreateClub() {
     const [selectedSports, setSelectedSports] = useState([])
     const [telegramChat, setTelegramChat] = useState('')
     const [visibility, setVisibility] = useState('public')
+    const [access, setAccess] = useState('open')
     const [errors, setErrors] = useState({})
-    const [isCreated, setIsCreated] = useState(false)
+
+    // Success state
+    const [showSuccess, setShowSuccess] = useState(false)
     const [shareLink, setShareLink] = useState('')
     const [createdId, setCreatedId] = useState(null)
+
+    // Visibility options for club
+    const visibilityOptions = [
+        { id: 'public', icon: '🌐', label: 'Публичный', sublabel: 'все могут найти' },
+        { id: 'private', icon: '🔒', label: 'Закрытый', sublabel: 'только по приглашению' }
+    ]
+
+    // Access options
+    const accessOptions = [
+        { id: 'open', label: 'Все желающие' },
+        { id: 'request', icon: '🔒', label: 'По заявке' }
+    ]
+
+    // Handle visibility change with auto-access fix
+    const handleVisibilityChange = (newVisibility) => {
+        setVisibility(newVisibility)
+        // Private club = access is always 'request'
+        if (newVisibility === 'private') {
+            setAccess('request')
+        }
+    }
+
+    const getAccessHint = () => {
+        if (visibility === 'private') {
+            return 'Закрытый клуб — вступление только по заявке'
+        }
+        if (access === 'open') {
+            return 'Любой может вступить в клуб'
+        }
+        return 'Нужно одобрение администратора'
+    }
 
     // Populate form when data loads
     useEffect(() => {
         if (existingClub) {
             setName(existingClub.name)
             setDescription(existingClub.description || '')
-            // setSelectedSports(existingClub.sport_types || [])
-            setTelegramChat(existingClub.telegramChatId ? existingClub.telegramChatId.toString() : '') // TODO: handle telegram integration
-            // setVisibility(existingClub.is_private ? 'private' : 'public')
+            setTelegramChat(existingClub.telegramChatId ? existingClub.telegramChatId.toString() : '')
+
+            // Set visibility based on is_private
+            if (existingClub.isPrivate) {
+                setVisibility('private')
+                setAccess('request')
+            } else {
+                setVisibility('public')
+                setAccess(existingClub.isOpen !== false ? 'open' : 'request')
+            }
         }
     }, [existingClub])
-
-    const visibilityOptions = [
-        { id: 'public', label: 'Публичный', description: 'Все могут найти и вступить' },
-        { id: 'private', label: 'По ссылке', description: 'Только по приглашению' }
-    ]
 
     // Validation
     const validate = () => {
@@ -52,90 +95,55 @@ export default function CreateClub() {
 
     // Submit
     const handleSubmit = async () => {
-        if (validate()) {
-            try {
-                const payload = {
-                    name,
-                    description,
-                    is_open: visibility !== 'private', // public = open, private = closed
-                    // sport_types: selectedSports, // Not supported by backend yet
-                    // telegram_chat_id: telegramChat, // Backend needs INT, not string username
-                }
+        if (!validate()) return
 
-                if (isEditMode) {
-                    await updateClub({ id, data: payload })
-                    navigate(-1) // Go back to detail
-                } else {
-                    const result = await createClub(payload)
-                    // Assuming result contains share link or invite code
-                    setShareLink('https://t.me/aydarun_bot?start=club_' + result.id)
-                    setCreatedId(result.id)
-                    setIsCreated(true)
-                }
-            } catch (e) {
-                console.error('Failed to save club', e)
-                alert(isEditMode ? 'Ошибка при сохранении' : 'Ошибка при создании клуба')
+        try {
+            const payload = {
+                name,
+                description,
+                is_private: visibility === 'private',
+                is_open: access === 'open'
             }
+
+            if (isEditMode) {
+                await updateClub({ id, data: payload })
+                tg.showAlert('Изменения сохранены!')
+                navigate(-1)
+            } else {
+                const result = await createClub(payload)
+                setShareLink(`https://t.me/aydarun_bot?start=club_${result.id}`)
+                setCreatedId(result.id)
+                setShowSuccess(true)
+            }
+        } catch (e) {
+            console.error('Failed to save club', e)
+            tg.showAlert(isEditMode ? 'Ошибка при сохранении' : 'Ошибка при создании клуба')
         }
     }
 
     // Copy link
-    const copyLink = () => {
+    const handleCopyLink = () => {
         navigator.clipboard.writeText(shareLink)
-        alert('Ссылка скопирована!')
+        tg.showAlert('Ссылка скопирована!')
+    }
+
+    // Share (can use Telegram share if available)
+    const handleShare = () => {
+        if (tg.webApp?.openTelegramLink) {
+            const text = encodeURIComponent(`Присоединяйся к клубу "${name}"!`)
+            tg.webApp.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(shareLink)}&text=${text}`)
+        } else {
+            navigator.clipboard.writeText(shareLink)
+            tg.showAlert('Ссылка скопирована!')
+        }
+    }
+
+    const handleSuccessDone = () => {
+        navigate(`/club/${createdId}`)
     }
 
     if (isEditMode && loadingClub) return <LoadingScreen />
     if (isEditMode && errorClub) return <ErrorScreen message={errorClub} />
-
-    // Success screen (Create Only)
-    if (isCreated) {
-        return (
-            <div className="min-h-screen bg-white flex flex-col">
-                <div className="flex-1 flex flex-col items-center justify-center px-6 text-center">
-                    <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mb-6">
-                        <svg className="w-8 h-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                        </svg>
-                    </div>
-
-                    <h1 className="text-xl text-gray-800 font-medium mb-2">
-                        Клуб создан!
-                    </h1>
-                    <p className="text-sm text-gray-500 mb-8">
-                        Пригласи участников по ссылке
-                    </p>
-
-                    <div className="w-full bg-gray-50 border border-gray-200 rounded-xl p-4 mb-4">
-                        <p className="text-xs text-gray-400 mb-2">Ссылка для приглашения</p>
-                        <p className="text-sm text-gray-800 break-all">{shareLink}</p>
-                    </div>
-
-                    <div className="flex gap-3 w-full">
-                        <Button
-                            onClick={copyLink}
-                            variant="outline"
-                            className="flex-1"
-                        >
-                            Копировать
-                        </Button>
-                        <Button className="flex-1">
-                            Поделиться
-                        </Button>
-                    </div>
-                </div>
-
-                <div className="px-4 pb-6">
-                    <button
-                        onClick={() => navigate(`/club/${createdId}`)}
-                        className="w-full py-4 text-gray-500 text-sm hover:text-gray-700 transition-colors"
-                    >
-                        Перейти в клуб →
-                    </button>
-                </div>
-            </div>
-        )
-    }
 
     return (
         <div className="min-h-screen bg-white flex flex-col">
@@ -154,7 +162,7 @@ export default function CreateClub() {
             </div>
 
             {/* Form */}
-            <div className="flex-1 overflow-auto px-4 py-4">
+            <div ref={scrollRef} className="flex-1 overflow-auto px-4 py-4">
                 <FormInput
                     label="Название клуба"
                     value={name}
@@ -192,12 +200,35 @@ export default function CreateClub() {
 
                 <div className="border-t border-gray-200 my-4" />
 
-                <FormRadioGroup
-                    label="Видимость"
-                    options={visibilityOptions}
-                    value={visibility}
-                    onChange={setVisibility}
-                />
+                {/* Visibility */}
+                <div className="mb-4">
+                    <label className="text-sm text-gray-700 mb-2 block">Видимость</label>
+                    <DropdownPicker
+                        value={visibility}
+                        options={visibilityOptions}
+                        onChange={handleVisibilityChange}
+                        placeholder="Выбрать..."
+                    />
+                </div>
+
+                {/* Access */}
+                <div className="mb-4">
+                    <label className="text-sm text-gray-700 mb-2 block">Кто может вступить?</label>
+                    {visibility === 'private' ? (
+                        <FixedAccess
+                            icon="🔒"
+                            label="По заявке"
+                            hint={getAccessHint()}
+                        />
+                    ) : (
+                        <ToggleButtons
+                            options={accessOptions}
+                            selected={access}
+                            onChange={setAccess}
+                            hint={getAccessHint()}
+                        />
+                    )}
+                </div>
             </div>
 
             {/* Submit button */}
@@ -209,6 +240,18 @@ export default function CreateClub() {
                     {isEditMode ? 'Сохранить изменения' : 'Создать клуб'}
                 </Button>
             </div>
+
+            {/* Success Popup */}
+            <SuccessPopup
+                isOpen={showSuccess}
+                title="Клуб создан!"
+                description="Пригласи участников по ссылке"
+                shareLink={shareLink}
+                onCopyLink={handleCopyLink}
+                onShare={handleShare}
+                onDone={handleSuccessDone}
+                doneButtonText="Перейти в клуб →"
+            />
         </div>
     )
 }

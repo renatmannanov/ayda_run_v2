@@ -14,7 +14,14 @@ export default function AvatarStack({ participants = [], max = 3, size = 'sm' })
         return null
     }
 
-    const displayedParticipants = participants.slice(0, max)
+    // Sort participants: organizer first, then others
+    const sortedParticipants = [...participants].sort((a, b) => {
+        if (a.isOrganizer && !b.isOrganizer) return -1
+        if (!a.isOrganizer && b.isOrganizer) return 1
+        return 0
+    })
+
+    const displayedParticipants = sortedParticipants.slice(0, max)
     const remainingCount = participants.length - max
 
     // Size mappings for the "+N" badge

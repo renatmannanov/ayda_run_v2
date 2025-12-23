@@ -12,7 +12,8 @@ export default function BottomNav({ onCreateClick }) {
     const location = useLocation()
 
     return (
-        <div className="bg-white border-t border-gray-200 px-4 py-3 flex items-center justify-around safe-area-bottom">
+        <div className="bg-white border-t border-gray-200 py-3 flex items-center justify-between safe-area-bottom" style={{ paddingLeft: '30px', paddingRight: '30px' }}>
+            {/* Nav items */}
             {navItems.map(item => {
                 const isActive = location.pathname === item.path
                 return (
@@ -30,11 +31,14 @@ export default function BottomNav({ onCreateClick }) {
                 )
             })}
 
+            {/* Create button */}
             <button
                 onClick={onCreateClick}
-                className="w-10 h-10 bg-gray-800 text-white rounded-xl flex items-center justify-center text-xl hover:bg-gray-700 transition-colors"
+                className="w-9 h-9 rounded-full border-2 border-gray-800 flex items-center justify-center hover:bg-gray-100 transition-colors"
             >
-                ＋
+                <svg className="w-4 h-4 text-gray-800" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m6-6H6" />
+                </svg>
             </button>
         </div>
     )
