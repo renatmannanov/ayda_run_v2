@@ -468,6 +468,9 @@ class ClubRequest(Base):
     telegram_group_link = Column(String(500), nullable=True)
     contact = Column(String(255), nullable=True)
 
+    # Access control
+    is_open = Column(Boolean, default=True, nullable=False)  # True = anyone can join
+
     # Request status
     status = Column(SQLEnum(ClubRequestStatus), default=ClubRequestStatus.PENDING, nullable=False)
 

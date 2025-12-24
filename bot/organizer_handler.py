@@ -26,6 +26,7 @@ from bot.keyboards import (
     get_sports_selection_keyboard,
     get_telegram_group_keyboard,
     get_contact_method_keyboard,
+    get_club_access_keyboard,
     get_club_request_summary_keyboard,
     get_webapp_button
 )
@@ -40,6 +41,7 @@ from bot.messages import (
     get_club_telegram_group_prompt,
     get_club_telegram_instructions,
     get_club_contact_prompt,
+    get_club_access_prompt,
     get_club_request_summary,
     get_club_request_success_message,
     get_group_creation_redirect_message
@@ -64,6 +66,7 @@ CLUB_MEMBERS_COUNT = 14   # Enter members count
 CLUB_GROUPS_COUNT = 15    # Enter groups count
 CLUB_TELEGRAM = 16        # Enter telegram group link (optional)
 CLUB_CONTACT = 17         # Enter contact info
+CLUB_ACCESS = 19          # Select club access type (open/closed)
 CLUB_CONFIRM = 18         # Confirm and submit
 
 
@@ -385,9 +388,12 @@ async def handle_club_contact_choice(update: Update, context: ContextTypes.DEFAU
         contact = f"@{user.username}" if user.username else f"Telegram ID: {user.id}"
         context.user_data['club_request']['contact'] = contact
 
-        # Show summary
-        await show_club_request_summary(query, context)
-        return CLUB_CONFIRM
+        # Show access type selection
+        await query.edit_message_text(
+            get_club_access_prompt(),
+            reply_markup=get_club_access_keyboard()
+        )
+        return CLUB_ACCESS
 
     elif choice == "contact_phone":
         # Ask for phone number
@@ -416,13 +422,32 @@ async def handle_club_contact_phone(update: Update, context: ContextTypes.DEFAUL
     # Save contact
     context.user_data['club_request']['contact'] = result
 
-    # Show summary
-    message = get_club_request_summary(context.user_data['club_request'])
+    # Show access type selection
     await update.message.reply_text(
-        message,
-        reply_markup=get_club_request_summary_keyboard()
+        get_club_access_prompt(),
+        reply_markup=get_club_access_keyboard()
     )
 
+    return CLUB_ACCESS
+
+
+async def handle_club_access_choice(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """
+    Handle club access type choice (open/closed).
+    """
+    query = update.callback_query
+    await query.answer()
+
+    choice = query.data  # access_open or access_closed
+
+    # Determine is_open value
+    is_open = choice == "access_open"
+    context.user_data['club_request']['is_open'] = is_open
+
+    logger.info(f"User {query.from_user.id} set club is_open={is_open}")
+
+    # Show summary
+    await show_club_request_summary(query, context)
     return CLUB_CONFIRM
 
 
@@ -444,17 +469,9 @@ async def handle_club_request_confirm(update: Update, context: ContextTypes.DEFA
     query = update.callback_query
     await query.answer()
 
-    choice = query.data  # request_submit or request_edit
+    choice = query.data
 
-    if choice == "request_edit":
-        # TODO: Implement edit flow (for now, just restart)
-        await query.edit_message_text(
-            "Для изменения заявки начни сначала: /start\n\n"
-            "В будущем здесь будет возможность редактирования."
-        )
-        return ConversationHandler.END
-
-    elif choice == "request_submit":
+    if choice == "request_submit":
         # Save club request to database
         request_data = context.user_data['club_request']
         request_data['user_id'] = context.user_data['user_id']
@@ -564,6 +581,9 @@ organizer_conv_handler = ConversationHandler(
         CLUB_CONTACT: [
             CallbackQueryHandler(handle_club_contact_choice, pattern="^contact_"),
             MessageHandler(filters.TEXT & ~filters.COMMAND, handle_club_contact_phone)
+        ],
+        CLUB_ACCESS: [
+            CallbackQueryHandler(handle_club_access_choice, pattern="^access_")
         ],
         CLUB_CONFIRM: [
             CallbackQueryHandler(handle_club_request_confirm, pattern="^request_")

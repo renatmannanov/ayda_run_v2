@@ -23,6 +23,7 @@ from storage.membership_storage import MembershipStorage
 from config import settings
 from bot.keyboards import (
     get_consent_keyboard,
+    get_photo_visibility_keyboard,
     get_sports_selection_keyboard,
     get_role_selection_keyboard,
     get_intro_done_keyboard,
@@ -33,6 +34,7 @@ from bot.keyboards import (
 from bot.messages import (
     get_welcome_message,
     get_consent_declined_message,
+    get_photo_visibility_message,
     get_sports_selection_message,
     get_role_selection_message,
     get_intro_message,
@@ -52,6 +54,7 @@ logger = logging.getLogger(__name__)
 
 # Conversation states
 AWAITING_CONSENT = 1
+ASKING_PHOTO_VISIBILITY = 6
 SELECTING_SPORTS = 2
 SELECTING_ROLE = 3
 ASKING_STRAVA = 4
@@ -373,10 +376,41 @@ async def handle_consent(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         await query.edit_message_text(get_consent_declined_message())
         return ConversationHandler.END
 
-    # User accepted consent - show sports selection
+    # User accepted consent - show photo visibility selection
     logger.info(f"User {query.from_user.id} accepted consent")
 
-    # Initialize selected sports in context
+    await query.edit_message_text(
+        get_photo_visibility_message(),
+        reply_markup=get_photo_visibility_keyboard()
+    )
+
+    return ASKING_PHOTO_VISIBILITY
+
+
+async def handle_photo_visibility(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """
+    Handle photo visibility selection.
+
+    Callback data: "photo_show" or "photo_hide"
+    """
+    query = update.callback_query
+    await query.answer()
+
+    callback_data = query.data
+    telegram_user = query.from_user
+
+    # Determine show_photo value
+    show_photo = callback_data == "photo_show"
+
+    logger.info(f"User {telegram_user.id} set show_photo={show_photo}")
+
+    # Save to database
+    with UserStorage() as user_storage:
+        user = user_storage.get_user_by_telegram_id(telegram_user.id)
+        if user:
+            user_storage.update_profile(user.id, show_photo=show_photo)
+
+    # Initialize selected sports in context and move to sports selection
     context.user_data['selected_sports'] = []
 
     await query.edit_message_text(
@@ -488,10 +522,11 @@ async def handle_role_selection(update: Update, context: ContextTypes.DEFAULT_TY
 
 async def handle_strava_response(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """
-    Handle Strava link question responses (yes/skip).
+    Handle Strava link question responses (yes/skip/skip_input).
 
     - strava_yes: Ask user to send Strava link
-    - strava_skip: Skip to intro message
+    - strava_skip: Skip to intro message (initial choice)
+    - strava_skip_input: Skip after trying to input link
     """
     query = update.callback_query
     await query.answer()
@@ -499,7 +534,7 @@ async def handle_strava_response(update: Update, context: ContextTypes.DEFAULT_T
     callback_data = query.data
     telegram_user = query.from_user
 
-    if callback_data == "strava_skip":
+    if callback_data in ("strava_skip", "strava_skip_input"):
         # Skip Strava link - proceed to intro
         logger.info(f"User {telegram_user.id} skipped Strava link")
 
@@ -514,9 +549,15 @@ async def handle_strava_response(update: Update, context: ContextTypes.DEFAULT_T
         # User wants to add Strava link - ask for it
         logger.info(f"User {telegram_user.id} wants to add Strava link")
 
+        keyboard = InlineKeyboardMarkup([
+            [InlineKeyboardButton("⏭ Пропустить", callback_data="strava_skip_input")]
+        ])
+
         await query.edit_message_text(
             "Отправь ссылку на свой профиль Strava\n\n"
-            "Например: https://www.strava.com/athletes/12345"
+            "Например: https://www.strava.com/athletes/12345\n\n"
+            "💡 Можешь скопировать ссылку из профиля в приложении Strava.",
+            reply_markup=keyboard
         )
 
         return ASKING_STRAVA
@@ -528,19 +569,44 @@ async def handle_strava_link(update: Update, context: ContextTypes.DEFAULT_TYPE)
     """
     Handle Strava link text input.
 
-    Save Strava link to user profile and proceed to intro.
+    Validate, check uniqueness, and save Strava link to user profile, then proceed to intro.
     """
+    from bot.validators import validate_strava_link
+
     message = update.message
     telegram_user = message.from_user
     strava_link = message.text.strip()
 
     logger.info(f"User {telegram_user.id} sent Strava link: {strava_link}")
 
-    # Save to database
+    # Validate Strava link format
+    is_valid, result = validate_strava_link(strava_link)
+
+    if not is_valid:
+        keyboard = InlineKeyboardMarkup([
+            [InlineKeyboardButton("⏭ Пропустить", callback_data="strava_skip_input")]
+        ])
+        await message.reply_text(f"❌ {result}", reply_markup=keyboard)
+        return ASKING_STRAVA
+
+    # Check uniqueness
     with UserStorage() as user_storage:
         user = user_storage.get_user_by_telegram_id(telegram_user.id)
         if user:
-            user_storage.update_profile(user.id, strava_link=strava_link)
+            # Check if this Strava link is already used by another user
+            if not user_storage.is_strava_link_unique(result, exclude_user_id=user.id):
+                keyboard = InlineKeyboardMarkup([
+                    [InlineKeyboardButton("⏭ Пропустить", callback_data="strava_skip_input")]
+                ])
+                await message.reply_text(
+                    "❌ Эта ссылка Strava уже используется другим пользователем.\n\n"
+                    "Попробуй указать другую ссылку или пропусти этот шаг.",
+                    reply_markup=keyboard
+                )
+                return ASKING_STRAVA
+
+            # Save the link
+            user_storage.update_profile(user.id, strava_link=result)
             logger.info(f"Saved Strava link for user {user.id}")
 
     # Confirmation message
@@ -660,6 +726,9 @@ onboarding_conv_handler = ConversationHandler(
     states={
         AWAITING_CONSENT: [
             CallbackQueryHandler(handle_consent, pattern="^consent_")
+        ],
+        ASKING_PHOTO_VISIBILITY: [
+            CallbackQueryHandler(handle_photo_visibility, pattern="^photo_")
         ],
         SELECTING_SPORTS: [
             CallbackQueryHandler(handle_sports_selection, pattern="^sport_")

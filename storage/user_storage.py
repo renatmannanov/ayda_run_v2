@@ -285,6 +285,27 @@ class UserStorage:
             logger.error(f"Error in update_profile: {e}")
             raise
 
+    def is_strava_link_unique(self, strava_link: str, exclude_user_id: str = None) -> bool:
+        """
+        Check if Strava link is unique (not used by another user).
+
+        Args:
+            strava_link: Strava profile URL to check
+            exclude_user_id: User ID to exclude from check (for updating own profile)
+
+        Returns:
+            True if link is unique, False if already used by another user
+        """
+        try:
+            query = self.session.query(User).filter(User.strava_link == strava_link)
+            if exclude_user_id:
+                query = query.filter(User.id != exclude_user_id)
+            existing_user = query.first()
+            return existing_user is None
+        except Exception as e:
+            logger.error(f"Error in is_strava_link_unique: {e}")
+            return True  # Allow if error (fail open)
+
     def get_detailed_stats(self, user_id: str, period: str = "month") -> dict:
         """
         Get detailed statistics for user.

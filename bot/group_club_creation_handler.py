@@ -21,13 +21,15 @@ from storage.club_storage import ClubStorage
 from storage.membership_storage import MembershipStorage
 from storage.db import UserRole
 from config import settings
-from bot.keyboards import get_sports_selection_keyboard, get_webapp_button
+from bot.keyboards import get_sports_selection_keyboard, get_club_access_keyboard, get_webapp_button
+from bot.messages import get_club_access_prompt
 
 logger = logging.getLogger(__name__)
 
 # Conversation states
 CONFIRMING_CLUB_CREATION = 1
 SELECTING_SPORTS = 2
+SELECTING_ACCESS = 3
 
 
 # Custom exceptions
@@ -236,13 +238,22 @@ async def handle_sports_selection(update: Update, context: ContextTypes.DEFAULT_
             await query.answer("Выберите хотя бы один вид спорта", show_alert=True)
             return SELECTING_SPORTS
 
-        # Создать клуб
-        return await finalize_club_creation(update, context)
+        # Перейти к выбору доступа
+        await query.edit_message_text(
+            get_club_access_prompt(),
+            reply_markup=get_club_access_keyboard()
+        )
+        return SELECTING_ACCESS
 
     if callback_data == "sport_skip":
         # Пропустить выбор спортов
         context.user_data['selected_sports'] = []
-        return await finalize_club_creation(update, context)
+        # Перейти к выбору доступа
+        await query.edit_message_text(
+            get_club_access_prompt(),
+            reply_markup=get_club_access_keyboard()
+        )
+        return SELECTING_ACCESS
 
     # Добавить/удалить спорт
     if callback_data.startswith("sport_toggle_"):
@@ -269,6 +280,25 @@ async def handle_sports_selection(update: Update, context: ContextTypes.DEFAULT_
     return SELECTING_SPORTS
 
 
+async def handle_access_selection(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """
+    Обработка выбора типа доступа (открыт/закрыт)
+    """
+    query = update.callback_query
+    await query.answer()
+
+    callback_data = query.data
+
+    # Determine is_open value
+    is_open = callback_data == "access_open"
+    context.user_data['is_open'] = is_open
+
+    logger.info(f"User {query.from_user.id} set club is_open={is_open}")
+
+    # Создать клуб
+    return await finalize_club_creation(update, context)
+
+
 async def finalize_club_creation(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """
     Финализация - создание клуба в БД
@@ -278,6 +308,7 @@ async def finalize_club_creation(update: Update, context: ContextTypes.DEFAULT_T
 
     group_data = context.user_data.get('group_data')
     selected_sports = context.user_data.get('selected_sports', [])
+    is_open = context.user_data.get('is_open', True)
     creator_telegram_id = context.user_data.get('creator_telegram_id')
     chat_id = group_data['chat_id']
 
@@ -300,7 +331,8 @@ async def finalize_club_creation(update: Update, context: ContextTypes.DEFAULT_T
             club = club_storage.create_club_from_telegram_group(
                 creator_id=user.id,
                 group_data=group_data,
-                sports=selected_sports
+                sports=selected_sports,
+                is_open=is_open
             )
 
         # Добавить создателя как ORGANIZER
@@ -432,6 +464,9 @@ group_club_creation_handler = ConversationHandler(
         ],
         SELECTING_SPORTS: [
             CallbackQueryHandler(handle_sports_selection, pattern="^sport_")
+        ],
+        SELECTING_ACCESS: [
+            CallbackQueryHandler(handle_access_selection, pattern="^access_")
         ],
     },
     fallbacks=[

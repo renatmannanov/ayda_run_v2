@@ -128,7 +128,8 @@ class ClubStorage:
                     'members_count': 120,
                     'groups_count': 4,
                     'telegram_group_link': 'https://t.me/...',
-                    'contact': '@username'
+                    'contact': '@username',
+                    'is_open': True
                 }
 
         Returns:
@@ -146,7 +147,8 @@ class ClubStorage:
                 members_count=data.get('members_count'),
                 groups_count=data.get('groups_count'),
                 telegram_group_link=data.get('telegram_group_link'),
-                contact=data.get('contact')
+                contact=data.get('contact'),
+                is_open=data.get('is_open', True)
             )
             self.session.add(request)
             self.session.commit()
@@ -325,7 +327,8 @@ class ClubStorage:
         self,
         creator_id: str,
         group_data: dict,
-        sports: List[str]
+        sports: List[str],
+        is_open: bool = True
     ) -> Club:
         """
         Создать клуб на основе данных Telegram группы
@@ -344,6 +347,7 @@ class ClubStorage:
                     'type': str,
                 }
             sports: Выбранные виды спорта
+            is_open: Открыт ли клуб для вступления
 
         Returns:
             Club: Созданный клуб
@@ -369,6 +373,7 @@ class ClubStorage:
                 invite_link=group_data.get('invite_link'),
                 photo=group_data.get('photo'),
                 city='Almaty',  # TODO: определять из группы или пользователя
+                is_open=is_open,
             )
 
             self.session.add(club)

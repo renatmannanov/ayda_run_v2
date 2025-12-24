@@ -24,6 +24,20 @@ def get_consent_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(keyboard)
 
 
+def get_photo_visibility_keyboard() -> InlineKeyboardMarkup:
+    """
+    Keyboard for selecting photo visibility during onboarding.
+
+    Returns:
+        InlineKeyboardMarkup with show/hide photo buttons
+    """
+    keyboard = [
+        [InlineKeyboardButton("✅ Показывать фото", callback_data="photo_show")],
+        [InlineKeyboardButton("👤 Скрыть (только инициалы)", callback_data="photo_hide")],
+    ]
+    return InlineKeyboardMarkup(keyboard)
+
+
 def get_sports_selection_keyboard(selected: List[str] = None) -> InlineKeyboardMarkup:
     """
     Keyboard for selecting preferred sports (multi-select).
@@ -37,12 +51,14 @@ def get_sports_selection_keyboard(selected: List[str] = None) -> InlineKeyboardM
     if selected is None:
         selected = []
 
-    # Sports: ID and Label
+    # Sports: ID and Label (IDs match SportType enum names)
     sports = [
         ("RUNNING", "🏃 Бег"),
-        ("TRAIL_RUNNING", "⛰️ Трейл"),
+        ("TRAIL", "⛰️ Трейл"),
         ("HIKING", "🥾 Хайкинг"),
         ("CYCLING", "🚴 Вело"),
+        ("YOGA", "🧘 Йога"),
+        ("WORKOUT", "💪 Воркаут"),
     ]
 
     keyboard = []
@@ -89,10 +105,10 @@ def get_intro_done_keyboard() -> InlineKeyboardMarkup:
     Keyboard for app intro screen.
 
     Returns:
-        InlineKeyboardMarkup with Next button
+        InlineKeyboardMarkup with Ayda button
     """
     keyboard = [
-        [InlineKeyboardButton("▶️ Далее", callback_data="intro_done")]
+        [InlineKeyboardButton("🏃 Айда!", callback_data="intro_done")]
     ]
     return InlineKeyboardMarkup(keyboard)
 
@@ -170,8 +186,8 @@ def get_org_type_keyboard() -> InlineKeyboardMarkup:
         InlineKeyboardMarkup with club/group options
     """
     keyboard = [
-        [InlineKeyboardButton("🏆 Клуб (от 50 человек)\nОбъединяет несколько групп", callback_data="org_club")],
-        [InlineKeyboardButton("👥 Группу (до 50 человек)\nОтдельное сообщество", callback_data="org_group")],
+        [InlineKeyboardButton("🏆 Клуб", callback_data="org_club")],
+        [InlineKeyboardButton("👥 Группа", callback_data="org_group")],
         [InlineKeyboardButton("← Назад", callback_data="org_back")],
     ]
     return InlineKeyboardMarkup(keyboard)
@@ -182,13 +198,10 @@ def get_club_form_confirmation_keyboard() -> InlineKeyboardMarkup:
     Keyboard for club form confirmation.
 
     Returns:
-        InlineKeyboardMarkup with confirm/edit buttons
+        InlineKeyboardMarkup with confirm button
     """
     keyboard = [
-        [
-            InlineKeyboardButton("✅ Отправить", callback_data="club_confirm_submit"),
-            InlineKeyboardButton("✏️ Исправить", callback_data="club_confirm_edit"),
-        ]
+        [InlineKeyboardButton("✅ Отправить заявку", callback_data="club_confirm_submit")]
     ]
     return InlineKeyboardMarkup(keyboard)
 
@@ -300,13 +313,10 @@ def get_club_request_summary_keyboard() -> InlineKeyboardMarkup:
     Keyboard for club request summary confirmation.
 
     Returns:
-        InlineKeyboardMarkup with submit/edit buttons
+        InlineKeyboardMarkup with submit button
     """
     keyboard = [
-        [
-            InlineKeyboardButton("✅ Отправить", callback_data="request_submit"),
-            InlineKeyboardButton("✏️ Исправить", callback_data="request_edit"),
-        ]
+        [InlineKeyboardButton("✅ Отправить заявку", callback_data="request_submit")]
     ]
     return InlineKeyboardMarkup(keyboard)
 
@@ -327,5 +337,19 @@ def get_join_request_keyboard(request_id: str, entity_type: str) -> InlineKeyboa
             InlineKeyboardButton("✅ Одобрить", callback_data=f"approve_join_{entity_type}_{request_id}"),
             InlineKeyboardButton("❌ Отклонить", callback_data=f"reject_join_{entity_type}_{request_id}"),
         ]
+    ]
+    return InlineKeyboardMarkup(keyboard)
+
+
+def get_club_access_keyboard() -> InlineKeyboardMarkup:
+    """
+    Keyboard for selecting club access type during creation.
+
+    Returns:
+        InlineKeyboardMarkup with open/closed access buttons
+    """
+    keyboard = [
+        [InlineKeyboardButton("🌍 Открыто для всех", callback_data="access_open")],
+        [InlineKeyboardButton("🔒 Требуется одобрение", callback_data="access_closed")],
     ]
     return InlineKeyboardMarkup(keyboard)

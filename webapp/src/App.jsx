@@ -1,5 +1,5 @@
-import { Routes, Route, useNavigate, useLocation } from 'react-router-dom'
-import { useEffect, useState } from 'react'
+import { Routes, Route, useNavigate } from 'react-router-dom'
+import { useEffect } from 'react'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import { queryClient } from './queryClient'
@@ -14,13 +14,9 @@ import CreateGroup from './screens/CreateGroup'
 import Profile from './screens/Profile'
 import Statistics from './screens/Statistics'
 import Settings from './screens/Settings'
-import Onboarding from './screens/Onboarding'
-import { api } from './api'
 
 function App() {
     const navigate = useNavigate()
-    const location = useLocation()
-    const [checkingOnboarding, setCheckingOnboarding] = useState(true)
 
     // Initialize Telegram WebApp and handle deep links
     useEffect(() => {
@@ -47,42 +43,6 @@ function App() {
         }
     }, [navigate])
 
-    // Check onboarding status
-    useEffect(() => {
-        const checkOnboarding = async () => {
-            // Don't check if already on onboarding page
-            if (location.pathname === '/onboarding') {
-                setCheckingOnboarding(false)
-                return
-            }
-
-            try {
-                const user = await api.get('/users/me')
-
-                // Redirect to onboarding if not completed
-                if (!user.has_completed_onboarding) {
-                    navigate('/onboarding')
-                }
-            } catch (error) {
-                console.error('Failed to check onboarding status:', error)
-                // Don't block user on error
-            } finally {
-                setCheckingOnboarding(false)
-            }
-        }
-
-        checkOnboarding()
-    }, [navigate, location.pathname])
-
-    // Show loading while checking onboarding
-    if (checkingOnboarding) {
-        return (
-            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-                <div className="text-gray-500">Загрузка...</div>
-            </div>
-        )
-    }
-
     return (
         <QueryClientProvider client={queryClient}>
             <UserProvider>
@@ -102,7 +62,6 @@ function App() {
                         <Route path="/profile" element={<Profile />} />
                         <Route path="/statistics" element={<Statistics />} />
                         <Route path="/settings" element={<Settings />} />
-                        <Route path="/onboarding" element={<Onboarding />} />
                     </Routes>
                 </div>
             </UserProvider>

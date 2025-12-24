@@ -243,3 +243,33 @@ def validate_group_data(group_data: dict) -> Tuple[bool, str]:
         return False, "Слишком большая группа для создания клуба"
 
     return True, ""
+
+
+def validate_strava_link(url: str) -> Tuple[bool, str]:
+    """
+    Validate Strava profile URL.
+
+    Valid formats:
+    - https://www.strava.com/athletes/12345
+    - https://strava.com/athletes/username
+    - www.strava.com/athletes/12345
+    - strava.com/athletes/12345
+    - https://www.strava.com/pros/username
+
+    Args:
+        url: Strava URL to validate
+
+    Returns:
+        Tuple of (is_valid, error_message or cleaned_url)
+    """
+    if not url or not url.strip():
+        return False, "Ссылка не может быть пустой"
+
+    cleaned = url.strip()
+    url_lower = cleaned.lower()
+
+    # Check if it's a Strava link
+    if 'strava.com/athletes/' in url_lower or 'strava.com/pros/' in url_lower:
+        return True, cleaned
+
+    return False, "Неверный формат ссылки.\n\nПример: https://www.strava.com/athletes/12345"
