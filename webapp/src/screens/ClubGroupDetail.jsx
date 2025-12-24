@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
-import { CreateMenu, ParticipantsSheet, ActivityCard, GroupCard, LoadingScreen, ErrorScreen, Button, BottomNav } from '../components'
+import { useParams, useNavigate, useLocation } from 'react-router-dom'
+import { CreateMenu, ParticipantsSheet, ActivityCard, LoadingScreen, ErrorScreen, Button, BottomBar } from '../components'
 import { Avatar, AvatarStack } from '../components/ui'
 import {
     useClub,
@@ -17,6 +17,13 @@ import {
 } from '../hooks'
 import { clubsApi, groupsApi } from '../api'
 import { pluralizeMembers, pluralizeGroups } from '../data/sample_data'
+import { SPORT_TYPES } from '../constants/sports'
+
+// Helper to get sport icon by id
+const getSportIcon = (sportId) => {
+    const sport = SPORT_TYPES.find(s => s.id === sportId)
+    return sport?.icon || null
+}
 
 export default function ClubGroupDetail({ type = 'club' }) {
     const { id } = useParams()
@@ -214,12 +221,49 @@ export default function ClubGroupDetail({ type = 'club' }) {
         </div>
     )
 
+    // Compact Group Chip component
+    const GroupChip = ({ group }) => (
+        <button
+            onClick={() => navigate(`/group/${group.id}`)}
+            className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-left hover:bg-gray-100 transition-colors flex-shrink-0"
+        >
+            <div className="flex items-center gap-1.5">
+                <span className="text-sm text-gray-800 truncate max-w-[120px]">{group.name}</span>
+                {group.telegramChatId && <span className="text-green-500 text-xs">✓</span>}
+            </div>
+            <p className="text-xs text-gray-500">{group.members} чел</p>
+        </button>
+    )
+
+    // Navigate to Home with filter via URL params
+    const handleViewAllActivities = () => {
+        const params = new URLSearchParams()
+        if (isClub) {
+            params.set('clubId', id)
+            params.set('clubName', item.name)
+        } else {
+            params.set('groupId', id)
+            params.set('groupName', item.name)
+        }
+        navigate(`/?${params.toString()}`)
+    }
+
+    // Navigate to schedule (same as view all for members)
+    const handleViewSchedule = () => {
+        handleViewAllActivities()
+    }
+
+    // Stats placeholder for admin
+    const handleViewStats = () => {
+        tg.showAlert('Статистика пока в разработке')
+    }
+
     return (
         <div className="h-screen bg-white flex flex-col relative">
             {showGearMenu && <GearMenu />}
 
             {/* Header */}
-            <div className="flex items-center justify-between px-4 py-4 border-b border-gray-200 sticky top-0 bg-white z-10">
+            <div className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between sticky top-0 z-10">
                 <button
                     onClick={() => navigate(-1)}
                     className="text-gray-500 text-sm hover:text-gray-700"
@@ -230,108 +274,168 @@ export default function ClubGroupDetail({ type = 'club' }) {
                 {isAdmin && (
                     <button
                         onClick={() => setShowGearMenu(true)}
-                        className="text-xl p-2 -mr-2 text-gray-500 hover:text-gray-700 active:scale-95 transition-transform"
+                        className="p-1 text-gray-400 hover:text-gray-600 active:scale-95 transition-all"
                     >
-                        ⚙️
+                        <svg
+                            className="w-3.5 h-3.5"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth={2.5}
+                            strokeLinecap="round"
+                        >
+                            <line x1="4" y1="4" x2="4" y2="20" />
+                            <circle cx="4" cy="14" r="2.5" fill="currentColor" stroke="none" />
+                            <line x1="12" y1="4" x2="12" y2="20" />
+                            <circle cx="12" cy="8" r="2.5" fill="currentColor" stroke="none" />
+                            <line x1="20" y1="4" x2="20" y2="20" />
+                            <circle cx="20" cy="16" r="2.5" fill="currentColor" stroke="none" />
+                        </svg>
                     </button>
                 )}
             </div>
 
             {/* Content */}
-            <div className="flex-1 overflow-y-auto px-4 py-4 pb-24">
+            <div className="flex-1 overflow-y-auto px-4 py-4 pb-32">
                 {/* Main Info Card */}
                 <div className="border border-gray-200 rounded-xl p-4 mb-4">
-                    <div className="mb-4">
-                        <div className="flex items-center gap-2 mb-1">
-                            {item.photo ? (
-                                <Avatar src={item.photo} name={item.name} size="md" className="flex-shrink-0" forcePhoto />
-                            ) : (
-                                <span className="text-xl flex-shrink-0">{isClub ? '🏆' : '👥'}</span>
-                            )}
-                            {!item.isOpen && <span className="text-gray-400 text-base flex-shrink-0">🔒</span>}
-                            <h1 className="text-lg text-gray-800 font-medium flex-1 min-w-0">
-                                <span className="break-words">{item.name}</span>
-                                {!isClub && (item.club_name || item.parentClub) && item.clubId && (
-                                    <span
-                                        onClick={() => navigate(`/club/${item.clubId}`)}
-                                        className="text-gray-400 font-normal hover:text-gray-600 hover:underline cursor-pointer"
-                                    > / {item.club_name || item.parentClub}</span>
-                                )}
+                    {/* Header: info left, avatar right */}
+                    <div className="flex items-start justify-between gap-4 mb-4">
+                        {/* Left: info */}
+                        <div className="flex-1 min-w-0">
+                            <h1 className="text-lg text-gray-800 font-medium break-words">
+                                {item.name}
                             </h1>
-                        </div>
-                        <p className="text-sm text-gray-500">
-                            {isClub ? '🏆 Клуб' : '👥 Группа'}
-                            {!item.isOpen && ' · Закрытый'}
-                        </p>
-                    </div>
 
-                    {item.description && (
-                        <p className="text-sm text-gray-700 leading-relaxed mb-4">
-                            {item.description}
-                        </p>
-                    )}
+                            {/* Parent club for groups */}
+                            {!isClub && (item.club_name || item.parentClub) && item.clubId && (
+                                <button
+                                    onClick={() => navigate(`/club/${item.clubId}`)}
+                                    className="text-sm text-gray-400 mt-0.5 hover:text-gray-600"
+                                >
+                                    {item.club_name || item.parentClub} →
+                                </button>
+                            )}
 
-                    <div className="border-t border-gray-200 pt-4 flex items-center justify-between">
-                        <button
-                            onClick={() => setShowParticipants(true)}
-                            className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 transition-colors"
-                        >
-                            <AvatarStack participants={participants} max={5} size="sm" />
-                            <span>
+                            {/* Stats line: members, groups, visibility */}
+                            <p className="text-sm text-gray-500 mt-2">
                                 {pluralizeMembers(item.members)}
                                 {isClub && item.groupsCount > 0 && ` · ${pluralizeGroups(item.groupsCount)}`}
-                            </span>
-                        </button>
+                                {' · '}
+                                {item.isOpen ? '🌐' : '🔒'}
+                            </p>
 
-                        {/* Inline Join/Member Status - NEW */}
-                        {item.isMember ? (
-                            <span className="text-sm font-medium text-green-600 bg-green-50 px-3 py-1 rounded-full">
-                                Участник ✓
-                            </span>
-                        ) : (
-                            <button
-                                onClick={toggleMembership}
-                                disabled={joiningClub || joiningGroup}
-                                className="text-sm font-medium text-blue-600 bg-blue-50 px-3 py-1 rounded-full hover:bg-blue-100 transition-colors"
-                            >
-                                {joiningClub || joiningGroup ? '...' : (item.isOpen ? 'Вступить' : 'Отправить заявку')}
-                            </button>
-                        )}
+                            {/* Sports icons */}
+                            {item.sports && item.sports.length > 0 && (
+                                <div className="flex gap-1 mt-2">
+                                    {item.sports.map(sportId => {
+                                        const icon = getSportIcon(sportId)
+                                        return icon ? (
+                                            <span key={sportId} className="text-base">{icon}</span>
+                                        ) : null
+                                    })}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Right: avatar with TG badge overlay */}
+                        <div className="flex-shrink-0 relative">
+                            {item.photo ? (
+                                <Avatar src={item.photo} name={item.name} size="xl" forcePhoto />
+                            ) : (
+                                <span className="text-5xl">{isClub ? '🏆' : '👥'}</span>
+                            )}
+                            {item.telegramChatId && (
+                                <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-[#0088cc] rounded-full flex items-center justify-center shadow-sm">
+                                    <svg className="w-2.5 h-2.5 text-white" viewBox="0 0 24 24" fill="currentColor">
+                                        <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+                                    </svg>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Description */}
+                    {item.description && (
+                        <>
+                            <div className="border-t border-gray-200 my-4" />
+                            <p className="text-sm text-gray-700 leading-relaxed">
+                                {item.description}
+                            </p>
+                        </>
+                    )}
+
+                    {/* Activities section */}
+                    <div className="border-t border-gray-200 my-4" />
+                    {upcomingActivities.length > 0 ? (
+                        <div>
+                            <div className="flex items-center justify-between mb-3">
+                                <p className="text-sm text-gray-500">Ближайшие активности</p>
+                                {activities.length > 0 && (
+                                    <button
+                                        onClick={handleViewAllActivities}
+                                        className="text-xs text-gray-400 hover:text-gray-600"
+                                    >
+                                        Все ({activities.length}) →
+                                    </button>
+                                )}
+                            </div>
+                            {upcomingActivities.slice(0, 3).map(activity => (
+                                <ActivityCard key={activity.id} activity={activity} />
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="border border-dashed border-gray-200 rounded-xl p-4 text-center">
+                            <span className="text-xl mb-1 block">📅</span>
+                            <p className="text-sm text-gray-400 mb-2">Нет запланированных</p>
+                            {item.isMember && (
+                                <button
+                                    onClick={() => setShowCreateMenu(true)}
+                                    className="text-sm text-gray-500 hover:text-gray-700"
+                                >
+                                    {isAdmin ? 'Создать →' : 'Предложить →'}
+                                </button>
+                            )}
+                        </div>
+                    )}
+
+                    {/* Groups section (only for clubs) */}
+                    {isClub && clubGroups.length > 0 && (
+                        <>
+                            <div className="border-t border-gray-200 my-4" />
+                            <div>
+                                <p className="text-sm text-gray-500 mb-3">Группы ({clubGroups.length})</p>
+                                <div className="flex flex-wrap gap-2">
+                                    {clubGroups.map(group => (
+                                        <GroupChip key={group.id} group={group} />
+                                    ))}
+                                </div>
+                            </div>
+                        </>
+                    )}
+
+                    {/* Participants section */}
+                    <div className="border-t border-gray-200 my-4" />
+                    <div>
+                        <div className="flex items-center gap-1 mb-3">
+                            <p className="text-sm text-gray-500">Участники ({item.members})</p>
+                            {item.isMember && (
+                                <svg className="w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                </svg>
+                            )}
+                        </div>
+                        <button
+                            onClick={() => setShowParticipants(true)}
+                            className="flex items-center gap-1"
+                        >
+                            <AvatarStack participants={participants} max={5} size="sm" />
+                            {participants.length > 5 && (
+                                <span className="text-sm text-gray-400 ml-2">+{participants.length - 5} →</span>
+                            )}
+                        </button>
                     </div>
                 </div>
-
-                {/* Groups (only for clubs) */}
-                {isClub && clubGroups.length > 0 && (
-                    <div className="mb-4">
-                        <p className="text-sm text-gray-500 mb-3">Группы</p>
-                        {clubGroups.map(group => (
-                            <GroupCard key={group.id} group={group} />
-                        ))}
-                    </div>
-                )}
-
-                {/* Upcoming Activities */}
-                {upcomingActivities.length > 0 ? (
-                    <div className="mb-4">
-                        <p className="text-sm text-gray-500 mb-3">Тренировки</p>
-                        {upcomingActivities.map(activity => (
-                            <ActivityCard key={activity.id} activity={activity} />
-                        ))}
-                    </div>
-                ) : (
-                    <div className="border border-dashed border-gray-200 rounded-xl p-6 text-center mb-4">
-                        <span className="text-2xl mb-2 block">📅</span>
-                        <p className="text-sm text-gray-400 mb-3">Нет запланированных тренировок</p>
-                        {item.isMember && (
-                            <button
-                                onClick={() => setShowCreateMenu(true)}
-                                className="text-sm text-gray-600 hover:text-gray-800 transition-colors"
-                            >
-                                {isAdmin ? 'Создать активность →' : 'Предложить активность →'}
-                            </button>
-                        )}
-                    </div>
-                )}
             </div>
 
             {/* Participants sheet */}
@@ -351,10 +455,43 @@ export default function ClubGroupDetail({ type = 'club' }) {
                     : { groupId: item.id, clubId: item.clubId, name: item.name }}
             />
 
-            {/* Bottom Navigation */}
-            <div className="fixed bottom-0 left-0 right-0 max-w-md mx-auto z-40">
-                <BottomNav onCreateClick={() => setShowCreateMenu(true)} />
-            </div>
+            {/* Bottom Bar with Action */}
+            <BottomBar
+                onCreateClick={() => setShowCreateMenu(true)}
+                action={
+                    !item.isMember ? (
+                        <button
+                            onClick={toggleMembership}
+                            disabled={joiningClub || joiningGroup}
+                            className="w-full py-4 bg-gray-800 text-white rounded-xl text-sm font-medium hover:bg-gray-700 transition-colors disabled:opacity-50"
+                        >
+                            {joiningClub || joiningGroup ? '...' : (item.isOpen ? 'Вступить' : '🔒 Отправить заявку')}
+                        </button>
+                    ) : isAdmin ? (
+                        <div className="flex gap-2">
+                            <button
+                                disabled
+                                className="flex-1 py-4 bg-gray-200 text-gray-400 rounded-xl text-sm font-medium cursor-not-allowed"
+                            >
+                                📊 Аналитика <span className="text-xs">(в работе)</span>
+                            </button>
+                            <button
+                                onClick={handleViewSchedule}
+                                className="flex-1 py-4 bg-gray-800 text-white rounded-xl text-sm font-medium hover:bg-gray-700 transition-colors"
+                            >
+                                📅 Расписание
+                            </button>
+                        </div>
+                    ) : (
+                        <button
+                            onClick={handleViewSchedule}
+                            className="w-full py-4 bg-gray-800 text-white rounded-xl text-sm font-medium hover:bg-gray-700 transition-colors"
+                        >
+                            📅 Расписание
+                        </button>
+                    )
+                }
+            />
         </div>
     )
 }
