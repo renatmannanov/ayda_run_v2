@@ -165,6 +165,9 @@ class User(Base):
     first_seen_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     last_seen_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
+    # Demo data flag
+    is_demo = Column(Boolean, default=False, nullable=False, index=True)
+
     # Timestamps
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -212,6 +215,9 @@ class Club(Base):
     telegram_member_count = Column(Integer, nullable=True)  # Total members in TG group
     sync_completed = Column(Boolean, default=False, nullable=False)  # All members collected?
 
+    # Demo data flag
+    is_demo = Column(Boolean, default=False, nullable=False, index=True)
+
     created_at = Column(DateTime, default=datetime.utcnow)
 
     # Relationships
@@ -255,6 +261,9 @@ class Group(Base):
 
     # Access control
     is_open = Column(Boolean, default=True)  # True = anyone can join
+
+    # Demo data flag
+    is_demo = Column(Boolean, default=False, nullable=False, index=True)
 
     created_at = Column(DateTime, default=datetime.utcnow)
 
@@ -376,6 +385,9 @@ class Activity(Base):
 
     # Status
     status = Column(SQLEnum(ActivityStatus), default=ActivityStatus.UPCOMING, nullable=False, index=True)
+
+    # Demo data flag
+    is_demo = Column(Boolean, default=False, nullable=False, index=True)
 
     created_at = Column(DateTime, default=datetime.utcnow)
 
