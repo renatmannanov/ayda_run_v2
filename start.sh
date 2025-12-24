@@ -1,12 +1,6 @@
 #!/bin/bash
 set -e
 
-echo "=== Building frontend ==="
-cd webapp
-npm install
-npm run build
-cd ..
-
 echo "=== Running database migrations ==="
 alembic upgrade head
 
