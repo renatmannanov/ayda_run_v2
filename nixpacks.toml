@@ -2,7 +2,7 @@
 # Enables both Node.js (for frontend build) and Python (for backend)
 
 [phases.setup]
-nixPkgs = ["nodejs-18_x", "python311", "npm"]
+nixPkgs = ["nodejs-18_x", "python3", "npm"]
 
 [phases.install]
 cmds = [
