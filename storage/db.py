@@ -459,8 +459,8 @@ class ClubRequest(Base):
     """
     __tablename__ = 'club_requests'
 
-    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
-    user_id = Column(String(36), ForeignKey('users.id'), nullable=False, index=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=False, index=True)
 
     # Club data
     name = Column(String(255), nullable=False)

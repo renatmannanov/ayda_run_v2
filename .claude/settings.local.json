@@ -20,7 +20,9 @@
       "Bash(rm:*)",
       "Bash(timeout /t 3 /nobreak)",
       "Bash(pytest:*)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(dir:*)",
+      "Bash(ls:*)"
     ]
   }
 }
