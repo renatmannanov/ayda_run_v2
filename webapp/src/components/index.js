@@ -12,6 +12,7 @@ export { default as ActivityCard } from './shared/ActivityCard'
 export { default as ClubCard } from './shared/ClubCard'
 export { default as GroupCard } from './shared/GroupCard'
 export { default as SportChips } from './shared/SportChips'
+export { SearchButton } from './shared/SearchButton'
 
 // UI components
 export {

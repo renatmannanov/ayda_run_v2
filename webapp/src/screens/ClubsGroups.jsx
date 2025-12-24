@@ -1,5 +1,8 @@
-import React, { useState } from 'react'
-import { BottomNav, CreateMenu, ClubCard, GroupCard, LoadingScreen, ErrorScreen } from '../components'
+import React, { useState, useMemo } from 'react'
+import { BottomNav, CreateMenu, ClubCard, GroupCard, LoadingScreen, ErrorScreen, SearchButton } from '../components'
+import { ModeToggle } from '../components/home/ModeToggle'
+import { SportFilterButton } from '../components/home/SportFilterButton'
+import { SportFilterPopup } from '../components/home/SportFilterPopup'
 import { useClubs, useGroups, useJoinClub, useJoinGroup } from '../hooks'
 
 export default function ClubsGroups() {
@@ -14,16 +17,72 @@ export default function ClubsGroups() {
     const [showSearch, setShowSearch] = useState(false)
     const [joinConfirm, setJoinConfirm] = useState(null)
 
+    // Mode and filter state (unified with Home)
+    const [mode, setMode] = useState('all') // 'my' | 'all'
+    const [selectedSports, setSelectedSports] = useState([])
+    const [showSportFilter, setShowSportFilter] = useState(false)
+
     const loading = clubsLoading || groupsLoading
     const error = clubsError || groupsError
 
-    // Get my clubs and groups
-    const myClubs = (clubs || []).filter(c => c.isMember)
-    const myGroups = (groups || []).filter(g => g.isMember)
+    // Sport filter handlers
+    const toggleSport = (sportId) => {
+        setSelectedSports(prev =>
+            prev.includes(sportId)
+                ? prev.filter(id => id !== sportId)
+                : [...prev, sportId]
+        )
+    }
 
-    // Get discover items
-    const discoverClubs = (clubs || []).filter(c => !c.isMember)
-    const discoverGroups = (groups || []).filter(g => !g.isMember)
+    const clearSportFilters = () => {
+        setSelectedSports([])
+    }
+
+    // Filter by sport types (if club/group has sportTypes array)
+    const filterBySportTypes = (items) => {
+        if (selectedSports.length === 0) return items
+        return items.filter(item =>
+            item.sportTypes?.some(st => selectedSports.includes(st))
+        )
+    }
+
+    // Filter clubs and groups by mode and sport types
+    const filteredClubs = useMemo(() => {
+        let result = clubs || []
+
+        // Filter by mode
+        if (mode === 'my') {
+            result = result.filter(c => c.isMember)
+        }
+
+        // Filter by sport types
+        result = filterBySportTypes(result)
+
+        return result
+    }, [clubs, mode, selectedSports])
+
+    const filteredGroups = useMemo(() => {
+        let result = groups || []
+
+        // Filter by mode
+        if (mode === 'my') {
+            result = result.filter(g => g.isMember)
+        }
+
+        // Filter by sport types
+        result = filterBySportTypes(result)
+
+        return result
+    }, [groups, mode, selectedSports])
+
+    // Separate my vs discover for display
+    const myClubs = filteredClubs.filter(c => c.isMember)
+    const myGroups = filteredGroups.filter(g => g.isMember)
+    const discoverClubs = filteredClubs.filter(c => !c.isMember)
+    const discoverGroups = filteredGroups.filter(g => !g.isMember)
+
+    // Total count for display
+    const totalCount = filteredClubs.length + filteredGroups.length
 
     // Filter by search
     const filterBySearch = (items) => {
@@ -56,39 +115,6 @@ export default function ClubsGroups() {
             console.error('Join failed', e)
         }
     }
-
-    // Search Header
-    const SearchHeader = () => (
-        <div className="bg-white border-b border-gray-200 px-4 py-3">
-            <div className="flex items-center gap-3">
-                <button
-                    onClick={() => {
-                        setShowSearch(false)
-                        setSearchQuery('')
-                    }}
-                    className="text-gray-500 hover:text-gray-700"
-                >
-                    ←
-                </button>
-                <input
-                    type="text"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Поиск клубов и групп..."
-                    className="flex-1 text-sm text-gray-800 placeholder-gray-400 outline-none"
-                    autoFocus
-                />
-                {searchQuery && (
-                    <button
-                        onClick={() => setSearchQuery('')}
-                        className="text-gray-400 hover:text-gray-600"
-                    >
-                        ✕
-                    </button>
-                )}
-            </div>
-        </div>
-    )
 
     // Join Confirmation Popup
     const JoinConfirmPopup = () => {
@@ -137,110 +163,113 @@ export default function ClubsGroups() {
         )
     }
 
-    if (loading && !showSearch) return <LoadingScreen text="Загружаем клубы..." />
+    if (loading) return <LoadingScreen text="Загружаем клубы..." />
     if (error) return <ErrorScreen message={error} onRetry={() => { refetchClubs(); refetchGroups(); }} />
 
-    // Search Results View
-    if (showSearch) {
-        const filteredClubs = filterBySearch([...clubs])
-        const filteredGroups = filterBySearch([...groups])
-        const hasResults = filteredClubs.length > 0 || filteredGroups.length > 0
+    // Apply search filter to displayed items
+    const displayedMyClubs = filterBySearch(myClubs)
+    const displayedMyGroups = filterBySearch(myGroups)
+    const displayedDiscoverClubs = filterBySearch(discoverClubs)
+    const displayedDiscoverGroups = filterBySearch(discoverGroups)
 
-        return (
-            <div className="min-h-screen bg-gray-50 flex flex-col pb-20">
-                <SearchHeader />
-
-                <div className="flex-1 overflow-auto px-4 py-4">
-                    {!searchQuery.trim() ? (
-                        <p className="text-sm text-gray-400 text-center py-8">
-                            Введите название клуба или группы
-                        </p>
-                    ) : !hasResults ? (
-                        <div className="text-center py-8">
-                            <span className="text-3xl mb-3 block">🔍</span>
-                            <p className="text-sm text-gray-500">Ничего не найдено</p>
-                        </div>
-                    ) : (
-                        <>
-                            {filteredClubs.length > 0 && (
-                                <div className="mb-6">
-                                    <p className="text-sm text-gray-500 mb-3">Клубы</p>
-                                    {filteredClubs.map(club => (
-                                        <ClubCard
-                                            key={club.id}
-                                            club={club}
-                                            showJoinButton={!club.isMember}
-                                            onJoin={handleJoin}
-                                        />
-                                    ))}
-                                </div>
-                            )}
-
-                            {filteredGroups.length > 0 && (
-                                <div>
-                                    <p className="text-sm text-gray-500 mb-3">Группы</p>
-                                    {filteredGroups.map(group => (
-                                        <GroupCard
-                                            key={group.id}
-                                            group={group}
-                                            showJoinButton={!group.isMember}
-                                            onJoin={handleJoin}
-                                        />
-                                    ))}
-                                </div>
-                            )}
-                        </>
-                    )}
-                </div>
-
-                {/* Bottom Navigation - Fixed */}
-                <div className="fixed bottom-0 left-0 right-0 max-w-md mx-auto">
-                    <BottomNav onCreateClick={() => setShowCreateMenu(true)} />
-                </div>
-
-                <CreateMenu isOpen={showCreateMenu} onClose={() => setShowCreateMenu(false)} />
-                <JoinConfirmPopup />
-            </div>
-        )
-    }
+    const hasAnyItems = displayedMyClubs.length > 0 || displayedMyGroups.length > 0 ||
+        displayedDiscoverClubs.length > 0 || displayedDiscoverGroups.length > 0
 
     // Main View
     return (
         <div className="min-h-screen bg-gray-50 flex flex-col pb-20">
-            {/* Header */}
+            {/* Header - unified with Home */}
             <div className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between sticky top-0 z-10">
-                <h1 className="text-base font-medium text-gray-800">Клубы и группы</h1>
-                <button
-                    onClick={() => setShowSearch(true)}
-                    className="text-gray-400 hover:text-gray-600 text-lg"
-                >
-                    🔍
-                </button>
+                {showSearch ? (
+                    <div className="flex items-center gap-3 flex-1">
+                        <button
+                            onClick={() => {
+                                setShowSearch(false)
+                                setSearchQuery('')
+                            }}
+                            className="text-gray-500 hover:text-gray-700"
+                        >
+                            ←
+                        </button>
+                        <input
+                            type="text"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            placeholder="Поиск клубов и групп..."
+                            className="flex-1 text-sm text-gray-800 placeholder-gray-400 outline-none"
+                            autoFocus
+                        />
+                        {searchQuery && (
+                            <button
+                                onClick={() => setSearchQuery('')}
+                                className="text-gray-400 hover:text-gray-600"
+                            >
+                                ✕
+                            </button>
+                        )}
+                    </div>
+                ) : (
+                    <>
+                        <ModeToggle mode={mode} onModeChange={setMode} />
+                        <div className="flex items-center gap-2">
+                            <SearchButton onClick={() => setShowSearch(true)} />
+                            <SportFilterButton
+                                selectedCount={selectedSports.length}
+                                onClick={() => setShowSportFilter(true)}
+                            />
+                            <span className="text-sm text-gray-400">{totalCount}</span>
+                        </div>
+                    </>
+                )}
             </div>
+
+            {/* Sport Filter Popup */}
+            <SportFilterPopup
+                isOpen={showSportFilter}
+                onClose={() => setShowSportFilter(false)}
+                selectedSports={selectedSports}
+                onToggle={toggleSport}
+                onClear={clearSportFilters}
+            />
 
             {/* Content */}
             <div className="flex-1 overflow-auto px-4 py-4">
+                {/* Search empty hint */}
+                {showSearch && !searchQuery.trim() && (
+                    <p className="text-sm text-gray-400 text-center py-8">
+                        Введите название клуба или группы
+                    </p>
+                )}
+
+                {/* No results */}
+                {showSearch && searchQuery.trim() && !hasAnyItems && (
+                    <div className="text-center py-8">
+                        <span className="text-3xl mb-3 block">🔍</span>
+                        <p className="text-sm text-gray-500">Ничего не найдено</p>
+                    </div>
+                )}
+
                 {/* My clubs and groups */}
-                {(myClubs.length > 0 || myGroups.length > 0) && (
+                {(displayedMyClubs.length > 0 || displayedMyGroups.length > 0) && (
                     <div className="mb-6">
                         <p className="text-sm text-gray-500 mb-3">Мои</p>
 
-                        {myClubs.map(club => (
+                        {displayedMyClubs.map(club => (
                             <ClubCard key={club.id} club={club} />
                         ))}
 
-                        {myGroups.map(group => (
+                        {displayedMyGroups.map(group => (
                             <GroupCard key={group.id} group={group} />
                         ))}
                     </div>
                 )}
 
                 {/* Discover */}
-                {(discoverClubs.length > 0 || discoverGroups.length > 0) && (
+                {(displayedDiscoverClubs.length > 0 || displayedDiscoverGroups.length > 0) && (
                     <div>
                         <p className="text-sm text-gray-500 mb-3">Найти ещё</p>
 
-                        {discoverClubs.map(club => (
+                        {displayedDiscoverClubs.map(club => (
                             <ClubCard
                                 key={club.id}
                                 club={club}
@@ -249,7 +278,7 @@ export default function ClubsGroups() {
                             />
                         ))}
 
-                        {discoverGroups.map(group => (
+                        {displayedDiscoverGroups.map(group => (
                             <GroupCard
                                 key={group.id}
                                 group={group}
@@ -260,8 +289,8 @@ export default function ClubsGroups() {
                     </div>
                 )}
 
-                {/* Empty state */}
-                {myClubs.length === 0 && myGroups.length === 0 && discoverClubs.length === 0 && discoverGroups.length === 0 && (
+                {/* Empty state - only show when not searching */}
+                {!showSearch && !hasAnyItems && (
                     <div className="text-center py-12">
                         <span className="text-4xl mb-4 block">👥</span>
                         <h2 className="text-base text-gray-700 mb-2">Пока нет клубов</h2>
