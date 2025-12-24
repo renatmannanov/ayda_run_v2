@@ -7,6 +7,7 @@ export { default as FixedAccess } from './FixedAccess'
 export { default as GpxUpload } from './GpxUpload'
 export { default as GPXUploadPopup } from './GPXUploadPopup'
 export { default as ProgressBar } from './ProgressBar'
+export { default as RecurringScopeDialog } from './RecurringScopeDialog'
 export { default as SuccessPopup } from './SuccessPopup'
 export { default as ToggleButtons } from './ToggleButtons'
 

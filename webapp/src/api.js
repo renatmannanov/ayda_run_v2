@@ -89,6 +89,10 @@ const transformActivity = (a) => !a ? null : ({
     creatorName: a.creator_name,
     createdAt: a.created_at,
     isPast: new Date(a.date) < new Date(),
+    // Recurring activity info
+    recurringTemplateId: a.recurring_template_id,
+    recurringSequence: a.recurring_sequence,
+    isRecurring: !!a.recurring_template_id,
     icon: (a.sport_type === 'running' || !a.sport_type) ? '🏃' :
         a.sport_type === 'trail' ? '⛰️' :
             a.sport_type === 'cycling' ? '🚴' :
@@ -271,6 +275,38 @@ export const activitiesApi = {
         method: 'POST',
         body: JSON.stringify({ user_id: userId, attended })
     })
+}
+
+// ============================================================================
+// Recurring Activities API
+// ============================================================================
+
+export const recurringApi = {
+    // Create recurring series (generates all activity instances)
+    create: (data) => apiFetch('/recurring', {
+        method: 'POST',
+        body: JSON.stringify(data)
+    }),
+
+    // Update recurring activity
+    // scope: 'this_only' | 'this_and_following'
+    update: (activityId, scope, data) => apiFetch(
+        `/recurring/${activityId}?scope=${scope}`,
+        {
+            method: 'PATCH',
+            body: JSON.stringify(data)
+        }
+    ),
+
+    // Cancel recurring activity
+    // scope: 'this_only' | 'entire_series'
+    cancel: (activityId, scope) => apiFetch(
+        `/recurring/${activityId}?scope=${scope}`,
+        { method: 'DELETE' }
+    ),
+
+    // Get recurring template
+    getTemplate: (templateId) => apiFetch(`/recurring/${templateId}`)
 }
 
 // ============================================================================

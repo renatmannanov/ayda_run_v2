@@ -223,6 +223,11 @@ async def list_activities(
             creator = activity.creator
             response.creator_name = f"{creator.first_name or ''} {creator.last_name or ''}".strip() or creator.username or "Аноним"
 
+        # Recurring activity info
+        response.recurring_template_id = activity.recurring_template_id
+        response.recurring_sequence = activity.recurring_sequence
+        response.is_recurring = bool(activity.recurring_template_id)
+
         result.append(response)
 
     return result
@@ -281,6 +286,11 @@ async def get_activity(
         # Build display name from first_name + last_name
         creator = activity.creator
         response.creator_name = f"{creator.first_name or ''} {creator.last_name or ''}".strip() or creator.username or "Аноним"
+
+    # Recurring activity info
+    response.recurring_template_id = activity.recurring_template_id
+    response.recurring_sequence = activity.recurring_sequence
+    response.is_recurring = bool(activity.recurring_template_id)
 
     return response
 

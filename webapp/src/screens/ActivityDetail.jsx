@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { ParticipantsSheet, LoadingScreen, ErrorScreen, Button, BottomBar, AttendancePopup } from '../components'
-import { AvatarStack, GPXUploadPopup } from '../components/ui'
+import { AvatarStack, GPXUploadPopup, RecurringScopeDialog } from '../components/ui'
 import {
     useActivity,
     useActivityParticipants,
@@ -10,6 +10,7 @@ import {
     useConfirmActivity,
     useDeleteActivity
 } from '../hooks'
+import { useCancelRecurring } from '../hooks/useRecurring'
 import {
     formatDate,
     formatTime
@@ -41,6 +42,7 @@ export default function ActivityDetail() {
     const { mutate: leaveActivity, loading: leaving } = useLeaveActivity()
     const { mutate: confirmActivity, isPending: confirming } = useConfirmActivity()
     const { mutate: deleteActivity, isPending: deleting } = useDeleteActivity()
+    const { mutate: cancelRecurring, isPending: cancellingRecurring } = useCancelRecurring()
 
     const [showParticipants, setShowParticipants] = useState(false)
     const [showGpxPopup, setShowGpxPopup] = useState(false)
@@ -48,6 +50,10 @@ export default function ActivityDetail() {
     const [attendanceData, setAttendanceData] = useState([])
     const [clubGroupMembers, setClubGroupMembers] = useState([])
     const [savingAttendance, setSavingAttendance] = useState(false)
+
+    // Recurring activity dialog state
+    const [showRecurringDialog, setShowRecurringDialog] = useState(false)
+    const [recurringDialogMode, setRecurringDialogMode] = useState('edit') // 'edit' | 'cancel'
 
     // Sync participants to attendance data
     useEffect(() => {
@@ -158,6 +164,13 @@ export default function ActivityDetail() {
             return
         }
 
+        // For recurring activities, show scope dialog
+        if (activity?.isRecurring) {
+            setRecurringDialogMode('cancel')
+            setShowRecurringDialog(true)
+            return
+        }
+
         // Count registered participants (excluding creator)
         // Use String() to ensure correct comparison of UUIDs
         const creatorId = String(activity.creatorId)
@@ -205,7 +218,39 @@ export default function ActivityDetail() {
             tg.showAlert('Нельзя редактировать прошедшую тренировку')
             return
         }
+        // For recurring activities, show scope dialog
+        if (activity?.isRecurring) {
+            setRecurringDialogMode('edit')
+            setShowRecurringDialog(true)
+            return
+        }
         navigate(`/activity/${id}/edit`)
+    }
+
+    // Handle recurring scope selection
+    const handleRecurringScopeSelect = async (scope) => {
+        if (recurringDialogMode === 'edit') {
+            // Navigate to edit with scope parameter
+            setShowRecurringDialog(false)
+            navigate(`/activity/${id}/edit?scope=${scope}`)
+        } else {
+            // Cancel recurring activity
+            try {
+                tg.haptic('medium')
+                await cancelRecurring({ activityId: id, scope })
+                tg.hapticNotification('success')
+                setShowRecurringDialog(false)
+                if (scope === 'entire_series') {
+                    tg.showAlert('Вся серия тренировок отменена')
+                } else {
+                    tg.showAlert('Тренировка отменена')
+                }
+                navigate('/')
+            } catch (e) {
+                console.error('Cancel recurring failed', e)
+                tg.showAlert(e.message || 'Ошибка при отмене')
+            }
+        }
     }
 
     // Attendance handlers
@@ -526,9 +571,19 @@ export default function ActivityDetail() {
                     {/* Title + Icon */}
                     <div className="flex justify-between items-start mb-4">
                         <div>
-                            <h1 className="text-xl text-gray-800 font-medium mb-1">
-                                {activity.title}
-                            </h1>
+                            <div className="flex items-center gap-2 mb-1">
+                                <h1 className="text-xl text-gray-800 font-medium">
+                                    {activity.title}
+                                </h1>
+                                {activity.isRecurring && (
+                                    <span className="flex items-center gap-0.5 text-sm text-gray-400" title="Повторяющаяся тренировка">
+                                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                        </svg>
+                                        <span>#{activity.recurringSequence}</span>
+                                    </span>
+                                )}
+                            </div>
                             {isPast && (
                                 <span className="text-sm text-gray-400">
                                     Прошла · {formatDate(activity.date)}
@@ -750,6 +805,15 @@ export default function ActivityDetail() {
                 onAddParticipant={handleAddParticipant}
                 onSave={handleSaveAttendance}
                 saving={savingAttendance}
+            />
+
+            {/* Recurring Scope Dialog (for edit/cancel) */}
+            <RecurringScopeDialog
+                isOpen={showRecurringDialog}
+                onClose={() => setShowRecurringDialog(false)}
+                onSelect={handleRecurringScopeSelect}
+                mode={recurringDialogMode}
+                loading={cancellingRecurring}
             />
         </div>
     )

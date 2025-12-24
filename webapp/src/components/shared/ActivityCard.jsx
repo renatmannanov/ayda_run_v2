@@ -154,11 +154,21 @@ export default function ActivityCard({ activity }) {
             onClick={handleCardClick}
             className={`bg-white border border-gray-200 rounded-xl p-4 mb-3 cursor-pointer hover:border-gray-300 transition-colors ${isConfirmedPast ? 'opacity-50' : ''}`}
         >
-            {/* Название + иконка спорта */}
+            {/* Название + иконка повторения + иконка спорта */}
             <div className="flex justify-between items-start mb-1">
-                <h3 className="text-base text-gray-800 font-medium pr-2">
-                    {activity.title}
-                </h3>
+                <div className="flex items-center gap-1.5 pr-2">
+                    <h3 className="text-base text-gray-800 font-medium">
+                        {activity.title}
+                    </h3>
+                    {activity.isRecurring && (
+                        <span className="flex items-center gap-0.5 text-xs text-gray-400" title="Повторяющаяся тренировка">
+                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
+                            <span>#{activity.recurringSequence}</span>
+                        </span>
+                    )}
+                </div>
                 <span className="text-xl flex-shrink-0">{activity.icon}</span>
             </div>
 

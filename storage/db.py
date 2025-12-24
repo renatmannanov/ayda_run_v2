@@ -324,10 +324,23 @@ class RecurringTemplate(Base):
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     title = Column(String(255), nullable=False)
 
-    # Recurrence rule (e.g., "WEEKLY:MON,THU,SAT")
-    recurrence_rule = Column(String(255), nullable=False)
+    # Schedule settings
+    day_of_week = Column(Integer, nullable=False)  # 0=Monday, 6=Sunday
+    time_of_day = Column(String(5), nullable=False)  # HH:MM format
+    frequency = Column(Integer, default=4, nullable=False)  # 1-4 times per month (4=weekly, 2=bi-weekly, 1=monthly)
+    total_occurrences = Column(Integer, nullable=False)  # Max 52 (1 year)
+    generated_count = Column(Integer, default=0, nullable=False)  # How many activities created
 
-    # Organization (one of these can be set)
+    # Activity template fields
+    description = Column(Text, nullable=True)
+    location = Column(String(500), nullable=True)
+    sport_type = Column(SQLEnum(SportType), nullable=False)
+    difficulty = Column(SQLEnum(Difficulty), nullable=False)
+    distance = Column(Float, nullable=True)  # in km
+    duration = Column(Integer, nullable=True)  # in minutes
+    max_participants = Column(Integer, nullable=True)
+
+    # Organization (one of these must be set for recurring)
     club_id = Column(String(36), ForeignKey('clubs.id'), nullable=True, index=True)
     group_id = Column(String(36), ForeignKey('groups.id'), nullable=True, index=True)
 
@@ -340,9 +353,14 @@ class RecurringTemplate(Base):
 
     # Relationships
     activities = relationship("Activity", back_populates="recurring_template")
+    creator = relationship("User")
+    club = relationship("Club")
+    group = relationship("Group")
 
     def __repr__(self):
-        return f"<RecurringTemplate(title={self.title}, rule={self.recurrence_rule})>"
+        days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+        day_name = days[self.day_of_week] if self.day_of_week is not None else '?'
+        return f"<RecurringTemplate(title={self.title}, day={day_name}, freq={self.frequency}x/month)>"
 
 
 class Activity(Base):
@@ -364,6 +382,7 @@ class Activity(Base):
     group_id = Column(String(36), ForeignKey('groups.id'), nullable=True, index=True)
     creator_id = Column(String(36), ForeignKey('users.id'), nullable=False, index=True)
     recurring_template_id = Column(String(36), ForeignKey('recurring_templates.id'), nullable=True)
+    recurring_sequence = Column(Integer, nullable=True)  # Position in recurring series (1, 2, 3...)
 
     # Activity details
     sport_type = Column(SQLEnum(SportType), default=SportType.RUNNING, nullable=False, index=True)

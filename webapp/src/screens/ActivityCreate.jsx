@@ -14,6 +14,7 @@ import {
     getDifficultyLabel
 } from '../data/sample_data'
 import { useCreateActivity, useUpdateActivity, useActivity, useActivityParticipants, useClubs, useGroups } from '../hooks'
+import { useCreateRecurringSeries } from '../hooks/useRecurring'
 import { tg } from '../api'
 
 export default function ActivityCreate() {
@@ -26,13 +27,14 @@ export default function ActivityCreate() {
 
     const { mutateAsync: createActivity, isPending: creating } = useCreateActivity()
     const { mutateAsync: updateActivity, isPending: updating } = useUpdateActivity()
+    const { mutateAsync: createRecurringSeries, isPending: creatingRecurring } = useCreateRecurringSeries()
 
     // Fetch existing activity in edit mode
     const { data: existingActivity, isLoading: loadingActivity } = useActivity(isEditMode ? id : null)
     const { data: participantsData } = useActivityParticipants(isEditMode ? id : null)
     const participants = participantsData || []
 
-    const loading = creating || updating
+    const loading = creating || updating || creatingRecurring
     const { data: clubs = [] } = useClubs()
     const { data: allGroups = [] } = useGroups()
 
@@ -53,6 +55,11 @@ export default function ActivityCreate() {
     // New unified visibility/access state
     const [visibility, setVisibility] = useState('public')
     const [access, setAccess] = useState('open')
+
+    // Recurring state
+    const [isRecurring, setIsRecurring] = useState(false)
+    const [recurrenceFrequency, setRecurrenceFrequency] = useState(4) // 1-4 times per month
+    const [recurrenceCount, setRecurrenceCount] = useState(12) // 1-12 occurrences
 
     // Flow state for create mode
     const [flowStep, setFlowStep] = useState('form') // 'form' | 'gpx' | 'success'
@@ -90,6 +97,44 @@ export default function ActivityCreate() {
 
         return options
     }, [clubs, allGroups])
+
+    // Check if user can create recurring activities (is organizer of selected club/group)
+    const canCreateRecurring = useMemo(() => {
+        if (visibility === 'public') return false
+
+        if (visibility.startsWith('club_')) {
+            const clubId = visibility.replace('club_', '')
+            const club = clubs.find(c => String(c.id) === clubId)
+            return club?.isAdmin === true
+        }
+
+        if (visibility.startsWith('group_')) {
+            const groupId = visibility.replace('group_', '')
+            const group = allGroups.find(g => String(g.id) === groupId)
+            return group?.isAdmin === true
+        }
+
+        return false
+    }, [visibility, clubs, allGroups])
+
+    // Recurring frequency options (times per week)
+    const frequencyOptions = [
+        { id: 4, label: 'Каждую неделю' },
+        { id: 2, label: 'Раз в 2 недели' },
+        { id: 1, label: 'Раз в месяц' }
+    ]
+
+    // Get day of week from selected date (0=Mon, 6=Sun)
+    const getDayOfWeekFromDate = (dateStr) => {
+        if (!dateStr) return null
+        const d = new Date(dateStr)
+        // JS: 0=Sun, 1=Mon... -> convert to 0=Mon, 6=Sun
+        const jsDay = d.getDay()
+        return jsDay === 0 ? 6 : jsDay - 1
+    }
+
+    // Day names for display
+    const dayNamesLong = ['понедельник', 'вторник', 'среду', 'четверг', 'пятницу', 'субботу', 'воскресенье']
 
     // Access options
     const accessOptions = [
@@ -244,28 +289,62 @@ export default function ActivityCreate() {
                 // Create new activity
                 const { club_id, group_id } = parseVisibility(visibility)
 
-                const result = await createActivity({
-                    title,
-                    date: `${date}T${time}:00`,
-                    location: locationValue,
-                    sport_type: sportType,
-                    distance: distance ? parseFloat(distance) : null,
-                    duration: duration ? parseInt(duration) : null,
-                    difficulty,
-                    max_participants: noLimit ? null : parseInt(maxParticipants),
-                    description,
-                    club_id,
-                    group_id,
-                    is_open: access === 'open'
-                })
+                // Check if recurring
+                if (isRecurring && canCreateRecurring) {
+                    // Get day of week from selected date
+                    const dayOfWeek = getDayOfWeekFromDate(date)
 
-                if (!result?.id) {
-                    throw new Error('Не удалось создать активность')
+                    // Create recurring series
+                    const result = await createRecurringSeries({
+                        title,
+                        description,
+                        day_of_week: dayOfWeek,
+                        time_of_day: time,
+                        start_date: `${date}T${time}:00`,
+                        frequency: recurrenceFrequency,
+                        total_occurrences: recurrenceCount,
+                        location: locationValue,
+                        sport_type: sportType,
+                        difficulty,
+                        distance: distance ? parseFloat(distance) : null,
+                        duration: duration ? parseInt(duration) : null,
+                        max_participants: noLimit ? null : parseInt(maxParticipants),
+                        club_id,
+                        group_id
+                    })
+
+                    if (!result?.first_activity_id) {
+                        throw new Error('Не удалось создать серию')
+                    }
+
+                    setCreatedActivityId(result.first_activity_id)
+                    setShareLink(`https://t.me/aydarun_bot?start=activity_${result.first_activity_id}`)
+                    setFlowStep('success') // Skip GPX for recurring
+                } else {
+                    // Create single activity
+                    const result = await createActivity({
+                        title,
+                        date: `${date}T${time}:00`,
+                        location: locationValue,
+                        sport_type: sportType,
+                        distance: distance ? parseFloat(distance) : null,
+                        duration: duration ? parseInt(duration) : null,
+                        difficulty,
+                        max_participants: noLimit ? null : parseInt(maxParticipants),
+                        description,
+                        club_id,
+                        group_id,
+                        is_open: access === 'open'
+                    })
+
+                    if (!result?.id) {
+                        throw new Error('Не удалось создать активность')
+                    }
+
+                    setCreatedActivityId(result.id)
+                    setShareLink(`https://t.me/aydarun_bot?start=activity_${result.id}`)
+                    setFlowStep('gpx')
                 }
-
-                setCreatedActivityId(result.id)
-                setShareLink(`https://t.me/aydarun_bot?start=activity_${result.id}`)
-                setFlowStep('gpx')
             }
         } catch (e) {
             console.error('Failed to save activity', e)
@@ -397,6 +476,83 @@ export default function ActivityCreate() {
                         />
                     </div>
                 </div>
+
+                {/* Recurrence Section - only in create mode, after date/time */}
+                {!isEditMode && (
+                    <div className="mb-4">
+                        <label className="text-sm text-gray-700 mb-2 block">Повторение</label>
+
+                        {!canCreateRecurring ? (
+                            // Disabled state for non-organizers or public activities
+                            <div className="px-4 py-3 bg-gray-50 rounded-xl border border-gray-100">
+                                <div className="flex items-center gap-2 text-gray-400">
+                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                                    </svg>
+                                    <span className="text-sm">Только для клубов и групп</span>
+                                </div>
+                                <p className="text-xs text-gray-400 mt-1">
+                                    Создавать повторяющиеся тренировки могут только организаторы
+                                </p>
+                            </div>
+                        ) : (
+                            // Enabled state for organizers
+                            <div className="space-y-4">
+                                <ToggleButtons
+                                    options={[
+                                        { id: 'single', label: 'Одна тренировка' },
+                                        { id: 'recurring', label: 'Повторяющаяся' }
+                                    ]}
+                                    selected={isRecurring ? 'recurring' : 'single'}
+                                    onChange={(val) => setIsRecurring(val === 'recurring')}
+                                />
+
+                                {isRecurring && (
+                                    <div className="space-y-4 p-4 bg-gray-50 rounded-xl">
+                                        {/* Frequency picker */}
+                                        <div>
+                                            <label className="text-sm text-gray-600 mb-2 block">
+                                                Частота
+                                            </label>
+                                            <DropdownPicker
+                                                value={recurrenceFrequency}
+                                                options={frequencyOptions}
+                                                onChange={setRecurrenceFrequency}
+                                            />
+                                        </div>
+
+                                        {/* Occurrences count - max 12 (3 months) */}
+                                        <div>
+                                            <label className="text-sm text-gray-600 mb-2 block">
+                                                Количество повторений
+                                            </label>
+                                            <div className="flex items-center gap-3">
+                                                <input
+                                                    type="number"
+                                                    min={1}
+                                                    max={12}
+                                                    value={recurrenceCount}
+                                                    onChange={(e) => setRecurrenceCount(
+                                                        Math.min(12, Math.max(1, parseInt(e.target.value) || 1))
+                                                    )}
+                                                    className="w-20 px-4 py-3 border border-gray-200 rounded-xl text-sm text-gray-800 outline-none focus:border-gray-400"
+                                                />
+                                                <span className="text-sm text-gray-500">
+                                                    (макс. 12 = 3 мес)
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        {/* Hint about day of week */}
+                                        <p className="text-xs text-gray-400">
+                                            * Тренировка будет повторяться каждую {date ? dayNamesLong[getDayOfWeekFromDate(date)] : 'неделю в выбранный день'}
+                                        </p>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                )}
 
                 <FormInput
                     label="Где"
@@ -539,6 +695,7 @@ export default function ActivityCreate() {
                         hint={getAccessHint()}
                     />
                 </div>
+
             </div>
 
             {/* Submit button */}

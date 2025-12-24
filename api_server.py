@@ -33,14 +33,19 @@ from bot.admin_notifications import handle_admin_approval
 from bot.group_club_creation_handler import group_club_creation_handler
 
 # Logger setup (needed before lifespan)
+import sys
 logging.basicConfig(
     level=getattr(logging, settings.log_level.upper()),
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.StreamHandler(),
-        logging.FileHandler('app.log')
+        logging.StreamHandler(sys.stdout),
+        logging.FileHandler('app.log', encoding='utf-8')
     ]
 )
+# Fix Windows console encoding for Cyrillic
+if sys.platform == 'win32':
+    sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+    sys.stderr.reconfigure(encoding='utf-8', errors='replace')
 logger = logging.getLogger(__name__)
 
 @asynccontextmanager
@@ -320,13 +325,14 @@ app.add_middleware(LoggingMiddleware)
 # ============================================================================
 # Include Routers
 # ============================================================================
-from app.routers import activities, clubs, groups, users, media
+from app.routers import activities, clubs, groups, users, media, recurring
 
 app.include_router(activities.router)
 app.include_router(clubs.router)
 app.include_router(groups.router)
 app.include_router(users.router)
 app.include_router(media.router)
+app.include_router(recurring.router)
 
 # ============================================================================
 # Static File Serving

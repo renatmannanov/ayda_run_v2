@@ -130,6 +130,11 @@ class ActivityResponse(BaseResponse):
     is_group_admin: bool = False
     can_mark_attendance: bool = False  # True if past + club/group activity + is organizer
 
+    # Recurring activity info
+    recurring_template_id: Optional[str] = None
+    recurring_sequence: Optional[int] = None  # Position in series (1, 2, 3...)
+    is_recurring: bool = False  # True if part of recurring series
+
 
 # ============================================================================
 # Attendance Marking (for organizers)
