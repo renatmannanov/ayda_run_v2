@@ -4,7 +4,7 @@ import { useNavigate, useLocation } from 'react-router-dom'
 const navItems = [
     { path: '/', icon: '🏠', label: 'Home' },
     { path: '/clubs', icon: '👥', label: 'Клубы' },
-    { path: '/profile', icon: '👤', label: 'Я' }
+    { path: '/profile', icon: '👤', label: 'Профиль', smallIcon: true }
 ]
 
 export default function BottomNav({ onCreateClick }) {
@@ -23,7 +23,7 @@ export default function BottomNav({ onCreateClick }) {
                         className={`flex flex-col items-center gap-1 transition-colors ${isActive ? 'text-gray-800' : 'text-gray-400 hover:text-gray-600'
                             }`}
                     >
-                        <span className="text-lg">{item.icon}</span>
+                        <span className={`h-5 flex items-center justify-center ${item.smallIcon ? 'text-base' : 'text-lg'}`}>{item.icon}</span>
                         <span className={`text-xs ${isActive ? 'font-medium' : ''}`}>
                             {item.label}
                         </span>
