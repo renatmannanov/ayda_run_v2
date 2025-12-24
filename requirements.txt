@@ -5,6 +5,7 @@ python-telegram-bot
 python-dotenv
 sqlalchemy
 pydantic-settings
+alembic
 
 # Production database (PostgreSQL)
 psycopg2-binary
