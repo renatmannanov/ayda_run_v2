@@ -26,7 +26,6 @@ export default function Statistics() {
                 const data = await usersApi.getStats(period)
                 setStats(data)
             } catch (err) {
-                console.error('Failed to fetch stats:', err)
                 setError(err.message)
             } finally {
                 setLoading(false)

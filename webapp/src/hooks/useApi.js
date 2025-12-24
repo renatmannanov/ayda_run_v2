@@ -13,12 +13,9 @@ export function useApi(apiCall, deps = []) {
         try {
             setLoading(true)
             setError(null)
-            console.log('[API] Fetching...', { deps })
             const result = await apiCall()
-            console.log('[API] Success:', result)
             setData(result)
         } catch (err) {
-            console.error('[API] Error:', err)
             setError(err.message || 'Ошибка загрузки')
             // Don't reset data on error, keep previous or undefined
         } finally {

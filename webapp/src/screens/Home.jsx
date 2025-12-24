@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react'
+import { useLocation, useSearchParams, useNavigate } from 'react-router-dom'
 import { BottomBar, CreateMenu, Loading, ErrorMessage, EmptyState, SearchButton } from '../components'
 import { DaySection } from '../components/home/DaySection'
 import { ModeToggle } from '../components/home/ModeToggle'
@@ -8,6 +9,9 @@ import { useActivities, useJoinActivity, useClubs, useGroups } from '../hooks'
 import { groupActivitiesByWeekAndDay, getWeekRangeText, getWeekActivityCount } from '../utils/weekUtils'
 
 export default function Home() {
+    const location = useLocation()
+    const [searchParams, setSearchParams] = useSearchParams()
+    const navigate = useNavigate()
     const [mode, setMode] = useState('all') // 'my' | 'all'
     const [showCreateMenu, setShowCreateMenu] = useState(false)
     const [currentWeekIndex, setCurrentWeekIndex] = useState(null)
@@ -18,6 +22,29 @@ export default function Home() {
     const [selectedClubs, setSelectedClubs] = useState([])
     const [selectedGroups, setSelectedGroups] = useState([])
     const [showFilterPopup, setShowFilterPopup] = useState(false)
+    const [filterLabel, setFilterLabel] = useState(null) // Label for active filter (e.g., club/group name)
+
+    // Apply filter from URL params (from club/group detail screen)
+    useEffect(() => {
+        const clubId = searchParams.get('clubId')
+        const clubName = searchParams.get('clubName')
+        const groupId = searchParams.get('groupId')
+        const groupName = searchParams.get('groupName')
+
+        if (clubId) {
+            // Keep as string - IDs are UUIDs, not integers
+            setSelectedClubs([clubId])
+            setFilterLabel(clubName || 'Клуб')
+            // Clear URL params after applying
+            setSearchParams({}, { replace: true })
+        } else if (groupId) {
+            // Keep as string - IDs are UUIDs, not integers
+            setSelectedGroups([groupId])
+            setFilterLabel(groupName || 'Группа')
+            // Clear URL params after applying
+            setSearchParams({}, { replace: true })
+        }
+    }, [searchParams, setSearchParams])
 
     // Search state
     const [searchQuery, setSearchQuery] = useState('')
@@ -62,12 +89,12 @@ export default function Home() {
 
         // Filter by selected clubs (client-side)
         if (selectedClubs.length > 0) {
-            result = result.filter(a => selectedClubs.includes(a.clubId))
+            result = result.filter(a => a.clubId && selectedClubs.includes(a.clubId))
         }
 
         // Filter by selected groups (client-side)
         if (selectedGroups.length > 0) {
-            result = result.filter(a => selectedGroups.includes(a.groupId))
+            result = result.filter(a => a.groupId && selectedGroups.includes(a.groupId))
         }
 
         // Filter by search query
@@ -171,7 +198,7 @@ export default function Home() {
             await joinMutation.mutateAsync(activityId)
             refetch()
         } catch (e) {
-            console.error('Failed to toggle join', e)
+            // Error handled by useMutation
         }
     }
 
@@ -213,6 +240,7 @@ export default function Home() {
         setSelectedSports([])
         setSelectedClubs([])
         setSelectedGroups([])
+        setFilterLabel(null)
     }
 
     // Total active filters count
@@ -284,6 +312,19 @@ export default function Home() {
                     </>
                 )}
             </div>
+
+            {/* Active filter label (from club/group navigation) */}
+            {filterLabel && (
+                <div className="bg-gray-100 px-4 py-2 flex items-center justify-between">
+                    <span className="text-sm text-gray-600">Фильтр: {filterLabel}</span>
+                    <button
+                        onClick={clearAllFilters}
+                        className="text-sm text-gray-400 hover:text-gray-600"
+                    >
+                        ✕ Сбросить
+                    </button>
+                </div>
+            )}
 
             {/* Activity Filter Popup */}
             <ActivityFilterPopup

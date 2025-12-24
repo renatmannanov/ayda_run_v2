@@ -230,7 +230,7 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
     try:
         if hasattr(exc, 'body'):
             body_str = str(exc.body)
-    except:
+    except Exception:
         pass
 
     # Log detailed error information with proper formatting
@@ -373,7 +373,7 @@ async def telegram_webhook(token: str, request: Request):
     """
     # Verify token
     if token != settings.bot_token:
-        logger.warning(f"Invalid webhook token attempt: {token[:10]}...")
+        logger.warning("Invalid webhook token attempt")
         return {"status": "error", "message": "Invalid token"}
 
     # Get bot application from app state

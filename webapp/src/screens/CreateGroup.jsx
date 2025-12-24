@@ -134,7 +134,6 @@ export default function CreateGroup() {
                 setShowSuccess(true)
             }
         } catch (e) {
-            console.error('Failed to save group', e)
             if (e.message && e.message.includes('Insufficient permissions')) {
                 tg.showAlert(isEditMode ? 'У вас нет прав на редактирование этой группы' : 'Только организатор клуба может создавать группы')
             } else {

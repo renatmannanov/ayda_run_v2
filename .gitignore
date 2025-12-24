@@ -27,3 +27,6 @@ credentials.json
 node_modules/
 dist/
 .DS_Store
+
+# Documentation (not needed in production)
+docs/

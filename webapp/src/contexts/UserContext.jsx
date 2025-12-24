@@ -24,7 +24,6 @@ export function UserProvider({ children }) {
             await usersApi.updateProfile({ showPhoto: value })
             await refetch()
         } catch (err) {
-            console.error('Failed to update showPhoto:', err)
             // Revert on error
             setShowPhoto(!value)
         } finally {
@@ -40,7 +39,6 @@ export function UserProvider({ children }) {
             await refetch()
             return true
         } catch (err) {
-            console.error('Failed to update stravaLink:', err)
             return false
         } finally {
             setUpdating(false)
@@ -55,7 +53,6 @@ export function UserProvider({ children }) {
             await refetch()
             return true
         } catch (err) {
-            console.error('Failed to remove stravaLink:', err)
             return false
         } finally {
             setUpdating(false)

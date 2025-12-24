@@ -112,7 +112,7 @@ export default function ClubsGroups() {
             }
             setJoinConfirm(null)
         } catch (e) {
-            console.error('Join failed', e)
+            // Error handled by useMutation
         }
     }
 

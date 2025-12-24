@@ -53,9 +53,6 @@ export default function ClubGroupDetail({ type = 'club' }) {
     const error = isClub ? clubError : groupError
     const refetch = isClub ? refetchClub : refetchGroup
 
-    // Debug: log item data to see what we have
-    console.log('🏠 ClubGroupDetail item:', item, 'isClub:', isClub)
-
     // Fetch groups if it's a club (to show subgroups)
     const { data: clubGroups = [] } = useGroups(isClub ? id : null)
 
@@ -109,7 +106,6 @@ export default function ClubGroupDetail({ type = 'club' }) {
             }
             refetch()
         } catch (e) {
-            console.error('Membership toggle failed', e)
             tg.showAlert(e.message || 'Произошла ошибка')
         }
     }
@@ -139,7 +135,6 @@ export default function ClubGroupDetail({ type = 'club' }) {
                                     }
                                     navigate('/clubs')
                                 } catch (e) {
-                                    console.error('Delete failed', e)
                                     tg.showAlert(e.message || 'Ошибка удаления')
                                 }
                             }
@@ -155,7 +150,6 @@ export default function ClubGroupDetail({ type = 'club' }) {
                                 }
                                 navigate('/clubs')
                             } catch (e) {
-                                console.error('Delete failed', e)
                                 tg.showAlert(e.message || 'Ошибка удаления')
                             }
                         }

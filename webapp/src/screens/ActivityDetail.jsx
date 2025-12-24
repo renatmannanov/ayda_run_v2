@@ -78,7 +78,7 @@ export default function ActivityDetail() {
                         setClubGroupMembers(members)
                     }
                 } catch (e) {
-                    console.error('Failed to load members', e)
+                    // Silently fail - members list is optional
                 }
             }
             loadMembers()
@@ -111,7 +111,6 @@ export default function ActivityDetail() {
             refetchActivity()
             refetchParticipants()
         } catch (e) {
-            console.error('Join failed', e)
             tg.showAlert(e.message || 'Произошла ошибка')
         }
     }
@@ -122,7 +121,6 @@ export default function ActivityDetail() {
             refetchActivity()
             refetchParticipants()
         } catch (e) {
-            console.error('Leave failed', e)
             tg.showAlert(e.message || 'Произошла ошибка')
         }
     }
@@ -141,7 +139,6 @@ export default function ActivityDetail() {
             tg.hapticNotification('success')
             refetchActivity()
         } catch (e) {
-            console.error('Confirm attended failed', e)
             tg.showAlert(e.message || 'Произошла ошибка')
         }
     }
@@ -152,7 +149,6 @@ export default function ActivityDetail() {
             await confirmActivity({ id, attended: false })
             refetchActivity()
         } catch (e) {
-            console.error('Confirm missed failed', e)
             tg.showAlert(e.message || 'Произошла ошибка')
         }
     }
@@ -187,7 +183,6 @@ export default function ActivityDetail() {
                 tg.showAlert('Тренировка удалена')
                 navigate('/')
             } catch (e) {
-                console.error('Delete failed', e)
                 tg.showAlert(e.message || 'Ошибка при удалении')
             }
         }
@@ -247,7 +242,6 @@ export default function ActivityDetail() {
                 }
                 navigate('/')
             } catch (e) {
-                console.error('Cancel recurring failed', e)
                 tg.showAlert(e.message || 'Ошибка при отмене')
             }
         }
@@ -284,7 +278,6 @@ export default function ActivityDetail() {
             tg.hapticNotification('success')
             refetchParticipants()
         } catch (e) {
-            console.error('Add participant failed', e)
             tg.showAlert(e.message || 'Не удалось добавить участника')
         }
     }
@@ -301,7 +294,6 @@ export default function ActivityDetail() {
             refetchParticipants()
             setShowAttendance(false)
         } catch (e) {
-            console.error('Save attendance failed', e)
             tg.showAlert(e.message || 'Не удалось сохранить')
         } finally {
             setSavingAttendance(false)

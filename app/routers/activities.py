@@ -431,7 +431,8 @@ async def join_activity(
     db: Session = Depends(get_db)
 ):
     """Join an activity (for closed activities, use request-join endpoint)"""
-    activity = db.query(Activity).filter(Activity.id == activity_id).first()
+    # Use FOR UPDATE to prevent race condition when checking max_participants
+    activity = db.query(Activity).filter(Activity.id == activity_id).with_for_update().first()
 
     if not activity:
         raise HTTPException(status_code=404, detail="Activity not found")

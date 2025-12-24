@@ -347,7 +347,6 @@ export default function ActivityCreate() {
                 }
             }
         } catch (e) {
-            console.error('Failed to save activity', e)
             tg.showAlert(`Ошибка: ${e.message || 'Не удалось сохранить'}`)
         }
     }

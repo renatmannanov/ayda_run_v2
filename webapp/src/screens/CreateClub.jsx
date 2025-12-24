@@ -116,7 +116,6 @@ export default function CreateClub() {
                 setShowSuccess(true)
             }
         } catch (e) {
-            console.error('Failed to save club', e)
             tg.showAlert(isEditMode ? 'Ошибка при сохранении' : 'Ошибка при создании клуба')
         }
     }
