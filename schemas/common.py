@@ -10,6 +10,8 @@ class SportType(str, Enum):
     TRAIL = "trail"
     HIKING = "hiking"
     CYCLING = "cycling"
+    YOGA = "yoga"
+    WORKOUT = "workout"
     OTHER = "other"
 
 class Difficulty(str, Enum):

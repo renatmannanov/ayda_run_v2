@@ -349,6 +349,9 @@ class RecurringTemplate(Base):
     # Active status
     active = Column(Boolean, default=True)
 
+    # Demo data flag
+    is_demo = Column(Boolean, default=False, nullable=False, index=True)
+
     created_at = Column(DateTime, default=datetime.utcnow)
 
     # Relationships

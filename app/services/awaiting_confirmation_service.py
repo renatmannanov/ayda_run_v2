@@ -96,6 +96,7 @@ class AwaitingConfirmationService:
             # Find all participations where:
             # - status is REGISTERED or CONFIRMED
             # - activity.date < now (activity has started/passed)
+            # - activity is not demo data
             participations_to_update = session.query(Participation).join(
                 Activity, Participation.activity_id == Activity.id
             ).filter(
@@ -104,7 +105,8 @@ class AwaitingConfirmationService:
                         ParticipationStatus.REGISTERED,
                         ParticipationStatus.CONFIRMED
                     ]),
-                    Activity.date < now
+                    Activity.date < now,
+                    Activity.is_demo == False
                 )
             ).all()
 

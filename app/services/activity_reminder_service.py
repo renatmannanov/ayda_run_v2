@@ -98,12 +98,13 @@ class ActivityReminderService:
             target_start = now + timedelta(days=2)
             target_end = target_start + timedelta(hours=1)
 
-            # Get upcoming activities in the time window
+            # Get upcoming activities in the time window (exclude demo activities)
             activities = session.query(Activity).filter(
                 and_(
                     Activity.status == ActivityStatus.UPCOMING,
                     Activity.date >= target_start,
-                    Activity.date < target_end
+                    Activity.date < target_end,
+                    Activity.is_demo == False
                 )
             ).all()
 

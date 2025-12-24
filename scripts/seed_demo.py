@@ -26,11 +26,17 @@ from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
 from storage.db import (
     SessionLocal, init_db,
-    User, Club, Group, Activity, Membership, Participation,
+    User, Club, Group, Activity, Membership, Participation, RecurringTemplate,
     UserRole, SportType, Difficulty, ActivityVisibility, ActivityStatus,
     ParticipationStatus, PaymentStatus
 )
 import random
+
+# ============= CONFIGURATION =============
+
+# Admin telegram_id - this user will be the creator of all demo clubs/activities
+# Set this to your real Telegram ID for production
+ADMIN_TELEGRAM_ID = 5414820474  # Your Telegram ID
 
 # ============= DEMO USER DATA =============
 
@@ -357,7 +363,7 @@ def create_demo_clubs(db: Session, users: dict, admin_user: User):
 
 
 def create_recurring_activities(db: Session, club_data: dict, users: dict, admin_user: User):
-    """Create recurring activities for a club"""
+    """Create recurring activities for a club using RecurringTemplate"""
     club = club_data['club']
     config = club_data['config']
 
@@ -375,15 +381,37 @@ def create_recurring_activities(db: Session, club_data: dict, users: dict, admin
     for activity_config in config['recurring_activities']:
         day_of_week = activity_config['day']  # 0=Mon, 6=Sun
         time_str = activity_config['time']
-        hour, minute = map(int, time_str.split(':'))
+
+        # Create RecurringTemplate first
+        template = RecurringTemplate(
+            title=activity_config['title'],
+            day_of_week=day_of_week,
+            time_of_day=time_str,
+            frequency=4,  # Weekly
+            total_occurrences=12,  # 3 months worth
+            description=f"Регулярная тренировка {club.name}",
+            location=activity_config['location'],
+            sport_type=activity_config['sport'],
+            difficulty=activity_config['difficulty'],
+            distance=activity_config.get('distance'),
+            duration=activity_config.get('duration'),
+            club_id=club.id,
+            creator_id=admin_user.id,
+            is_demo=True  # Mark as demo
+        )
+        db.add(template)
+        db.commit()
+        db.refresh(template)
 
         # Find first occurrence
+        hour, minute = map(int, time_str.split(':'))
         current_date = start_date
         while current_date.weekday() != day_of_week:
             current_date += timedelta(days=1)
 
-        # Create weekly occurrences
+        # Create weekly occurrences linked to template
         occurrence_count = 0
+        sequence = 1
         while current_date <= end_date:
             activity_date = current_date.replace(hour=hour, minute=minute, second=0, microsecond=0)
 
@@ -400,23 +428,29 @@ def create_recurring_activities(db: Session, club_data: dict, users: dict, admin
                 location=activity_config['location'],
                 club_id=club.id,
                 creator_id=admin_user.id,
-                city='Almaty',  # Set default city
+                city='Almaty',
                 sport_type=activity_config['sport'],
                 difficulty=activity_config['difficulty'],
                 distance=activity_config.get('distance'),
                 duration=activity_config.get('duration'),
                 visibility=ActivityVisibility.PUBLIC if club.is_open else ActivityVisibility.PRIVATE_CLUB,
                 status=status,
-                is_demo=True  # Mark as demo
+                recurring_template_id=template.id,
+                recurring_sequence=sequence,
+                is_demo=True
             )
             db.add(activity)
             activities_created.append(activity)
             occurrence_count += 1
+            sequence += 1
 
             # Next week
             current_date += timedelta(weeks=1)
 
-        print(f"     - {activity_config['title']}: {occurrence_count} occurrences")
+        # Update template generated_count
+        template.generated_count = occurrence_count
+
+        print(f"     - {activity_config['title']}: {occurrence_count} occurrences (recurring)")
 
     db.commit()
     return activities_created
@@ -550,12 +584,21 @@ def seed_demo_data():
     db = SessionLocal()
 
     try:
-        # Get admin user (telegram_id=1)
-        admin_user = db.query(User).filter(User.telegram_id == 1).first()
+        # Get or create admin user
+        admin_user = db.query(User).filter(User.telegram_id == ADMIN_TELEGRAM_ID).first()
         if not admin_user:
-            print("[ERROR] Admin user (telegram_id=1) not found!")
-            print("Please create admin user first or run seed_data.py")
-            return
+            print(f"[INFO] Creating admin user (telegram_id={ADMIN_TELEGRAM_ID})...")
+            admin_user = User(
+                telegram_id=ADMIN_TELEGRAM_ID,
+                username="admin",
+                first_name="Admin",
+                is_demo=False,  # Admin is NOT demo data
+                has_completed_onboarding=True
+            )
+            db.add(admin_user)
+            db.commit()
+            db.refresh(admin_user)
+            print(f"[SUCCESS] Admin user created with id={admin_user.id}")
 
         # Check if demo data already exists
         existing_demo = db.query(User).filter(User.is_demo == True).first()
@@ -601,6 +644,7 @@ def seed_demo_data():
         print(f"   Demo Users: {db.query(User).filter(User.is_demo == True).count()}")
         print(f"   Demo Clubs: {db.query(Club).filter(Club.is_demo == True).count()}")
         print(f"   Demo Groups: {db.query(Group).filter(Group.is_demo == True).count()}")
+        print(f"   Demo Recurring Templates: {db.query(RecurringTemplate).filter(RecurringTemplate.is_demo == True).count()}")
         print(f"   Demo Activities: {db.query(Activity).filter(Activity.is_demo == True).count()}")
         print(f"   Total Participations: {db.query(Participation).count()}")
 
