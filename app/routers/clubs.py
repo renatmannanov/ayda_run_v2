@@ -86,17 +86,24 @@ def list_clubs(
 ) -> List[ClubResponse]:
     """List all clubs (public for now)"""
     clubs = db.query(Club).offset(offset).limit(limit).all()
-    
+
     result = []
     for club in clubs:
         response = ClubResponse.model_validate(club)
-        
+
         # Count groups
         response.groups_count = db.query(Group).filter(Group.club_id == club.id).count()
-        
+
         # Count members
         response.members_count = db.query(Membership).filter(Membership.club_id == club.id).count()
-        
+
+        # Get unique sport types from club's activities
+        sport_types = db.query(Activity.sport_type).filter(
+            Activity.club_id == club.id,
+            Activity.sport_type.isnot(None)
+        ).distinct().all()
+        response.sports = [st[0].value for st in sport_types if st[0]]
+
         # Check if current user is member
         if current_user:
             membership = db.query(Membership).filter(
@@ -105,9 +112,9 @@ def list_clubs(
             ).first()
             response.is_member = membership is not None
             response.user_role = membership.role if membership else None
-        
+
         result.append(response)
-    
+
     return result
 
 
@@ -119,14 +126,21 @@ def get_club(
 ) -> ClubResponse:
     """Get club details"""
     club = db.query(Club).filter(Club.id == club_id).first()
-    
+
     if not club:
         raise HTTPException(status_code=404, detail="Club not found")
-    
+
     # Convert to response
     response = ClubResponse.model_validate(club)
     response.groups_count = db.query(Group).filter(Group.club_id == club.id).count()
     response.members_count = db.query(Membership).filter(Membership.club_id == club.id).count()
+
+    # Get unique sport types from club's activities
+    sport_types = db.query(Activity.sport_type).filter(
+        Activity.club_id == club.id,
+        Activity.sport_type.isnot(None)
+    ).distinct().all()
+    response.sports = [st[0].value for st in sport_types if st[0]]
 
     if current_user:
         membership = db.query(Membership).filter(

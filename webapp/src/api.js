@@ -113,7 +113,8 @@ const transformClub = (c) => !c ? null : ({
     isMember: c.is_member,
     isOpen: c.is_open !== undefined ? c.is_open : true, // Default to open for backwards compatibility
     userRole: c.user_role,
-    isAdmin: c.user_role === 'admin' || c.user_role === 'organizer'
+    isAdmin: c.user_role === 'admin' || c.user_role === 'organizer',
+    sports: c.sports || [] // Sport types from club's activities
 })
 
 const transformGroup = (g) => !g ? null : ({
@@ -129,7 +130,8 @@ const transformGroup = (g) => !g ? null : ({
     members: g.members_count, // Map count
     isMember: g.is_member,
     userRole: g.user_role,
-    isAdmin: g.user_role === 'admin' || g.user_role === 'trainer'
+    isAdmin: g.user_role === 'admin' || g.user_role === 'trainer',
+    sports: g.sports || [] // Sport types from group's activities
 })
 
 const transformMember = (m) => !m ? null : ({

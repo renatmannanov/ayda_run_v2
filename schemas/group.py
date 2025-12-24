@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field, field_serializer
-from typing import Optional
+from typing import Optional, List
 from .common import BaseResponse, UserRole
 
 class GroupCreate(BaseModel):
@@ -53,6 +53,7 @@ class GroupResponse(BaseResponse):
     is_member: bool = False
     club_name: Optional[str] = None
     user_role: Optional[str] = None
+    sports: List[str] = []  # Unique sport types from group's activities
 
 class MembershipUpdate(BaseModel):
     """Schema for updating member role"""

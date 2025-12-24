@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react'
 import { BottomNav, CreateMenu, ClubCard, GroupCard, LoadingScreen, ErrorScreen, SearchButton } from '../components'
 import { ModeToggle } from '../components/home/ModeToggle'
 import { SportFilterButton } from '../components/home/SportFilterButton'
-import { SportFilterPopup } from '../components/home/SportFilterPopup'
+import { ActivityFilterPopup } from '../components/home/ActivityFilterPopup'
 import { useClubs, useGroups, useJoinClub, useJoinGroup } from '../hooks'
 
 export default function ClubsGroups() {
@@ -38,11 +38,11 @@ export default function ClubsGroups() {
         setSelectedSports([])
     }
 
-    // Filter by sport types (if club/group has sportTypes array)
+    // Filter by sport types (if club/group has sports array)
     const filterBySportTypes = (items) => {
         if (selectedSports.length === 0) return items
         return items.filter(item =>
-            item.sportTypes?.some(st => selectedSports.includes(st))
+            item.sports?.some(st => selectedSports.includes(st))
         )
     }
 
@@ -223,12 +223,18 @@ export default function ClubsGroups() {
                 )}
             </div>
 
-            {/* Sport Filter Popup */}
-            <SportFilterPopup
+            {/* Sport Filter Popup - using ActivityFilterPopup without clubs/groups section */}
+            <ActivityFilterPopup
                 isOpen={showSportFilter}
                 onClose={() => setShowSportFilter(false)}
+                myClubs={[]}
+                myGroups={[]}
+                selectedClubs={[]}
+                selectedGroups={[]}
+                onToggleClub={() => {}}
+                onToggleGroup={() => {}}
                 selectedSports={selectedSports}
-                onToggle={toggleSport}
+                onToggleSport={toggleSport}
                 onClear={clearSportFilters}
             />
 

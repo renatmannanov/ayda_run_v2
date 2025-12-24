@@ -1,5 +1,5 @@
 from pydantic import BaseModel, ConfigDict, Field
-from typing import Optional
+from typing import Optional, List
 from .common import BaseResponse
 
 class ClubCreate(BaseModel):
@@ -75,3 +75,4 @@ class ClubResponse(BaseResponse):
     groups_count: int = 0
     is_member: bool = False
     user_role: Optional[str] = None
+    sports: List[str] = []  # Unique sport types from club's activities

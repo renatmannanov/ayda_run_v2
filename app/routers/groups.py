@@ -88,22 +88,29 @@ def list_groups(
 ) -> List[GroupResponse]:
     """List groups, optionally filtered by club"""
     query = db.query(Group)
-    
+
     if club_id is not None:
         query = query.filter(Group.club_id == club_id)
-    
+
     # Eager load club to get name efficiently
     query = query.options(joinedload(Group.club))
-    
+
     groups = query.offset(offset).limit(limit).all()
-    
+
     result = []
     for group in groups:
         response = GroupResponse.model_validate(group)
-        
+
         # Count members
         response.members_count = db.query(Membership).filter(Membership.group_id == group.id).count()
-        
+
+        # Get unique sport types from group's activities
+        sport_types = db.query(Activity.sport_type).filter(
+            Activity.group_id == group.id,
+            Activity.sport_type.isnot(None)
+        ).distinct().all()
+        response.sports = [st[0].value for st in sport_types if st[0]]
+
         # Check if current user is member
         if current_user:
             membership = db.query(Membership).filter(
@@ -112,12 +119,12 @@ def list_groups(
             ).first()
             response.is_member = membership is not None
             response.user_role = membership.role if membership else None
-        
+
         if group.club:
             response.club_name = group.club.name
 
         result.append(response)
-    
+
     return result
 
 
@@ -129,14 +136,21 @@ def get_group(
 ) -> GroupResponse:
     """Get group details"""
     group = db.query(Group).filter(Group.id == group_id).first()
-    
+
     if not group:
         raise HTTPException(status_code=404, detail="Group not found")
-    
+
     # Convert to response
     response = GroupResponse.model_validate(group)
     response.members_count = db.query(Membership).filter(Membership.group_id == group.id).count()
-    
+
+    # Get unique sport types from group's activities
+    sport_types = db.query(Activity.sport_type).filter(
+        Activity.group_id == group.id,
+        Activity.sport_type.isnot(None)
+    ).distinct().all()
+    response.sports = [st[0].value for st in sport_types if st[0]]
+
     if current_user:
         membership = db.query(Membership).filter(
             Membership.group_id == group.id,
@@ -144,7 +158,7 @@ def get_group(
         ).first()
         response.is_member = membership is not None
         response.user_role = membership.role if membership else None
-    
+
     if group.club:
         response.club_name = group.club.name
 
