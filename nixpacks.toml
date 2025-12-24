@@ -7,12 +7,7 @@ nixPkgs = ["nodejs-18_x", "python3", "npm"]
 [phases.install]
 cmds = [
     "pip install -r requirements.txt",
-    "cd webapp && npm install"
-]
-
-[phases.build]
-cmds = [
-    "cd webapp && npm run build"
+    "cd webapp && npm install && npm run build && ls -la dist/"
 ]
 
 [start]

@@ -361,7 +361,11 @@ app.include_router(recurring.router)
 @app.get("/")
 async def root():
     """Serve the main webapp page"""
-    return FileResponse("webapp/dist/index.html")
+    if os.path.exists("webapp/dist/index.html"):
+        return FileResponse("webapp/dist/index.html")
+    else:
+        # Fallback if frontend not built
+        return {"status": "API is running", "message": "Frontend not built. Use /api/health for API status."}
 
 # Serve all static files from dist folder
 from fastapi.staticfiles import StaticFiles
