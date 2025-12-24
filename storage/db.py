@@ -15,7 +15,7 @@ from sqlalchemy import (
     create_engine, Column, Integer, String, DateTime,
     Boolean, Float, Enum as SQLEnum, ForeignKey, Text
 )
-from sqlalchemy.orm import sessionmaker, relationship, declarative_base
+from sqlalchemy.orm import sessionmaker, relationship, declarative_base, Session
 from datetime import datetime
 from typing import Optional
 from enum import Enum
