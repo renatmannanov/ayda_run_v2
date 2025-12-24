@@ -23,7 +23,7 @@ from app.core.dependencies import get_db, get_current_user
 from config import settings
 
 # Telegram Bot
-from telegram import Update
+from telegram import Update, BotCommand, BotCommandScopeAllPrivateChats, BotCommandScopeAllGroupChats
 from telegram.ext import Application, CommandHandler
 from bot.start_handler import start
 from bot.onboarding_handler import onboarding_conv_handler
@@ -112,6 +112,26 @@ async def lifespan(app: FastAPI):
     # Initialize bot (but don't start polling - we use webhook)
     await bot_app.initialize()
     await bot_app.start()
+
+    # Register bot commands for menu
+    # Commands for private chats
+    private_commands = [
+        BotCommand("start", "Начать или вернуться в главное меню"),
+        BotCommand("requests", "Просмотреть заявки на участие"),
+        BotCommand("my_requests", "Мои заявки на участие"),
+        BotCommand("sync", "Проверить статус синхронизации"),
+        BotCommand("cancel", "Отменить текущую операцию"),
+    ]
+    # Commands for group chats
+    group_commands = [
+        BotCommand("start", "Начать регистрацию"),
+        BotCommand("create_club", "Создать клуб из этой группы"),
+        BotCommand("sync", "Синхронизация чата с клубом"),
+        BotCommand("cancel", "Отменить операцию"),
+    ]
+    await bot_app.bot.set_my_commands(private_commands, scope=BotCommandScopeAllPrivateChats())
+    await bot_app.bot.set_my_commands(group_commands, scope=BotCommandScopeAllGroupChats())
+    logger.info("[SUCCESS] Bot commands registered")
 
     # Set webhook
     # Use base_url for webhook if available, otherwise fall back to app_url

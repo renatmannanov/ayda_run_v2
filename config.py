@@ -63,7 +63,7 @@ class Settings(BaseSettings):
 
     # === GPX Storage ===
     gpx_channel_id: int = Field(
-        default=-1003313566203,
+        ...,
         alias="GPX_CHANNEL_ID",
         description="Telegram channel ID for storing GPX files"
     )
