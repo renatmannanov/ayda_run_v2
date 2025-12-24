@@ -6,6 +6,7 @@ python-dotenv
 sqlalchemy
 pydantic-settings
 alembic
+python-multipart
 
 # Production database (PostgreSQL)
 psycopg2-binary
