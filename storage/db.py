@@ -460,7 +460,7 @@ class ClubRequest(Base):
     __tablename__ = 'club_requests'
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    user_id = Column(Integer, ForeignKey('users.id'), nullable=False, index=True)
+    user_id = Column(String(36), ForeignKey('users.id'), nullable=False, index=True)
 
     # Club data
     name = Column(String(255), nullable=False)
@@ -497,12 +497,12 @@ class JoinRequest(Base):
     __tablename__ = 'join_requests'
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    user_id = Column(Integer, ForeignKey('users.id'), nullable=False, index=True)
+    user_id = Column(String(36), ForeignKey('users.id'), nullable=False, index=True)
 
     # One of these must be set (entity being requested)
-    club_id = Column(Integer, ForeignKey('clubs.id'), nullable=True, index=True)
-    group_id = Column(Integer, ForeignKey('groups.id'), nullable=True, index=True)
-    activity_id = Column(Integer, ForeignKey('activities.id'), nullable=True, index=True)
+    club_id = Column(String(36), ForeignKey('clubs.id'), nullable=True, index=True)
+    group_id = Column(String(36), ForeignKey('groups.id'), nullable=True, index=True)
+    activity_id = Column(String(36), ForeignKey('activities.id'), nullable=True, index=True)
 
     # Request status
     status = Column(SQLEnum(JoinRequestStatus), default=JoinRequestStatus.PENDING, nullable=False, index=True)
