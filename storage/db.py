@@ -12,7 +12,7 @@ Architecture supports:
 """
 
 from sqlalchemy import (
-    create_engine, Column, Integer, String, DateTime,
+    create_engine, Column, Integer, BigInteger, String, DateTime,
     Boolean, Float, Enum as SQLEnum, ForeignKey, Text
 )
 from sqlalchemy.orm import sessionmaker, relationship, declarative_base, Session
@@ -142,7 +142,7 @@ class User(Base):
     __tablename__ = 'users'
 
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
-    telegram_id = Column(Integer, unique=True, nullable=False, index=True)
+    telegram_id = Column(BigInteger, unique=True, nullable=False, index=True)
     username = Column(String(255), nullable=True)
     first_name = Column(String(255), nullable=True)
     last_name = Column(String(255), nullable=True)
@@ -198,7 +198,7 @@ class Club(Base):
 
     # Telegram integration
     username = Column(String(255), nullable=True)  # @username
-    telegram_chat_id = Column(Integer, nullable=True)
+    telegram_chat_id = Column(BigInteger, nullable=True)
     invite_link = Column(String(500), nullable=True)  # t.me/... link
     photo = Column(String(255), nullable=True)  # Avatar file_id
 
@@ -255,7 +255,7 @@ class Group(Base):
 
     # Telegram integration
     username = Column(String(255), nullable=True)  # @username
-    telegram_chat_id = Column(Integer, nullable=True)
+    telegram_chat_id = Column(BigInteger, nullable=True)
     invite_link = Column(String(500), nullable=True)  # t.me/... link
     photo = Column(String(255), nullable=True)  # Avatar file_id
 

@@ -28,7 +28,7 @@ from storage.db import (
     SessionLocal, init_db,
     User, Club, Group, Activity, Membership, Participation, RecurringTemplate,
     UserRole, SportType, Difficulty, ActivityVisibility, ActivityStatus,
-    ParticipationStatus, PaymentStatus
+    ParticipationStatus, PaymentStatus, MembershipSource
 )
 import random
 
@@ -271,7 +271,7 @@ def create_demo_clubs(db: Session, users: dict, admin_user: User):
             user_id=admin_user.id,
             club_id=club.id,
             role=UserRole.ORGANIZER,
-            source='MANUAL_REGISTRATION'
+            source=MembershipSource.MANUAL_REGISTRATION
         ))
 
         # Select members for this club (allow overlap)
@@ -309,13 +309,13 @@ def create_demo_clubs(db: Session, users: dict, admin_user: User):
                         user_id=users[trainer_id]['user'].id,
                         club_id=club.id,
                         role=UserRole.TRAINER,
-                        source='MANUAL_REGISTRATION'
+                        source=MembershipSource.MANUAL_REGISTRATION
                     ))
                     db.add(Membership(
                         user_id=users[trainer_id]['user'].id,
                         group_id=group.id,
                         role=UserRole.TRAINER,
-                        source='MANUAL_REGISTRATION'
+                        source=MembershipSource.MANUAL_REGISTRATION
                     ))
 
                     # Add regular members
@@ -324,13 +324,13 @@ def create_demo_clubs(db: Session, users: dict, admin_user: User):
                             user_id=users[uid]['user'].id,
                             club_id=club.id,
                             role=UserRole.MEMBER,
-                            source='MANUAL_REGISTRATION'
+                            source=MembershipSource.MANUAL_REGISTRATION
                         ))
                         db.add(Membership(
                             user_id=users[uid]['user'].id,
                             group_id=group.id,
                             role=UserRole.MEMBER,
-                            source='MANUAL_REGISTRATION'
+                            source=MembershipSource.MANUAL_REGISTRATION
                         ))
 
                 print(f"     - Group '{group.name}': {len(group_members)} members")
@@ -343,7 +343,7 @@ def create_demo_clubs(db: Session, users: dict, admin_user: User):
                     user_id=users[uid]['user'].id,
                     club_id=club.id,
                     role=UserRole.MEMBER,
-                    source='MANUAL_REGISTRATION'
+                    source=MembershipSource.MANUAL_REGISTRATION
                 ))
 
             print(f"     - {len(selected_users)} members")
