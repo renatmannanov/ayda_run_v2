@@ -327,6 +327,8 @@ def get_club_members(
             username=user.username,
             first_name=user.first_name,
             name=user.first_name or user.username or f"User {user.telegram_id}",
+            photo=user.photo,
+            show_photo=user.show_photo,
             role=membership.role,
             joined_at=membership.joined_at.isoformat() if membership.joined_at else None,
             preferred_sports=user.preferred_sports

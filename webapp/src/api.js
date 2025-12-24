@@ -52,7 +52,7 @@ const transformUser = (u) => !u ? null : ({
     preferredSports: u.preferred_sports,
     photo: u.photo,
     stravaLink: u.strava_link,
-    showPhoto: u.show_photo === true,  // default false
+    showPhoto: !!u.show_photo,  // default false, handle both boolean and integer (1/0)
 })
 
 const transformActivity = (a) => !a ? null : ({
@@ -143,6 +143,7 @@ const transformMember = (m) => !m ? null : ({
     status: m.status, // Participation status (registered, confirmed, awaiting, attended, missed)
     joinedAt: m.joined_at,
     photo: m.photo,
+    showPhoto: !!m.show_photo, // Настройка видимости аватарки пользователя
     stravaLink: m.strava_link,
     preferredSports: m.preferred_sports,
     attended: m.attended,

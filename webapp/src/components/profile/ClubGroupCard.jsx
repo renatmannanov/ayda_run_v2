@@ -18,6 +18,7 @@ export default function ClubGroupCard({ item, onClick }) {
                 src={item.photo}
                 name={item.name}
                 size="lg"
+                forcePhoto
             />
             <span className="text-xs text-gray-600 max-w-[64px] truncate text-center">
                 {item.name}

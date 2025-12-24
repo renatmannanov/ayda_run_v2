@@ -104,6 +104,7 @@ export default function ParticipantsSheet({
                                         name={participant.name}
                                         size="md"
                                         className="mr-3 flex-shrink-0"
+                                        showPhoto={participant.showPhoto}
                                     />
 
                                     {/* Name + Sports - left side */}

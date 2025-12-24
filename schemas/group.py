@@ -66,6 +66,7 @@ class MemberResponse(BaseModel):
     first_name: Optional[str]
     name: str
     photo: Optional[str] = None  # Telegram file_id or URL
+    show_photo: bool = False  # Show photo instead of initials
     role: UserRole
     joined_at: Optional[str] = None  # datetime to str if needed
     preferred_sports: Optional[str] = None  # JSON string of sport preferences

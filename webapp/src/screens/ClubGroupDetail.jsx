@@ -244,7 +244,7 @@ export default function ClubGroupDetail({ type = 'club' }) {
                     <div className="mb-4">
                         <div className="flex items-center gap-2 mb-1">
                             {item.photo ? (
-                                <Avatar src={item.photo} name={item.name} size="md" className="flex-shrink-0" />
+                                <Avatar src={item.photo} name={item.name} size="md" className="flex-shrink-0" forcePhoto />
                             ) : (
                                 <span className="text-xl flex-shrink-0">{isClub ? '🏆' : '👥'}</span>
                             )}
@@ -322,12 +322,14 @@ export default function ClubGroupDetail({ type = 'club' }) {
                     <div className="border border-dashed border-gray-200 rounded-xl p-6 text-center mb-4">
                         <span className="text-2xl mb-2 block">📅</span>
                         <p className="text-sm text-gray-400 mb-3">Нет запланированных тренировок</p>
-                        <button
-                            onClick={() => setShowCreateMenu(true)}
-                            className="text-sm text-gray-600 hover:text-gray-800 transition-colors"
-                        >
-                            {isAdmin ? 'Создать активность →' : 'Предложить активность →'}
-                        </button>
+                        {item.isMember && (
+                            <button
+                                onClick={() => setShowCreateMenu(true)}
+                                className="text-sm text-gray-600 hover:text-gray-800 transition-colors"
+                            >
+                                {isAdmin ? 'Создать активность →' : 'Предложить активность →'}
+                            </button>
+                        )}
                     </div>
                 )}
             </div>

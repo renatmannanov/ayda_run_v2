@@ -117,6 +117,7 @@ export default function AttendancePopup({
                                     name={p.name || p.firstName}
                                     size="md"
                                     className="mr-3 flex-shrink-0"
+                                    showPhoto={p.showPhoto}
                                 />
 
                                 {/* Name + Sports */}
@@ -214,6 +215,7 @@ export default function AttendancePopup({
                                                     src={m.photo}
                                                     name={m.name || m.firstName}
                                                     size="sm"
+                                                    showPhoto={m.showPhoto}
                                                 />
                                                 <span className="text-sm text-gray-700">
                                                     {m.name || m.firstName}

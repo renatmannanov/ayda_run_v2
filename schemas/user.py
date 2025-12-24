@@ -68,6 +68,7 @@ class ParticipantResponse(BaseModel):
     preferred_sports: Optional[str] = None  # JSON string of sport preferences
     photo: Optional[str] = None  # Telegram avatar file_id or URL
     strava_link: Optional[str] = None  # URL to Strava profile
+    show_photo: bool = False  # Show photo instead of initials
     is_organizer: bool = False  # True if creator of the activity
 
     @field_serializer('telegram_id', when_used='always')

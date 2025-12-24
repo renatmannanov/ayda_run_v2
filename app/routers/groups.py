@@ -349,6 +349,8 @@ def get_group_members(
             username=user.username,
             first_name=user.first_name,
             name=display_name,
+            photo=user.photo,
+            show_photo=user.show_photo,
             role=membership.role,
             joined_at=membership.joined_at.isoformat() if membership.joined_at else None,
             preferred_sports=user.preferred_sports

@@ -47,6 +47,7 @@ export default function AvatarStack({ participants = [], max = 3, size = 'sm' })
                         src={participant.photo}
                         name={participant.name}
                         size={size}
+                        showPhoto={participant.showPhoto}
                     />
                 </div>
             ))}

@@ -23,7 +23,7 @@ export default function ClubCard({ club, showJoinButton = false, onJoin }) {
             <div className="flex items-start justify-between">
                 <div className="flex items-start gap-3 flex-1 min-w-0">
                     {club.photo ? (
-                        <Avatar src={club.photo} name={club.name} size="md" />
+                        <Avatar src={club.photo} name={club.name} size="md" forcePhoto />
                     ) : (
                         <span className="text-xl flex-shrink-0">{club.icon || '🏆'}</span>
                     )}

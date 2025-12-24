@@ -9,9 +9,10 @@ import { useUser } from '../../contexts/UserContext'
  * @param {string} props.name - Name for initials fallback
  * @param {string} props.size - Size: 'sm', 'md', 'lg', 'xl', '2xl' (default: 'md')
  * @param {string} props.className - Additional CSS classes
- * @param {boolean} props.forcePhoto - Force show photo regardless of global setting
+ * @param {boolean} props.showPhoto - User's showPhoto setting (from API). If provided, uses this instead of global setting.
+ * @param {boolean} props.forcePhoto - Force show photo regardless of any setting
  */
-export default function Avatar({ src, name, size = 'md', className = '', forcePhoto = false }) {
+export default function Avatar({ src, name, size = 'md', className = '', showPhoto, forcePhoto = false }) {
     const { showPhoto: globalShowPhoto } = useUser()
     const [imageError, setImageError] = React.useState(false)
 
@@ -77,8 +78,11 @@ export default function Avatar({ src, name, size = 'md', className = '', forcePh
 
     const imageUrl = getImageUrl(src)
 
-    // Respect global showPhoto setting unless forcePhoto is true
-    const shouldShowPhoto = forcePhoto || globalShowPhoto
+    // Determine if photo should be shown:
+    // 1. forcePhoto=true - always show
+    // 2. showPhoto prop provided - use it (from user's API data)
+    // 3. fallback to globalShowPhoto (current user's setting, for their own avatar)
+    const shouldShowPhoto = forcePhoto || (showPhoto !== undefined ? showPhoto : globalShowPhoto)
     const showImage = imageUrl && !imageError && shouldShowPhoto
 
     // Debug logging

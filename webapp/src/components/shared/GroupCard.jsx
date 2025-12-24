@@ -23,7 +23,7 @@ export default function GroupCard({ group, showJoinButton = false, onJoin }) {
             <div className="flex items-start justify-between">
                 <div className="flex items-start gap-3 flex-1 min-w-0">
                     {group.photo ? (
-                        <Avatar src={group.photo} name={group.name} size="md" />
+                        <Avatar src={group.photo} name={group.name} size="md" forcePhoto />
                     ) : (
                         <span className="text-xl flex-shrink-0">{group.icon || '👥'}</span>
                     )}

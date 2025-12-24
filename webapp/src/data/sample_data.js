@@ -70,7 +70,8 @@ export const formatDate = (date) => {
     return d.toLocaleDateString('ru-RU', { weekday: 'short', day: 'numeric', month: 'short' })
 }
 
-export const isToday = (dayOfWeek) => {
+export const isToday = (dayOfWeek, weekNumber = 0) => {
+    if (weekNumber !== 0) return false  // "Сегодня" только на текущей неделе
     return new Date().getDay() === dayOfWeek
 }
 

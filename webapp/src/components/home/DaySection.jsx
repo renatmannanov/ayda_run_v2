@@ -13,8 +13,8 @@ export function DaySection({
     const hasActivities = activities && activities.length > 0
     const now = new Date()
 
-    // Check if this is today
-    const isTodayDay = isToday(dayOfWeek)
+    // Check if this is today (only on current week)
+    const isTodayDay = isToday(dayOfWeek, weekNumber)
 
     // For current week (weekNumber === 0), check if the day has passed
     // For past weeks (weekNumber < 0), ALL days should be collapsed
