@@ -12,7 +12,22 @@ export default function Home() {
     const location = useLocation()
     const [searchParams, setSearchParams] = useSearchParams()
     const navigate = useNavigate()
-    const [mode, setMode] = useState('my') // 'my' | 'all'
+
+    // Initialize mode from URL param, default to 'my'
+    const modeFromUrl = searchParams.get('mode')
+    const mode = modeFromUrl === 'all' ? 'all' : 'my'
+
+    // Update mode in URL without adding to history
+    const setMode = (newMode) => {
+        const newParams = new URLSearchParams(searchParams)
+        if (newMode === 'all') {
+            newParams.set('mode', 'all')
+        } else {
+            newParams.delete('mode')
+        }
+        setSearchParams(newParams, { replace: true })
+    }
+
     const [showCreateMenu, setShowCreateMenu] = useState(false)
     const [currentWeekIndex, setCurrentWeekIndex] = useState(null)
     const [expandedDays, setExpandedDays] = useState({})
