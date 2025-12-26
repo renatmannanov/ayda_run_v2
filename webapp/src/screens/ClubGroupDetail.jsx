@@ -452,6 +452,7 @@ export default function ClubGroupDetail({ type = 'club' }) {
             {/* Bottom Bar with Action */}
             <BottomBar
                 onCreateClick={() => setShowCreateMenu(true)}
+                canCreate={item?.canCreateActivity}
                 action={
                     !item.isMember ? (
                         <button

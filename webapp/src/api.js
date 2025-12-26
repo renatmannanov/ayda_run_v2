@@ -118,6 +118,7 @@ const transformClub = (c) => !c ? null : ({
     isOpen: c.is_open !== undefined ? c.is_open : true, // Default to open for backwards compatibility
     userRole: c.user_role,
     isAdmin: c.user_role === 'admin' || c.user_role === 'organizer',
+    canCreateActivity: c.user_role === 'admin' || c.user_role === 'organizer',
     sports: c.sports || [] // Sport types from club's activities
 })
 
@@ -135,6 +136,10 @@ const transformGroup = (g) => !g ? null : ({
     isMember: g.is_member,
     userRole: g.user_role,
     isAdmin: g.user_role === 'admin' || g.user_role === 'trainer',
+    // Standalone группа - любой член, группа в клубе - trainer+
+    canCreateActivity: g.club_id === null
+        ? !!g.user_role
+        : ['admin', 'organizer', 'trainer'].includes(g.user_role),
     sports: g.sports || [] // Sport types from group's activities
 })
 

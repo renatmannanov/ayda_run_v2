@@ -20,7 +20,8 @@ import BottomNav from './BottomNav'
 export default function BottomBar({
     action,
     showAction = true,
-    onCreateClick
+    onCreateClick,
+    canCreate = true
 }) {
     return (
         <div className="fixed bottom-0 left-0 right-0 max-w-md mx-auto z-40">
@@ -31,7 +32,7 @@ export default function BottomBar({
                 </div>
             )}
             {/* Bottom Navigation */}
-            <BottomNav onCreateClick={onCreateClick} />
+            <BottomNav onCreateClick={onCreateClick} canCreate={canCreate} />
         </div>
     )
 }
