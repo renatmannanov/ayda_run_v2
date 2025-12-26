@@ -12,7 +12,7 @@ export default function ClubCard({ club, showJoinButton = false, onJoin }) {
 
     const handleJoinClick = (e) => {
         e.stopPropagation()
-        if (onJoin) onJoin(club)
+        if (onJoin) onJoin({ ...club, type: 'club' })
     }
 
     return (

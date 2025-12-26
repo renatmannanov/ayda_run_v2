@@ -12,7 +12,7 @@ export default function GroupCard({ group, showJoinButton = false, onJoin }) {
 
     const handleJoinClick = (e) => {
         e.stopPropagation()
-        if (onJoin) onJoin(group)
+        if (onJoin) onJoin({ ...group, type: 'group' })
     }
 
     return (
