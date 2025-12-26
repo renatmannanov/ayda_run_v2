@@ -107,7 +107,7 @@ export default function ActivityCard({ activity }) {
         // Если есть клуб или группа - показываем их
         if (activity.club || activity.group) {
             const parts = [activity.club, activity.group].filter(Boolean)
-            return parts.join(' · ')
+            return `организатор · ${parts.join(' · ')}`
         }
         // Для личных активностей показываем создателя
         if (activity.creatorName) {
@@ -154,45 +154,45 @@ export default function ActivityCard({ activity }) {
             onClick={handleCardClick}
             className={`bg-white border border-gray-200 rounded-xl p-4 mb-3 cursor-pointer hover:border-gray-300 transition-colors ${isConfirmedPast ? 'opacity-50' : ''}`}
         >
-            {/* Название + иконка повторения + иконка спорта */}
-            <div className="flex justify-between items-start mb-1">
-                <div className="flex items-center gap-1.5 pr-2">
-                    <h3 className="text-base text-gray-800 font-medium">
-                        {activity.title}
-                    </h3>
-                    {activity.isRecurring && (
-                        <span className="flex items-center gap-0.5 text-xs text-gray-400" title="Повторяющаяся тренировка">
-                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                            </svg>
-                            <span>#{activity.recurringSequence}</span>
-                        </span>
-                    )}
+            {/* Блок 1: Название + организатор */}
+            <div className="mb-3">
+                <div className="flex justify-between items-start">
+                    <div className="flex items-center gap-1.5 pr-2">
+                        <h3 className="text-base text-gray-800 font-medium">
+                            {activity.title}
+                        </h3>
+                        {activity.isRecurring && (
+                            <span className="flex items-center gap-0.5 text-xs text-gray-400" title="Повторяющаяся тренировка">
+                                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                </svg>
+                                <span>#{activity.recurringSequence}</span>
+                            </span>
+                        )}
+                    </div>
+                    <span className="text-xl flex-shrink-0">{activity.icon}</span>
                 </div>
-                <span className="text-xl flex-shrink-0">{activity.icon}</span>
+                {organizerText && (
+                    <p className="text-sm text-gray-500">{organizerText}</p>
+                )}
             </div>
 
-            {/* Организатор */}
-            {organizerText && (
-                <p className="text-sm text-gray-500 mb-1">{organizerText}</p>
-            )}
+            {/* Блок 2: Дата, время, место + дистанция */}
+            <div className="mb-3">
+                <p className="text-sm text-gray-500">
+                    {formatDate(activity.date)}, {formatTime(activity.date)} · {activity.location}
+                </p>
+                {distanceText && (
+                    <p className="text-sm text-gray-400">{distanceText}</p>
+                )}
+            </div>
 
-            {/* Дата, время, место */}
-            <p className="text-sm text-gray-500 mb-1">
-                {formatDate(activity.date)}, {formatTime(activity.date)} · {activity.location}
-            </p>
-
-            {/* Дистанция и набор (если есть) */}
-            {distanceText && (
-                <p className="text-sm text-gray-400 mb-2">{distanceText}</p>
-            )}
-
-            {/* Участники + кнопка статуса */}
-            <div className="flex justify-between items-center mt-3">
+            {/* Блок 3: Участники + кнопка статуса */}
+            <div className="flex justify-between items-center">
                 <span className="text-sm text-gray-500">
                     {activity.maxParticipants !== null
-                        ? `${activity.participants}/${activity.maxParticipants}`
-                        : `${activity.participants}`}
+                        ? `${activity.participants}/${activity.maxParticipants} участников`
+                        : `${activity.participants} участников`}
                 </span>
                 <StatusButton
                     status={getStatus()}
