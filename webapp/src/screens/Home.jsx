@@ -12,7 +12,7 @@ export default function Home() {
     const location = useLocation()
     const [searchParams, setSearchParams] = useSearchParams()
     const navigate = useNavigate()
-    const [mode, setMode] = useState('all') // 'my' | 'all'
+    const [mode, setMode] = useState('my') // 'my' | 'all'
     const [showCreateMenu, setShowCreateMenu] = useState(false)
     const [currentWeekIndex, setCurrentWeekIndex] = useState(null)
     const [expandedDays, setExpandedDays] = useState({})
@@ -367,8 +367,8 @@ export default function Home() {
                     <EmptyState
                         icon="📅"
                         title="Пока пусто"
-                        description="Нет предстоящих тренировок"
-                        actionText={mode === 'my' ? "Смотреть все" : null}
+                        description={mode === 'my' ? "Создай свои тренировки или выбери из активностей сообщества" : "Нет предстоящих тренировок"}
+                        actionText={mode === 'my' ? "Смотреть активности сообщества" : null}
                         onAction={() => setMode('all')}
                     />
                 )}

@@ -22,7 +22,11 @@
       "Bash(pytest:*)",
       "Bash(cat:*)",
       "Bash(dir:*)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(\"C:\\\\Program Files\\\\PostgreSQL\\\\16\\\\bin\\\\psql.exe\" -U postgres -c \"SELECT version\\(\\);\")",
+      "Bash(set PGPASSWORD=raymann4)",
+      "Bash(\"C:\\\\Program Files\\\\PostgreSQL\\\\16\\\\bin\\\\psql.exe\" -U postgres -c \"SELECT 1;\")",
+      "Bash(alembic upgrade:*)"
     ]
   }
 }
