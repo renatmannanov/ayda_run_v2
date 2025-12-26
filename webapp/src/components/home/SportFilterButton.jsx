@@ -17,9 +17,9 @@ export function SportFilterButton({ selectedCount = 0, onClick }) {
             }`}
             aria-label="Фильтр по видам спорта"
         >
-            {/* Equalizer icon - 3 vertical lines with circles (30% smaller) */}
+            {/* Equalizer icon - 3 vertical lines with circles */}
             <svg
-                className="w-3.5 h-3.5"
+                className="w-4 h-4"
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"

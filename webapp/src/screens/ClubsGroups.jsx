@@ -210,14 +210,14 @@ export default function ClubsGroups() {
                     </div>
                 ) : (
                     <>
-                        <ModeToggle mode={mode} onModeChange={setMode} />
+                        <ModeToggle mode={mode} onModeChange={setMode} title="Клубы" />
                         <div className="flex items-center gap-2">
                             <SearchButton onClick={() => setShowSearch(true)} />
                             <SportFilterButton
                                 selectedCount={selectedSports.length}
                                 onClick={() => setShowSportFilter(true)}
                             />
-                            <span className="text-sm text-gray-400">{totalCount}</span>
+                            <span className="text-sm text-gray-400 min-w-[20px] text-right">{totalCount}</span>
                         </div>
                     </>
                 )}

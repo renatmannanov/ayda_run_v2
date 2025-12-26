@@ -73,7 +73,7 @@ export default function Profile() {
         <div className="h-screen bg-gray-50 flex flex-col">
             {/* Header */}
             <div className="bg-white border-b border-gray-200 px-4 py-3 flex-shrink-0">
-                <h1 className="text-base font-medium text-gray-800">Профиль</h1>
+                <h1 className="text-sm font-medium text-gray-800">Профиль</h1>
             </div>
 
             {/* Content */}
@@ -139,6 +139,20 @@ export default function Profile() {
 
                 {/* Stats & Settings Links */}
                 <div className="bg-white rounded-2xl overflow-hidden">
+                    {/* My Activities Link */}
+                    <button
+                        onClick={() => navigate('/')}
+                        className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors border-b border-gray-100"
+                    >
+                        <div className="flex items-center gap-3">
+                            <span className="text-lg">📅</span>
+                            <span className="text-sm font-medium text-gray-800">Мои активности</span>
+                        </div>
+                        <svg className="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                        </svg>
+                    </button>
+
                     {/* Statistics Link */}
                     <button
                         onClick={() => navigate('/statistics')}

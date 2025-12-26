@@ -17,7 +17,7 @@ export function SearchButton({ onClick, isActive = false }) {
         >
             {/* Magnifying glass icon - simple line style */}
             <svg
-                className="w-3.5 h-3.5"
+                className="w-4 h-4"
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"

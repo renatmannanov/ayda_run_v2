@@ -300,14 +300,14 @@ export default function Home() {
                     </div>
                 ) : (
                     <>
-                        <ModeToggle mode={mode} onModeChange={setMode} />
+                        <ModeToggle mode={mode} onModeChange={setMode} title="Активности" />
                         <div className="flex items-center gap-2">
                             <SearchButton onClick={() => setShowSearch(true)} />
                             <SportFilterButton
                                 selectedCount={activeFiltersCount}
                                 onClick={() => setShowFilterPopup(true)}
                             />
-                            <span className="text-sm text-gray-400">{totalCount}</span>
+                            <span className="text-sm text-gray-400 min-w-[20px] text-right">{totalCount}</span>
                         </div>
                     </>
                 )}
