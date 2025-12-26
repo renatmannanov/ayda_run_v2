@@ -21,6 +21,10 @@ from typing import Optional
 from enum import Enum
 import os
 import uuid
+from dotenv import load_dotenv
+
+# Load .env file
+load_dotenv()
 
 from app_config.constants import DEFAULT_COUNTRY, DEFAULT_CITY
 
