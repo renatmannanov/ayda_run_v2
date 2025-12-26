@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { ParticipantsSheet, LoadingScreen, ErrorScreen, Button, BottomBar, AttendancePopup } from '../components'
-import { AvatarStack, GPXUploadPopup, RecurringScopeDialog } from '../components/ui'
+import { AvatarStack, GPXUploadPopup, RecurringScopeDialog, StatusBadge } from '../components/ui'
 import {
     useActivity,
     useActivityParticipants,
@@ -351,29 +351,18 @@ export default function ActivityDetail() {
 
         // Attended - show green status (for all activity types)
         if (activity?.participationStatus === 'attended') {
-            return (
-                <div className="flex items-center justify-center gap-2 py-3 text-green-600">
-                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                    </svg>
-                    <span className="text-sm font-medium">Участвовал</span>
-                </div>
-            )
+            return <StatusBadge variant="attended" />
         }
 
         // Missed - show gray status (for all activity types)
         if (activity?.participationStatus === 'missed') {
-            return (
-                <div className="flex items-center justify-center gap-2 py-3 text-gray-400">
-                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                    <span className="text-sm font-medium">Пропустил</span>
-                </div>
-            )
+            return <StatusBadge variant="missed" />
         }
 
-        if (isPast) return null
+        // Past activity without registration
+        if (isPast) {
+            return <StatusBadge variant="finished" />
+        }
 
         // Private & not joined & not pending
         if (!activity?.isOpen && !isJoined && !isPending) {
@@ -415,11 +404,7 @@ export default function ActivityDetail() {
         // Open & not joined
         if (activity?.isOpen && !isJoined) {
             if (isFull) {
-                return (
-                    <Button disabled variant="secondary" className="w-full h-12">
-                        Мест нет
-                    </Button>
-                )
+                return <StatusBadge variant="noSeats" />
             }
             return (
                 <Button

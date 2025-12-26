@@ -455,35 +455,32 @@ export default function ClubGroupDetail({ type = 'club' }) {
                 canCreate={item?.canCreateActivity}
                 action={
                     !item.isMember ? (
-                        <button
+                        <Button
                             onClick={toggleMembership}
-                            disabled={joiningClub || joiningGroup}
-                            className="w-full py-4 bg-gray-800 text-white rounded-xl text-sm font-medium hover:bg-gray-700 transition-colors disabled:opacity-50"
+                            loading={joiningClub || joiningGroup}
                         >
-                            {joiningClub || joiningGroup ? '...' : (item.isOpen ? 'Вступить' : '🔒 Отправить заявку')}
-                        </button>
+                            {item.isOpen ? 'Вступить' : '🔒 Отправить заявку'}
+                        </Button>
                     ) : isAdmin ? (
                         <div className="flex gap-2">
-                            <button
+                            <Button
                                 disabled
-                                className="flex-1 py-4 bg-gray-200 text-gray-400 rounded-xl text-sm font-medium cursor-not-allowed"
+                                variant="secondary"
+                                className="flex-1"
                             >
                                 📊 Аналитика <span className="text-xs">(в работе)</span>
-                            </button>
-                            <button
+                            </Button>
+                            <Button
                                 onClick={handleViewSchedule}
-                                className="flex-1 py-4 bg-gray-800 text-white rounded-xl text-sm font-medium hover:bg-gray-700 transition-colors"
+                                className="flex-1"
                             >
                                 📅 Расписание
-                            </button>
+                            </Button>
                         </div>
                     ) : (
-                        <button
-                            onClick={handleViewSchedule}
-                            className="w-full py-4 bg-gray-800 text-white rounded-xl text-sm font-medium hover:bg-gray-700 transition-colors"
-                        >
+                        <Button onClick={handleViewSchedule}>
                             📅 Расписание
-                        </button>
+                        </Button>
                     )
                 }
             />
