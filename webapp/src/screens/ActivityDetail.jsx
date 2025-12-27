@@ -754,7 +754,8 @@ export default function ActivityDetail() {
                     canMarkAttendance ||
                     ((!activity?.clubId && !activity?.groupId) && activity?.participationStatus === 'awaiting') ||
                     activity?.participationStatus === 'attended' ||
-                    activity?.participationStatus === 'missed'
+                    activity?.participationStatus === 'missed' ||
+                    (isPast && !activity?.isJoined) // Show "Активность завершена" for past activities without registration
                 ) && !showParticipants && !showAttendance}
                 action={getActionButton()}
             />
