@@ -9,6 +9,7 @@ export { default as AttendancePopup } from './AttendancePopup'
 
 // Shared domain components
 export { default as ActivityCard } from './shared/ActivityCard'
+export { default as MiniActivityCard } from './shared/MiniActivityCard'
 export { default as ClubCard } from './shared/ClubCard'
 export { default as GroupCard } from './shared/GroupCard'
 export { default as SportChips } from './shared/SportChips'

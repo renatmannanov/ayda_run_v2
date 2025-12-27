@@ -1,5 +1,5 @@
 import React from 'react'
-import { ActivityCard } from '../index'
+import { ActivityCard, MiniActivityCard } from '../index'
 import { dayNames, isToday } from '../../data/sample_data'
 
 export function DaySection({
@@ -108,11 +108,23 @@ export function DaySection({
 
             {/* Activities */}
             {(!isPastDay || isExpanded) && (
-                <div className="pb-3 space-y-3">
+                <div className="pb-3 space-y-1">
                     {activities.map(activity => {
-                        const isPast = new Date(activity.date) < now
+                        // Проверяем прошла ли конкретная активность
+                        const activityIsPast = new Date(activity.date) < now
+
+                        // Для прошедших дней ИЛИ прошедших активностей сегодня - MiniActivityCard
+                        if (isPastDay || activityIsPast) {
+                            return (
+                                <MiniActivityCard
+                                    key={activity.id}
+                                    activity={activity}
+                                />
+                            )
+                        }
+                        // Для будущих активностей - обычная ActivityCard
                         return (
-                            <div key={activity.id} className={isPast ? 'opacity-80' : ''}>
+                            <div key={activity.id} className="mb-2">
                                 <ActivityCard
                                     activity={activity}
                                     onJoinToggle={onJoinToggle}

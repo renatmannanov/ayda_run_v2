@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
-import { CreateMenu, ParticipantsSheet, ActivityCard, LoadingScreen, ErrorScreen, Button, BottomBar } from '../components'
+import { CreateMenu, ParticipantsSheet, MiniActivityCard, LoadingScreen, ErrorScreen, Button, BottomBar } from '../components'
 import { Avatar, AvatarStack } from '../components/ui'
 import {
     useClub,
@@ -375,7 +375,7 @@ export default function ClubGroupDetail({ type = 'club' }) {
                                 )}
                             </div>
                             {upcomingActivities.slice(0, 3).map(activity => (
-                                <ActivityCard key={activity.id} activity={activity} />
+                                <MiniActivityCard key={activity.id} activity={activity} />
                             ))}
                         </div>
                     ) : (
