@@ -24,6 +24,11 @@ function App() {
             window.Telegram.WebApp.ready()
             window.Telegram.WebApp.expand()
 
+            // Disable pull-to-dismiss on iOS (available in Bot API 7.7+)
+            if (window.Telegram.WebApp.disableVerticalSwipes) {
+                window.Telegram.WebApp.disableVerticalSwipes()
+            }
+
             // Handle deep link from start_param (e.g., ?startapp=activity_123)
             const startParam = window.Telegram.WebApp.initDataUnsafe?.start_param
             if (startParam) {

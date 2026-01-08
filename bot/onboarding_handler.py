@@ -6,7 +6,7 @@ Handles new user onboarding process with sports selection and app intro.
 """
 
 import logging
-from telegram import Update
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
     ConversationHandler,
     CommandHandler,
@@ -497,8 +497,6 @@ async def handle_role_selection(update: Update, context: ContextTypes.DEFAULT_TY
     if callback_data == "role_participant":
         # User is a participant - ask about Strava
         logger.info(f"User {telegram_user.id} selected role: participant")
-
-        from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
         keyboard = [
             [InlineKeyboardButton("Да, добавить ссылку", callback_data="strava_yes")],

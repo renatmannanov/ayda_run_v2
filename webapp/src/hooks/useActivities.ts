@@ -85,8 +85,44 @@ export function useJoinActivity() {
 
   return useMutation({
     mutationFn: (id: number) => activitiesApi.join(id),
-    onSuccess: (_, id) => {
-      // Invalidate activity details and lists
+    onMutate: async (id) => {
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries({ queryKey: activitiesKeys.lists() })
+      await queryClient.cancelQueries({ queryKey: activitiesKeys.detail(id) })
+
+      // Snapshot previous values
+      const previousLists = queryClient.getQueriesData({ queryKey: activitiesKeys.lists() })
+      const previousDetail = queryClient.getQueryData(activitiesKeys.detail(id))
+
+      // Optimistically update lists
+      queryClient.setQueriesData({ queryKey: activitiesKeys.lists() }, (old: any) => {
+        if (!old) return old
+        return old.map((activity: any) =>
+          activity.id === id ? { ...activity, isJoined: true } : activity
+        )
+      })
+
+      // Optimistically update detail
+      queryClient.setQueryData(activitiesKeys.detail(id), (old: any) => {
+        if (!old) return old
+        return { ...old, isJoined: true }
+      })
+
+      return { previousLists, previousDetail }
+    },
+    onError: (err, id, context: any) => {
+      // Rollback on error
+      if (context?.previousLists) {
+        context.previousLists.forEach(([queryKey, data]: [any, any]) => {
+          queryClient.setQueryData(queryKey, data)
+        })
+      }
+      if (context?.previousDetail) {
+        queryClient.setQueryData(activitiesKeys.detail(id), context.previousDetail)
+      }
+    },
+    onSettled: (_, __, id) => {
+      // Always refetch after mutation settles
       queryClient.invalidateQueries({ queryKey: activitiesKeys.detail(id) })
       queryClient.invalidateQueries({ queryKey: activitiesKeys.lists() })
       queryClient.invalidateQueries({ queryKey: activitiesKeys.participants(id) })

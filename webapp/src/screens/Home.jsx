@@ -50,14 +50,22 @@ export default function Home() {
             // Keep as string - IDs are UUIDs, not integers
             setSelectedClubs([clubId])
             setFilterLabel(clubName || 'Клуб')
-            // Clear URL params after applying
-            setSearchParams({}, { replace: true })
+            // Clear filter params but preserve mode
+            const newParams = new URLSearchParams()
+            if (searchParams.get('mode')) {
+                newParams.set('mode', searchParams.get('mode'))
+            }
+            setSearchParams(newParams, { replace: true })
         } else if (groupId) {
             // Keep as string - IDs are UUIDs, not integers
             setSelectedGroups([groupId])
             setFilterLabel(groupName || 'Группа')
-            // Clear URL params after applying
-            setSearchParams({}, { replace: true })
+            // Clear filter params but preserve mode
+            const newParams = new URLSearchParams()
+            if (searchParams.get('mode')) {
+                newParams.set('mode', searchParams.get('mode'))
+            }
+            setSearchParams(newParams, { replace: true })
         }
     }, [searchParams, setSearchParams])
 
@@ -131,18 +139,42 @@ export default function Home() {
         return groupActivitiesByWeekAndDay(filteredActivities)
     }, [filteredActivities])
 
-    // Set initial week to current week (weekNumber === 0) on first load
+    // Track previous mode to detect changes
+    const [prevMode, setPrevMode] = useState(mode)
+
+    // Reset week index when mode changes
     useEffect(() => {
-        if (currentWeekIndex === null && allWeeks.length > 0) {
-            const currentWeekIdx = allWeeks.findIndex(w => w.weekNumber === 0)
-            setCurrentWeekIndex(currentWeekIdx >= 0 ? currentWeekIdx : 0)
+        if (mode !== prevMode) {
+            setPrevMode(mode)
+            // Reset to current week on mode change
+            if (allWeeks.length > 0) {
+                const currentWeekIdx = allWeeks.findIndex(w => w.weekNumber === 0)
+                setCurrentWeekIndex(currentWeekIdx >= 0 ? currentWeekIdx : 0)
+            }
+        }
+    }, [mode, prevMode, allWeeks])
+
+    // Set initial week index or fix invalid index
+    useEffect(() => {
+        if (allWeeks.length > 0) {
+            const isInvalidIndex = currentWeekIndex === null || currentWeekIndex >= allWeeks.length
+            if (isInvalidIndex) {
+                const currentWeekIdx = allWeeks.findIndex(w => w.weekNumber === 0)
+                setCurrentWeekIndex(currentWeekIdx >= 0 ? currentWeekIdx : 0)
+            }
         }
     }, [allWeeks, currentWeekIndex])
 
-    // Get currently displayed week
-    const displayedWeek = currentWeekIndex !== null && allWeeks[currentWeekIndex]
-        ? allWeeks[currentWeekIndex]
-        : null
+    // Get currently displayed week - use safe fallback to avoid flicker
+    const displayedWeek = useMemo(() => {
+        if (allWeeks.length === 0) return null
+        if (currentWeekIndex !== null && allWeeks[currentWeekIndex]) {
+            return allWeeks[currentWeekIndex]
+        }
+        // Fallback: find current week to avoid showing "empty"
+        const currentWeekIdx = allWeeks.findIndex(w => w.weekNumber === 0)
+        return allWeeks[currentWeekIdx >= 0 ? currentWeekIdx : 0] || null
+    }, [allWeeks, currentWeekIndex])
 
     // Navigation handlers
     const goToPreviousWeek = () => {
@@ -207,11 +239,10 @@ export default function Home() {
         return `${Math.abs(weekNum)} нед. назад`
     }
 
-    // Toggle join
+    // Toggle join (no explicit refetch needed - optimistic update + invalidation handles it)
     const handleJoinToggle = async (activityId) => {
         try {
             await joinMutation.mutateAsync(activityId)
-            refetch()
         } catch (e) {
             // Error handled by useMutation
         }

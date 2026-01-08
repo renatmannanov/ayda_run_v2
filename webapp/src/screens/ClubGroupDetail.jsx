@@ -232,6 +232,7 @@ export default function ClubGroupDetail({ type = 'club' }) {
     // Navigate to Home with filter via URL params
     const handleViewAllActivities = () => {
         const params = new URLSearchParams()
+        params.set('mode', 'all')  // Show all activities, not just "my"
         if (isClub) {
             params.set('clubId', id)
             params.set('clubName', item.name)

@@ -14,6 +14,11 @@ body {
   -webkit-font-smoothing: antialiased;
   background-color: #f9fafb;
   overflow-y: scroll; /* Всегда показывать скролбар для стабильного layout */
+  overscroll-behavior: contain; /* Prevent pull-to-dismiss on iOS */
+}
+
+html {
+  overscroll-behavior: contain; /* Prevent pull-to-dismiss on iOS */
 }
 
 /* Telegram WebApp safe area */

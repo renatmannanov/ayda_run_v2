@@ -349,6 +349,11 @@ export default function ActivityDetail() {
             )
         }
 
+        // Awaiting confirmation for club/group activities - show waiting message
+        if (!isPersonalActivity && activity?.participationStatus === 'awaiting') {
+            return <StatusBadge variant="awaitingOrganizer" />
+        }
+
         // Attended - show green status (for all activity types)
         if (activity?.participationStatus === 'attended') {
             return <StatusBadge variant="attended" />
