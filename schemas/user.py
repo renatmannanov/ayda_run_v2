@@ -108,3 +108,20 @@ class UserDetailedStatsResponse(BaseModel):
     attendance_rate: int  # Percentage
     clubs: List[ClubStats]  # Stats by club/group
     sports: List[SportStats]  # Stats by sport type
+
+
+# ============================================================================
+# Entity Counts (for creation limits)
+# ============================================================================
+
+class EntityCount(BaseModel):
+    """Count info for a single entity type"""
+    current: int
+    max: int
+
+
+class UserCountsResponse(BaseModel):
+    """Response with user's entity counts and limits"""
+    clubs: EntityCount
+    groups: EntityCount
+    activities_upcoming: EntityCount

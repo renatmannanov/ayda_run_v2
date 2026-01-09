@@ -1,18 +1,48 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-
-const menuItems = [
-    { icon: '🏃', label: 'Активность', path: '/activity/create' },
-    { icon: '🏆', label: 'Клуб', path: '/club/create' },
-    { icon: '👥', label: 'Группу', path: '/group/create' }
-]
+import { usersApi } from '../api'
 
 export default function CreateMenu({ isOpen, onClose, context = null }) {
     const navigate = useNavigate()
+    const [counts, setCounts] = useState(null)
+    const [loading, setLoading] = useState(false)
+
+    // Fetch counts when menu opens
+    useEffect(() => {
+        if (isOpen && !counts) {
+            setLoading(true)
+            usersApi.getCounts()
+                .then(setCounts)
+                .catch(console.error)
+                .finally(() => setLoading(false))
+        }
+    }, [isOpen, counts])
 
     if (!isOpen) return null
 
-    const handleItemClick = (path) => {
+    const menuItems = [
+        {
+            icon: '🏆',
+            label: 'Клуб',
+            path: '/club/create',
+            countKey: 'clubs'
+        },
+        {
+            icon: '👥',
+            label: 'Группу',
+            path: '/group/create',
+            countKey: 'groups'
+        },
+        {
+            icon: '🏃',
+            label: 'Активность',
+            path: '/activity/create',
+            countKey: 'activities_upcoming'
+        }
+    ]
+
+    const handleItemClick = (path, isDisabled) => {
+        if (isDisabled) return
         onClose()
         navigate(path, { state: context })
     }
@@ -28,21 +58,48 @@ export default function CreateMenu({ isOpen, onClose, context = null }) {
             >
                 <h3 className="text-sm font-medium text-gray-500 mb-2 px-2">Создать</h3>
 
-                {menuItems.map(item => (
-                    <button
-                        key={item.path}
-                        onClick={() => handleItemClick(item.path)}
-                        className="w-full text-left py-2.5 flex items-center gap-3 hover:bg-gray-50 rounded-lg px-2 transition-colors"
-                    >
-                        <span className="text-lg">{item.icon}</span>
-                        <div>
-                            <span className="text-sm text-gray-700">{item.label}</span>
-                            {context?.name && item.path === '/activity/create' && (
-                                <p className="text-xs text-gray-400">в {context.name}</p>
-                            )}
-                        </div>
-                    </button>
-                ))}
+                {menuItems.map(item => {
+                    const countData = counts?.[item.countKey]
+                    const current = countData?.current ?? 0
+                    const max = countData?.max ?? 999
+                    const isDisabled = current >= max
+
+                    return (
+                        <button
+                            key={item.path}
+                            onClick={() => handleItemClick(item.path, isDisabled)}
+                            disabled={isDisabled}
+                            className={`w-full text-left py-2.5 flex items-center gap-3 rounded-lg px-2 transition-colors ${
+                                isDisabled
+                                    ? 'opacity-50 cursor-not-allowed'
+                                    : 'hover:bg-gray-50'
+                            }`}
+                        >
+                            <span className="text-lg">{item.icon}</span>
+                            <div className="flex-1">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                        <span className={`text-sm ${isDisabled ? 'text-gray-400' : 'text-gray-700'}`}>
+                                            {item.label}
+                                        </span>
+                                        {isDisabled && (
+                                            <span className="text-xs text-gray-400">· лимит достигнут</span>
+                                        )}
+                                    </div>
+                                    {counts && (
+                                        <span className={`text-xs ${isDisabled ? 'text-gray-400' : 'text-gray-500'}`}>
+                                            {current}/{max}
+                                        </span>
+                                    )}
+                                </div>
+                                {/* Context info for activity */}
+                                {context?.name && item.path === '/activity/create' && !isDisabled && (
+                                    <p className="text-xs text-gray-400">в {context.name}</p>
+                                )}
+                            </div>
+                        </button>
+                    )
+                })}
 
                 <button
                     onClick={onClose}

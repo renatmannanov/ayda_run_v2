@@ -35,3 +35,10 @@ def validate_location(country: str, city: str) -> bool:
 def get_cities_for_country(country: str) -> list[str]:
     """Get list of available cities for a given country"""
     return AVAILABLE_CITIES.get(country, [])
+
+
+# ============= ENTITY CREATION LIMITS =============
+
+MAX_CLUBS_PER_USER = 1
+MAX_GROUPS_PER_USER = 3
+MAX_UPCOMING_ACTIVITIES_PER_USER = 100

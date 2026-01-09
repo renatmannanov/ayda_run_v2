@@ -8,7 +8,7 @@ from typing import List, Optional
 
 from storage.db import Club, Group, Membership, User, JoinRequest, JoinRequestStatus, Activity
 from app.core.dependencies import get_db, get_current_user
-from permissions import require_group_permission, require_club_permission
+from permissions import require_group_permission, require_club_permission, check_group_creation_limit
 from schemas.common import UserRole
 from schemas.group import GroupCreate, GroupUpdate, GroupResponse, MembershipUpdate, MemberResponse
 from schemas.join_request import JoinRequestCreate, JoinRequestResponse
@@ -34,10 +34,18 @@ def create_group(
 ) -> GroupResponse:
     """
     Create a new group
-    
+
     - Standalone group: anyone can create
     - Club group: requires organizer permission in that club
     """
+    # Check creation limit
+    can_create, current, limit = check_group_creation_limit(db, current_user.id)
+    if not can_create:
+        raise HTTPException(
+            status_code=403,
+            detail=f"Достигнут лимит групп ({current}/{limit})"
+        )
+
     # Check permissions if creating group within club
     if group_data.club_id:
         require_club_permission(db, current_user, group_data.club_id, UserRole.ORGANIZER)

@@ -9,7 +9,7 @@ from typing import List, Optional
 
 from storage.db import Club, Group, Membership, User, JoinRequest, JoinRequestStatus, Activity, MembershipStatus
 from app.core.dependencies import get_db, get_current_user
-from permissions import require_club_permission, can_manage_club
+from permissions import require_club_permission, can_manage_club, check_club_creation_limit
 from schemas.common import UserRole, ActivityVisibility
 from schemas.club import ClubCreate, ClubUpdate, ClubResponse
 from schemas.group import MemberResponse
@@ -39,6 +39,14 @@ def create_club(
 
     Anyone can create a club and becomes its admin automatically
     """
+    # Check creation limit
+    can_create, current, limit = check_club_creation_limit(db, current_user.id)
+    if not can_create:
+        raise HTTPException(
+            status_code=403,
+            detail=f"Достигнут лимит клубов ({current}/{limit})"
+        )
+
     # Create club
     from app_config.constants import DEFAULT_COUNTRY
     club_dict = club_data.model_dump()

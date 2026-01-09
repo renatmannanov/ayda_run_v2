@@ -9,7 +9,8 @@ from typing import Optional
 from storage.db import User
 from storage.user_storage import UserStorage
 from app.core.dependencies import get_db, get_current_user
-from schemas.user import UserResponse, UserProfileUpdate, UserDetailedStatsResponse
+from schemas.user import UserResponse, UserProfileUpdate, UserDetailedStatsResponse, UserCountsResponse
+from permissions import get_user_entity_counts
 
 router = APIRouter(prefix="/api/users", tags=["users"])
 
@@ -71,3 +72,20 @@ def get_user_stats(
         period=period
     )
     return UserDetailedStatsResponse(**stats)
+
+
+@router.get("/me/counts", response_model=UserCountsResponse)
+def get_user_counts(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+) -> UserCountsResponse:
+    """
+    Get current entity counts and limits for the user.
+
+    Returns counts of:
+    - clubs: created by user
+    - groups: created by user
+    - activities_upcoming: upcoming activities created by user
+    """
+    counts = get_user_entity_counts(db, current_user.id)
+    return UserCountsResponse(**counts)

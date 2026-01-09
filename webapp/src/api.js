@@ -188,6 +188,8 @@ export const usersApi = {
 
     getStats: (period = 'month') => apiFetch(`/users/me/stats?period=${period}`),
 
+    getCounts: () => apiFetch('/users/me/counts'),
+
     updateProfile: (data) => apiFetch('/users/me', {
         method: 'PATCH',
         body: JSON.stringify({

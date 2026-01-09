@@ -12,7 +12,12 @@ from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
 from storage.db import (
-    User, Club, Group, Activity, Membership, UserRole
+    User, Club, Group, Activity, Membership, UserRole, ActivityStatus
+)
+from app_config.constants import (
+    MAX_CLUBS_PER_USER,
+    MAX_GROUPS_PER_USER,
+    MAX_UPCOMING_ACTIVITIES_PER_USER
 )
 
 
@@ -152,3 +157,64 @@ def require_activity_owner(user: User, activity: Activity):
             status_code=403,
             detail="Only activity creator can perform this action"
         )
+
+
+# ============= ENTITY CREATION LIMITS =============
+
+def get_user_entity_counts(db: Session, user_id: str) -> dict:
+    """
+    Get current counts of entities created by user.
+    Returns dict with clubs, groups, and upcoming activities counts.
+    """
+    clubs_count = db.query(Club).filter(Club.creator_id == user_id).count()
+    groups_count = db.query(Group).filter(Group.creator_id == user_id).count()
+    upcoming_activities_count = db.query(Activity).filter(
+        Activity.creator_id == user_id,
+        Activity.status == ActivityStatus.UPCOMING
+    ).count()
+
+    return {
+        "clubs": {
+            "current": clubs_count,
+            "max": MAX_CLUBS_PER_USER
+        },
+        "groups": {
+            "current": groups_count,
+            "max": MAX_GROUPS_PER_USER
+        },
+        "activities_upcoming": {
+            "current": upcoming_activities_count,
+            "max": MAX_UPCOMING_ACTIVITIES_PER_USER
+        }
+    }
+
+
+def check_club_creation_limit(db: Session, user_id: str) -> tuple[bool, int, int]:
+    """
+    Check if user can create a new club.
+    Returns (can_create, current_count, max_limit)
+    """
+    current = db.query(Club).filter(Club.creator_id == user_id).count()
+    return (current < MAX_CLUBS_PER_USER, current, MAX_CLUBS_PER_USER)
+
+
+def check_group_creation_limit(db: Session, user_id: str) -> tuple[bool, int, int]:
+    """
+    Check if user can create a new group.
+    Returns (can_create, current_count, max_limit)
+    """
+    current = db.query(Group).filter(Group.creator_id == user_id).count()
+    return (current < MAX_GROUPS_PER_USER, current, MAX_GROUPS_PER_USER)
+
+
+def check_activity_creation_limit(db: Session, user_id: str) -> tuple[bool, int, int]:
+    """
+    Check if user can create a new activity.
+    Only counts upcoming activities (not completed or cancelled).
+    Returns (can_create, current_count, max_limit)
+    """
+    current = db.query(Activity).filter(
+        Activity.creator_id == user_id,
+        Activity.status == ActivityStatus.UPCOMING
+    ).count()
+    return (current < MAX_UPCOMING_ACTIVITIES_PER_USER, current, MAX_UPCOMING_ACTIVITIES_PER_USER)

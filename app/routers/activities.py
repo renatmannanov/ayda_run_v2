@@ -17,7 +17,7 @@ from typing import List, Optional
 
 from storage.db import Activity, Participation, User, Membership, JoinRequest, JoinRequestStatus, Club, Group
 from app.core.dependencies import get_db, get_current_user, get_current_user_optional
-from permissions import can_create_activity_in_club, can_create_activity_in_group, require_activity_owner
+from permissions import can_create_activity_in_club, can_create_activity_in_group, require_activity_owner, check_activity_creation_limit
 from schemas.common import SportType, Difficulty, ActivityVisibility, ActivityStatus, ParticipationStatus, PaymentStatus
 from schemas.activity import ActivityCreate, ActivityUpdate, ActivityResponse, MarkAttendanceRequest
 from schemas.user import ParticipantResponse
@@ -62,6 +62,14 @@ async def create_activity(
     - Club activity: requires organizer role
     - Group activity: requires appropriate permissions
     """
+    # Check creation limit (only upcoming activities count)
+    can_create, current, limit = check_activity_creation_limit(db, current_user.id)
+    if not can_create:
+        raise HTTPException(
+            status_code=403,
+            detail=f"Достигнут лимит активных тренировок ({current}/{limit})"
+        )
+
     # Check permissions for club/group activities
     if activity_data.club_id:
         if not can_create_activity_in_club(db, current_user, activity_data.club_id):
