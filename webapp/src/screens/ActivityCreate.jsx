@@ -16,6 +16,7 @@ import {
 import { useCreateActivity, useUpdateActivity, useActivity, useActivityParticipants, useClubs, useGroups } from '../hooks'
 import { useCreateRecurringSeries } from '../hooks/useRecurring'
 import { tg } from '../api'
+import { useToast } from '../contexts/ToastContext'
 
 export default function ActivityCreate() {
     const { id } = useParams()
@@ -23,6 +24,7 @@ export default function ActivityCreate() {
 
     const navigate = useNavigate()
     const location = useLocation()
+    const { showToast } = useToast()
     const context = location.state // May contain pre-selected club/group
 
     const { mutateAsync: createActivity, isPending: creating } = useCreateActivity()
@@ -268,7 +270,7 @@ export default function ActivityCreate() {
 
                 const saveChanges = async (notifyParticipants) => {
                     await updateActivity({ id, data: payload, notifyParticipants })
-                    tg.showAlert('Изменения сохранены!')
+                    showToast('Изменения сохранены')
                     navigate(`/activity/${id}`)
                 }
 
@@ -347,7 +349,7 @@ export default function ActivityCreate() {
                 }
             }
         } catch (e) {
-            tg.showAlert(`Ошибка: ${e.message || 'Не удалось сохранить'}`)
+            showToast(e.message || 'Не удалось сохранить', 'error')
         }
     }
 
@@ -362,7 +364,7 @@ export default function ActivityCreate() {
     // Copy link
     const handleCopyLink = () => {
         navigator.clipboard.writeText(shareLink)
-        tg.showAlert('Ссылка скопирована!')
+        showToast('Ссылка скопирована')
     }
 
     // Share via Telegram
@@ -372,7 +374,7 @@ export default function ActivityCreate() {
             tg.webApp.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(shareLink)}&text=${text}`)
         } else {
             navigator.clipboard.writeText(shareLink)
-            tg.showAlert('Ссылка скопирована!')
+            showToast('Ссылка скопирована')
         }
     }
 
@@ -455,15 +457,24 @@ export default function ActivityCreate() {
                         <label className="text-sm text-gray-700 mb-2 block">
                             Когда <span className="text-red-400">*</span>
                         </label>
-                        <input
-                            type="date"
-                            value={date}
-                            min={new Date().toISOString().split('T')[0]}
-                            onChange={(e) => setDate(e.target.value)}
-                            className={`w-full px-4 py-3 border rounded-xl text-sm text-gray-800 outline-none transition-colors ${
-                                errors.date ? 'border-red-300 bg-red-50' : 'border-gray-200 focus:border-gray-400'
-                            }`}
-                        />
+                        <div className="relative">
+                            <input
+                                type="date"
+                                value={date}
+                                min={new Date().toISOString().split('T')[0]}
+                                onChange={(e) => setDate(e.target.value)}
+                                className={`w-full px-4 py-3 border rounded-xl text-sm outline-none transition-colors ${
+                                    date ? 'text-gray-800' : 'text-transparent'
+                                } ${
+                                    errors.date ? 'border-red-300 bg-red-50' : 'border-gray-200 focus:border-gray-400'
+                                }`}
+                            />
+                            {!date && (
+                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-gray-400 pointer-events-none">
+                                    Выберите дату
+                                </span>
+                            )}
+                        </div>
                     </div>
                     <div className="w-28">
                         <label className="text-sm text-gray-700 mb-2 block">&nbsp;</label>

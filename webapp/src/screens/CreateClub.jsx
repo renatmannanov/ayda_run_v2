@@ -4,11 +4,13 @@ import { FormInput, FormTextarea, SportChips, Button, LoadingScreen, ErrorScreen
 import { DropdownPicker, ToggleButtons, FixedAccess, SuccessPopup } from '../components/ui'
 import { useCreateClub, useUpdateClub, useClub } from '../hooks'
 import { tg } from '../api'
+import { useToast } from '../contexts/ToastContext'
 
 export default function CreateClub() {
     const { id } = useParams()
     const isEditMode = !!id
     const navigate = useNavigate()
+    const { showToast } = useToast()
     const scrollRef = useRef(null)
 
     const { mutateAsync: createClub, isPending: creating } = useCreateClub()
@@ -107,7 +109,7 @@ export default function CreateClub() {
 
             if (isEditMode) {
                 await updateClub({ id, data: payload })
-                tg.showAlert('Изменения сохранены!')
+                showToast('Изменения сохранены')
                 navigate(-1)
             } else {
                 const result = await createClub(payload)
@@ -116,14 +118,14 @@ export default function CreateClub() {
                 setShowSuccess(true)
             }
         } catch (e) {
-            tg.showAlert(isEditMode ? 'Ошибка при сохранении' : 'Ошибка при создании клуба')
+            showToast(isEditMode ? 'Ошибка при сохранении' : 'Ошибка при создании клуба', 'error')
         }
     }
 
     // Copy link
     const handleCopyLink = () => {
         navigator.clipboard.writeText(shareLink)
-        tg.showAlert('Ссылка скопирована!')
+        showToast('Ссылка скопирована')
     }
 
     // Share (can use Telegram share if available)
@@ -133,7 +135,7 @@ export default function CreateClub() {
             tg.webApp.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(shareLink)}&text=${text}`)
         } else {
             navigator.clipboard.writeText(shareLink)
-            tg.showAlert('Ссылка скопирована!')
+            showToast('Ссылка скопирована')
         }
     }
 

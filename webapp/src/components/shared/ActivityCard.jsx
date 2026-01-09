@@ -94,13 +94,13 @@ const StatusButton = ({ status, isPrivate, isPast, isFull, participationStatus }
         )
     }
 
-    // Не записан - плюс
+    // Не записан - стрелка вправо с палочкой
     return (
         <div className="flex items-center gap-1.5">
             {lockIcon}
             <div className="w-7 h-7 rounded-full border-2 border-gray-400 flex items-center justify-center">
                 <svg className="w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m6-6H6" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
                 </svg>
             </div>
         </div>

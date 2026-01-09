@@ -4,11 +4,13 @@ import { FormInput, FormTextarea, SportChips, Button, LoadingScreen, ErrorScreen
 import { DropdownPicker, ToggleButtons, SuccessPopup } from '../components/ui'
 import { useClubs, useCreateGroup, useUpdateGroup, useGroup } from '../hooks'
 import { tg } from '../api'
+import { useToast } from '../contexts/ToastContext'
 
 export default function CreateGroup() {
     const { id } = useParams()
     const isEditMode = !!id
     const navigate = useNavigate()
+    const { showToast } = useToast()
     const scrollRef = useRef(null)
 
     const { data: clubs = [] } = useClubs()
@@ -125,7 +127,7 @@ export default function CreateGroup() {
 
             if (isEditMode) {
                 await updateGroup({ id, data: payload })
-                tg.showAlert('Изменения сохранены!')
+                showToast('Изменения сохранены')
                 navigate(-1)
             } else {
                 const result = await createGroup(payload)
@@ -135,9 +137,9 @@ export default function CreateGroup() {
             }
         } catch (e) {
             if (e.message && e.message.includes('Insufficient permissions')) {
-                tg.showAlert(isEditMode ? 'У вас нет прав на редактирование этой группы' : 'Только организатор клуба может создавать группы')
+                showToast(isEditMode ? 'Нет прав на редактирование' : 'Только организатор может создавать группы', 'error')
             } else {
-                tg.showAlert(isEditMode ? 'Ошибка при сохранении' : 'Ошибка при создании группы')
+                showToast(isEditMode ? 'Ошибка при сохранении' : 'Ошибка при создании группы', 'error')
             }
         }
     }
@@ -145,7 +147,7 @@ export default function CreateGroup() {
     // Copy link
     const handleCopyLink = () => {
         navigator.clipboard.writeText(shareLink)
-        tg.showAlert('Ссылка скопирована!')
+        showToast('Ссылка скопирована')
     }
 
     // Share
@@ -155,7 +157,7 @@ export default function CreateGroup() {
             tg.webApp.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(shareLink)}&text=${text}`)
         } else {
             navigator.clipboard.writeText(shareLink)
-            tg.showAlert('Ссылка скопирована!')
+            showToast('Ссылка скопирована')
         }
     }
 

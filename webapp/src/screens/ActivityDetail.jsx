@@ -16,10 +16,12 @@ import {
     formatTime
 } from '../data/sample_data'
 import { activitiesApi, clubsApi, groupsApi, tg } from '../api'
+import { useToast } from '../contexts/ToastContext'
 
 export default function ActivityDetail() {
     const { id } = useParams()
     const navigate = useNavigate()
+    const { showToast } = useToast()
 
     // Fetch activity
     const {
@@ -104,31 +106,33 @@ export default function ActivityDetail() {
         try {
             if (activity.isOpen) {
                 await joinActivity(id)
+                showToast('Записано')
             } else {
                 await activitiesApi.requestJoin(id)
-                tg.showAlert('Заявка отправлена! Мы уведомим тебя, когда организатор рассмотрит её.')
+                showToast('Заявка отправлена')
             }
             refetchActivity()
             refetchParticipants()
         } catch (e) {
-            tg.showAlert(e.message || 'Произошла ошибка')
+            showToast(e.message || 'Произошла ошибка', 'error')
         }
     }
 
     const handleLeave = async () => {
         try {
             await leaveActivity(id)
+            showToast('Запись отменена', 'info')
             refetchActivity()
             refetchParticipants()
         } catch (e) {
-            tg.showAlert(e.message || 'Произошла ошибка')
+            showToast(e.message || 'Произошла ошибка', 'error')
         }
     }
 
     const handleShare = () => {
         const shareUrl = `https://t.me/aydarun_bot?start=activity_${activity.id}`
         navigator.clipboard.writeText(shareUrl)
-        tg.showAlert('Ссылка скопирована!')
+        showToast('Ссылка скопирована', 'info')
     }
 
     // Confirm attendance handlers
@@ -139,7 +143,7 @@ export default function ActivityDetail() {
             tg.hapticNotification('success')
             refetchActivity()
         } catch (e) {
-            tg.showAlert(e.message || 'Произошла ошибка')
+            showToast(e.message || 'Произошла ошибка', 'error')
         }
     }
 
@@ -149,14 +153,14 @@ export default function ActivityDetail() {
             await confirmActivity({ id, attended: false })
             refetchActivity()
         } catch (e) {
-            tg.showAlert(e.message || 'Произошла ошибка')
+            showToast(e.message || 'Произошла ошибка', 'error')
         }
     }
 
     // Delete activity handler
     const handleDelete = () => {
         if (isPast) {
-            tg.showAlert('Нельзя удалить прошедшую тренировку')
+            showToast('Нельзя удалить прошедшую тренировку', 'error')
             return
         }
 
@@ -180,10 +184,10 @@ export default function ActivityDetail() {
                 tg.haptic('medium')
                 await deleteActivity({ id, notifyParticipants })
                 tg.hapticNotification('success')
-                tg.showAlert('Тренировка удалена')
+                showToast('Тренировка удалена')
                 navigate('/')
             } catch (e) {
-                tg.showAlert(e.message || 'Ошибка при удалении')
+                showToast(e.message || 'Ошибка при удалении', 'error')
             }
         }
 
@@ -210,7 +214,7 @@ export default function ActivityDetail() {
     // Edit activity handler
     const handleEdit = () => {
         if (isPast) {
-            tg.showAlert('Нельзя редактировать прошедшую тренировку')
+            showToast('Нельзя редактировать прошедшую тренировку', 'error')
             return
         }
         // For recurring activities, show scope dialog
@@ -236,13 +240,13 @@ export default function ActivityDetail() {
                 tg.hapticNotification('success')
                 setShowRecurringDialog(false)
                 if (scope === 'entire_series') {
-                    tg.showAlert('Вся серия тренировок отменена')
+                    showToast('Вся серия тренировок отменена')
                 } else {
-                    tg.showAlert('Тренировка отменена')
+                    showToast('Тренировка отменена')
                 }
                 navigate('/')
             } catch (e) {
-                tg.showAlert(e.message || 'Ошибка при отмене')
+                showToast(e.message || 'Ошибка при отмене', 'error')
             }
         }
     }
@@ -278,7 +282,7 @@ export default function ActivityDetail() {
             tg.hapticNotification('success')
             refetchParticipants()
         } catch (e) {
-            tg.showAlert(e.message || 'Не удалось добавить участника')
+            showToast(e.message || 'Не удалось добавить участника', 'error')
         }
     }
 
@@ -294,7 +298,7 @@ export default function ActivityDetail() {
             refetchParticipants()
             setShowAttendance(false)
         } catch (e) {
-            tg.showAlert(e.message || 'Не удалось сохранить')
+            showToast(e.message || 'Не удалось сохранить', 'error')
         } finally {
             setSavingAttendance(false)
         }
@@ -309,7 +313,7 @@ export default function ActivityDetail() {
             return (
                 <button
                     onClick={() => setShowAttendance(true)}
-                    className="w-full py-4 bg-gray-800 text-white rounded-xl text-sm font-medium hover:bg-gray-700 transition-colors flex items-center justify-center gap-2"
+                    className="w-full h-12 bg-gray-800 text-white rounded-xl text-sm font-medium hover:bg-gray-700 transition-colors flex items-center justify-center gap-2"
                 >
                     <span>📋</span>
                     <span>Отметить посещение</span>
@@ -330,18 +334,18 @@ export default function ActivityDetail() {
         // Awaiting confirmation - show two buttons (ONLY for personal activities)
         if (isPersonalActivity && activity?.participationStatus === 'awaiting') {
             return (
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 h-12">
                     <button
                         onClick={handleConfirmMissed}
                         disabled={confirming}
-                        className="flex-1 py-4 border border-gray-300 text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors disabled:opacity-50"
+                        className="flex-1 h-full border border-gray-300 text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors disabled:opacity-50"
                     >
                         Пропустил
                     </button>
                     <button
                         onClick={handleConfirmAttended}
                         disabled={confirming}
-                        className="flex-1 py-4 bg-gray-800 text-white rounded-xl text-sm font-medium hover:bg-gray-700 transition-colors disabled:opacity-50"
+                        className="flex-1 h-full bg-gray-800 text-white rounded-xl text-sm font-medium hover:bg-gray-700 transition-colors disabled:opacity-50"
                     >
                         Участвовал
                     </button>
@@ -375,7 +379,7 @@ export default function ActivityDetail() {
                 <button
                     onClick={handleJoin}
                     disabled={joining || isFull}
-                    className="w-full py-4 bg-gray-800 text-white rounded-xl text-sm font-medium hover:bg-gray-700 transition-colors flex items-center justify-center gap-2 disabled:bg-gray-300"
+                    className="w-full h-12 bg-gray-800 text-white rounded-xl text-sm font-medium hover:bg-gray-700 transition-colors flex items-center justify-center gap-2 disabled:bg-gray-300"
                 >
                     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
@@ -388,7 +392,7 @@ export default function ActivityDetail() {
         // Private & pending
         if (!activity?.isOpen && isPending) {
             return (
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between h-12">
                     <button
                         onClick={handleLeave}
                         disabled={leaving}
@@ -427,7 +431,7 @@ export default function ActivityDetail() {
             // Creator sees "Invite participants" instead of cancel button
             if (isCreator) {
                 return (
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between h-12">
                         <span className="text-sm text-gray-500">Пригласи участников</span>
                         <button
                             onClick={handleShare}
@@ -441,27 +445,35 @@ export default function ActivityDetail() {
                 )
             }
 
-            // Regular participant sees cancel button
+            // Regular participant sees: Cancel | Status | Invite
+            // h-12 = 48px = unified height for all action bar elements
             return (
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between h-12">
                     <button
                         onClick={handleLeave}
                         disabled={leaving}
-                        className="text-sm text-gray-400 hover:text-gray-600 transition-colors"
+                        className="flex items-center gap-1 text-sm text-gray-400 hover:text-gray-600 transition-colors"
                     >
-                        {leaving ? 'Отмена...' : 'Отменить'}
+                        <span>&#x2715;</span>
+                        <span>{leaving ? 'Отмена...' : 'Отменить'}</span>
                     </button>
-                    <div className="flex items-center gap-3">
-                        <span className="text-sm text-gray-800 font-medium">Иду!</span>
-                        <button
-                            onClick={handleShare}
-                            className="w-10 h-10 border border-gray-200 rounded-xl flex items-center justify-center text-gray-500 hover:bg-gray-50 transition-colors"
-                        >
-                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
-                            </svg>
-                        </button>
-                    </div>
+
+                    <span className="flex items-center gap-1.5 px-3 py-1.5 bg-green-50 rounded-full">
+                        <svg className="w-4 h-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                        <span className="text-sm text-green-600 font-medium">Иду</span>
+                    </span>
+
+                    <button
+                        onClick={handleShare}
+                        className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-gray-800 transition-colors"
+                    >
+                        <span>Позвать друзей</span>
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                        </svg>
+                    </button>
                 </div>
             )
         }
@@ -636,33 +648,39 @@ export default function ActivityDetail() {
                     </div>
 
                     {/* Participants */}
-                    <button
-                        onClick={() => setShowParticipants(true)}
-                        className="flex items-center gap-2 hover:opacity-70 transition-opacity"
-                        disabled={participantsLoading || !activity.canViewParticipants}
-                    >
-                        {activity.canViewParticipants ? (
-                            <>
-                                {participantsLoading ? (
+                    <div className="border-t border-gray-200 my-4" />
+                    <div>
+                        <div className="flex items-center gap-1 mb-3">
+                            <p className="text-sm text-gray-500">
+                                Участники ({activity.maxParticipants !== null
+                                    ? `${activity.participants}/${activity.maxParticipants}`
+                                    : activity.participants
+                                })
+                            </p>
+                            {isJoined && (
+                                <svg className="w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                </svg>
+                            )}
+                        </div>
+                        <button
+                            onClick={() => setShowParticipants(true)}
+                            className="flex items-center hover:opacity-70 transition-opacity"
+                            disabled={participantsLoading || !activity.canViewParticipants}
+                        >
+                            {activity.canViewParticipants ? (
+                                participantsLoading ? (
                                     <span className="text-sm text-gray-400">Загрузка...</span>
                                 ) : (
-                                    <>
-                                        <AvatarStack participants={participants} max={8} size="sm" />
-                                        <span className="text-sm text-gray-500 ml-2">
-                                            {activity.maxParticipants !== null
-                                                ? `${activity.participants}/${activity.maxParticipants}`
-                                                : `${activity.participants}`
-                                            }
-                                        </span>
-                                    </>
-                                )}
-                            </>
-                        ) : (
-                            <span className="text-sm text-gray-400">
-                                🔒 {activity.participants} участников
-                            </span>
-                        )}
-                    </button>
+                                    <AvatarStack participants={participants} max={5} size="sm" />
+                                )
+                            ) : (
+                                <span className="text-sm text-gray-400">
+                                    🔒 Список скрыт
+                                </span>
+                            )}
+                        </button>
+                    </div>
 
                     {/* User attendance status (past activities) */}
                     {activity.participationStatus === 'awaiting' && (
@@ -753,7 +771,7 @@ export default function ActivityDetail() {
                 - OR past activity with attended/missed status (show status)
             */}
             <BottomBar
-                onCreateClick={() => tg.showAlert('Создание из деталей активности пока не поддерживается, перейдите на Главную')}
+                onCreateClick={() => showToast('Перейдите на Главную для создания')}
                 showAction={(
                     !isPast ||
                     canMarkAttendance ||

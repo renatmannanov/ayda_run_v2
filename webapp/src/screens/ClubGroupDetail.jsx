@@ -16,6 +16,7 @@ import {
     tg // for confirmations
 } from '../hooks'
 import { clubsApi, groupsApi } from '../api'
+import { useToast } from '../contexts/ToastContext'
 import { pluralizeMembers, pluralizeGroups } from '../data/sample_data'
 import { SPORT_TYPES } from '../constants/sports'
 
@@ -28,6 +29,7 @@ const getSportIcon = (sportId) => {
 export default function ClubGroupDetail({ type = 'club' }) {
     const { id } = useParams()
     const navigate = useNavigate()
+    const { showToast } = useToast()
 
     const isClub = type === 'club'
 
@@ -95,18 +97,20 @@ export default function ClubGroupDetail({ type = 'club' }) {
                 } else {
                     await groupsApi.requestJoin(id)
                 }
-                tg.showAlert('Заявка отправлена! Организатор получит уведомление.')
+                showToast('Заявка отправлена')
             } else {
                 // Open entity - direct join
                 if (isClub) {
                     await joinClub(id)
+                    showToast('Вы вступили в клуб')
                 } else {
                     await joinGroup(id)
+                    showToast('Вы вступили в группу')
                 }
             }
             refetch()
         } catch (e) {
-            tg.showAlert(e.message || 'Произошла ошибка')
+            showToast(e.message || 'Произошла ошибка', 'error')
         }
     }
 
@@ -135,7 +139,7 @@ export default function ClubGroupDetail({ type = 'club' }) {
                                     }
                                     navigate('/clubs')
                                 } catch (e) {
-                                    tg.showAlert(e.message || 'Ошибка удаления')
+                                    showToast(e.message || 'Ошибка удаления', 'error')
                                 }
                             }
                         )
@@ -150,7 +154,7 @@ export default function ClubGroupDetail({ type = 'club' }) {
                                 }
                                 navigate('/clubs')
                             } catch (e) {
-                                tg.showAlert(e.message || 'Ошибка удаления')
+                                showToast(e.message || 'Ошибка удаления', 'error')
                             }
                         }
                         doDelete()
@@ -250,7 +254,7 @@ export default function ClubGroupDetail({ type = 'club' }) {
 
     // Stats placeholder for admin
     const handleViewStats = () => {
-        tg.showAlert('Статистика пока в разработке')
+        showToast('Статистика пока в разработке')
     }
 
     return (
@@ -375,9 +379,11 @@ export default function ClubGroupDetail({ type = 'club' }) {
                                     </button>
                                 )}
                             </div>
-                            {upcomingActivities.slice(0, 3).map(activity => (
-                                <MiniActivityCard key={activity.id} activity={activity} />
-                            ))}
+                            <div className="space-y-2">
+                                {upcomingActivities.slice(0, 3).map(activity => (
+                                    <MiniActivityCard key={activity.id} activity={activity} />
+                                ))}
+                            </div>
                         </div>
                     ) : (
                         <div className="border border-dashed border-gray-200 rounded-xl p-4 text-center">
@@ -422,12 +428,9 @@ export default function ClubGroupDetail({ type = 'club' }) {
                         </div>
                         <button
                             onClick={() => setShowParticipants(true)}
-                            className="flex items-center gap-1"
+                            className="flex items-center"
                         >
                             <AvatarStack participants={participants} max={5} size="sm" />
-                            {participants.length > 5 && (
-                                <span className="text-sm text-gray-400 ml-2">+{participants.length - 5} →</span>
-                            )}
                         </button>
                     </div>
                 </div>

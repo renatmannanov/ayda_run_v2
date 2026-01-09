@@ -103,7 +103,7 @@ export function Button({
     loading = false,
     className = ''
 }) {
-    const baseStyles = 'w-full py-4 rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-2'
+    const baseStyles = 'w-full h-12 rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-2'
 
     const variants = {
         primary: 'bg-gray-800 text-white hover:bg-gray-700 disabled:bg-gray-300 disabled:cursor-not-allowed',
@@ -175,7 +175,7 @@ export function StatusBadge({ variant }) {
     if (!config) return null
 
     return (
-        <div className={`flex items-center justify-center gap-2 py-3 ${config.className}`}>
+        <div className={`flex items-center justify-center gap-2 h-12 ${config.className}`}>
             {config.icon}
             <span className="text-sm font-medium">{config.text}</span>
         </div>

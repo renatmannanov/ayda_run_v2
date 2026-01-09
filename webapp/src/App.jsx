@@ -4,6 +4,7 @@ import { QueryClientProvider } from '@tanstack/react-query'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import { queryClient } from './queryClient'
 import { UserProvider } from './contexts/UserContext'
+import { ToastProvider } from './contexts/ToastContext'
 import Home from './screens/Home'
 import ActivityDetail from './screens/ActivityDetail'
 import ActivityCreate from './screens/ActivityCreate'
@@ -49,8 +50,9 @@ function App() {
     return (
         <QueryClientProvider client={queryClient}>
             <UserProvider>
-                <div className="min-h-screen bg-gray-50 max-w-md mx-auto">
-                    <Routes>
+                <ToastProvider>
+                    <div className="min-h-screen bg-gray-50 max-w-md mx-auto">
+                        <Routes>
                         <Route path="/" element={<Home />} />
                         <Route path="/activity/:id" element={<ActivityDetail />} />
                         <Route path="/activity/:id/edit" element={<ActivityCreate />} />
@@ -65,8 +67,9 @@ function App() {
                         <Route path="/profile" element={<Profile />} />
                         <Route path="/statistics" element={<Statistics />} />
                         <Route path="/settings" element={<Settings />} />
-                    </Routes>
-                </div>
+                        </Routes>
+                    </div>
+                </ToastProvider>
             </UserProvider>
             <ReactQueryDevtools initialIsOpen={false} />
         </QueryClientProvider>

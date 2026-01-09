@@ -60,11 +60,11 @@ const MiniStatusIcon = ({ status, isPast, participationStatus }) => {
         )
     }
 
-    // Не записан (будущая) - плюс
+    // Не записан (будущая) - стрелка вправо с палочкой
     return (
         <div className={`${iconClass} border-gray-400`}>
             <svg className={`${svgClass} text-gray-400`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m6-6H6" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
             </svg>
         </div>
     )
