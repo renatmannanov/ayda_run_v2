@@ -386,6 +386,28 @@ export const groupsApi = {
 }
 
 // ============================================================================
+// Analytics API
+// ============================================================================
+
+export const analyticsApi = {
+    // Track single event
+    trackEvent: (eventName, eventParams = null, sessionId = null) => apiFetch('/analytics/event', {
+        method: 'POST',
+        body: JSON.stringify({
+            event_name: eventName,
+            event_params: eventParams,
+            session_id: sessionId
+        })
+    }),
+
+    // Track multiple events (batch)
+    trackBatch: (events) => apiFetch('/analytics/events/batch', {
+        method: 'POST',
+        body: JSON.stringify({ events })
+    })
+}
+
+// ============================================================================
 // Telegram WebApp helpers
 // ============================================================================
 
@@ -442,4 +464,4 @@ export const tg = {
     }
 }
 
-export default { activitiesApi, clubsApi, groupsApi, usersApi, tg }
+export default { activitiesApi, clubsApi, groupsApi, usersApi, analyticsApi, tg }

@@ -1,5 +1,10 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { groupsApi } from '../api'
+import { groupsApi, analyticsApi } from '../api'
+
+// Helper to track analytics events (fire and forget)
+const trackEvent = (eventName: string, params?: Record<string, any>) => {
+  analyticsApi.trackEvent(eventName, params).catch(() => {})
+}
 
 // Query keys for groups
 export const groupsKeys = {
@@ -91,6 +96,8 @@ export function useJoinGroup() {
   return useMutation({
     mutationFn: (id: number) => groupsApi.join(id),
     onSuccess: (_, id) => {
+      // Track analytics
+      trackEvent('group_join', { group_id: id })
       queryClient.invalidateQueries({ queryKey: groupsKeys.detail(id) })
       queryClient.invalidateQueries({ queryKey: groupsKeys.lists() })
       queryClient.invalidateQueries({ queryKey: groupsKeys.members(id) })

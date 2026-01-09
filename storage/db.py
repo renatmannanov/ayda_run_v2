@@ -491,6 +491,43 @@ class ClubRequest(Base):
         return f"<ClubRequest(name={self.name}, status={self.status})>"
 
 
+class AnalyticsEvent(Base):
+    """
+    Analytics Event model - tracks user actions for internal analytics.
+
+    Events:
+    - screen_view: User opened a screen
+    - activity_create: User created an activity
+    - activity_join: User registered for activity
+    - activity_cancel: User cancelled registration
+    - activity_attend: User confirmed attendance
+    - club_join / group_join: User joined club/group
+    - onboarding_step: User completed onboarding step
+    - onboarding_complete: User finished onboarding
+    - gpx_download: User downloaded GPX file
+    """
+    __tablename__ = 'analytics_events'
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    user_id = Column(String(36), ForeignKey('users.id'), nullable=True, index=True)
+
+    # Event data
+    event_name = Column(String(100), nullable=False, index=True)
+    event_params = Column(Text, nullable=True)  # JSON string: {"screen_name": "home"}
+
+    # Session tracking
+    session_id = Column(String(36), nullable=True, index=True)
+
+    # Timestamp
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+
+    # Relationships
+    user = relationship("User", foreign_keys=[user_id])
+
+    def __repr__(self):
+        return f"<AnalyticsEvent(event={self.event_name}, user_id={self.user_id})>"
+
+
 class JoinRequest(Base):
     """
     Join Request model - user's request to join a closed club/group/activity
