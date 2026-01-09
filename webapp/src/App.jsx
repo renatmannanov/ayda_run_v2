@@ -5,6 +5,7 @@ import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import { queryClient } from './queryClient'
 import { UserProvider } from './contexts/UserContext'
 import { ToastProvider } from './contexts/ToastContext'
+import { useScreenTracking } from './hooks/useAnalytics'
 import Home from './screens/Home'
 import ActivityDetail from './screens/ActivityDetail'
 import ActivityCreate from './screens/ActivityCreate'
@@ -18,6 +19,9 @@ import Settings from './screens/Settings'
 
 function App() {
     const navigate = useNavigate()
+
+    // Track screen views on route changes
+    useScreenTracking()
 
     // Initialize Telegram WebApp and handle deep links
     useEffect(() => {

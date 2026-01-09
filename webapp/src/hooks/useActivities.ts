@@ -1,5 +1,10 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { activitiesApi } from '../api'
+import { activitiesApi, analyticsApi } from '../api'
+
+// Helper to track analytics events (fire and forget)
+const trackEvent = (eventName: string, params?: Record<string, any>) => {
+  analyticsApi.trackEvent(eventName, params).catch(() => {})
+}
 
 // Query keys for activities
 export const activitiesKeys = {
@@ -43,7 +48,12 @@ export function useCreateActivity() {
 
   return useMutation({
     mutationFn: (data: any) => activitiesApi.create(data),
-    onSuccess: () => {
+    onSuccess: (result) => {
+      // Track analytics
+      trackEvent('activity_create', {
+        activity_id: result?.id,
+        sport_type: result?.sportType
+      })
       // Invalidate all activity lists
       queryClient.invalidateQueries({ queryKey: activitiesKeys.lists() })
     },
@@ -127,6 +137,10 @@ export function useJoinActivity() {
       queryClient.invalidateQueries({ queryKey: activitiesKeys.lists() })
       queryClient.invalidateQueries({ queryKey: activitiesKeys.participants(id) })
     },
+    onSuccess: (_, id) => {
+      // Track analytics
+      trackEvent('activity_join', { activity_id: id })
+    },
   })
 }
 
@@ -137,6 +151,8 @@ export function useLeaveActivity() {
   return useMutation({
     mutationFn: (id: number) => activitiesApi.leave(id),
     onSuccess: (_, id) => {
+      // Track analytics
+      trackEvent('activity_cancel', { activity_id: id })
       // Invalidate activity details and lists
       queryClient.invalidateQueries({ queryKey: activitiesKeys.detail(id) })
       queryClient.invalidateQueries({ queryKey: activitiesKeys.lists() })
@@ -152,7 +168,9 @@ export function useConfirmActivity() {
   return useMutation({
     mutationFn: ({ id, attended }: { id: number; attended: boolean }) =>
       activitiesApi.confirm(id, attended),
-    onSuccess: (_, { id }) => {
+    onSuccess: (_, { id, attended }) => {
+      // Track analytics
+      trackEvent('activity_attend', { activity_id: id, attended })
       // Invalidate activity details and lists
       queryClient.invalidateQueries({ queryKey: activitiesKeys.detail(id) })
       queryClient.invalidateQueries({ queryKey: activitiesKeys.lists() })

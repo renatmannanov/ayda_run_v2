@@ -49,6 +49,7 @@ from bot.messages import (
     get_group_not_found_message,
     get_join_success_message
 )
+from bot.analytics import track_onboarding_step, track_onboarding_complete
 
 logger = logging.getLogger(__name__)
 
@@ -379,6 +380,12 @@ async def handle_consent(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     # User accepted consent - show photo visibility selection
     logger.info(f"User {query.from_user.id} accepted consent")
 
+    # Track consent step
+    with UserStorage() as user_storage:
+        user = user_storage.get_user_by_telegram_id(query.from_user.id)
+        if user:
+            track_onboarding_step(user.id, "consent", 1)
+
     await query.edit_message_text(
         get_photo_visibility_message(),
         reply_markup=get_photo_visibility_keyboard()
@@ -404,11 +411,12 @@ async def handle_photo_visibility(update: Update, context: ContextTypes.DEFAULT_
 
     logger.info(f"User {telegram_user.id} set show_photo={show_photo}")
 
-    # Save to database
+    # Save to database and track
     with UserStorage() as user_storage:
         user = user_storage.get_user_by_telegram_id(telegram_user.id)
         if user:
             user_storage.update_profile(user.id, show_photo=show_photo)
+            track_onboarding_step(user.id, "photo_visibility", 2)
 
     # Initialize selected sports in context and move to sports selection
     context.user_data['selected_sports'] = []
@@ -470,6 +478,7 @@ async def handle_sports_selection(update: Update, context: ContextTypes.DEFAULT_
             user = user_storage.get_user_by_telegram_id(telegram_user.id)
             if user:
                 user_storage.update_preferred_sports(user.id, selected_sports)
+                track_onboarding_step(user.id, "sports", 3)
 
         # Show role selection
         await query.edit_message_text(
@@ -497,6 +506,12 @@ async def handle_role_selection(update: Update, context: ContextTypes.DEFAULT_TY
     if callback_data == "role_participant":
         # User is a participant - ask about Strava
         logger.info(f"User {telegram_user.id} selected role: participant")
+
+        # Track role selection step
+        with UserStorage() as user_storage:
+            user = user_storage.get_user_by_telegram_id(telegram_user.id)
+            if user:
+                track_onboarding_step(user.id, "role", 4)
 
         keyboard = [
             [InlineKeyboardButton("Да, добавить ссылку", callback_data="strava_yes")],
@@ -642,6 +657,10 @@ async def complete_onboarding(update: Update, context: ContextTypes.DEFAULT_TYPE
 
         user_storage.mark_onboarding_complete(user.id)
         logger.info(f"User {telegram_user.id} completed onboarding")
+
+        # Track onboarding completion
+        track_onboarding_step(user.id, "intro", 5)
+        track_onboarding_complete(user.id)
 
         # If has invitation - automatically add to club/group
         if invitation_type and invitation_id:

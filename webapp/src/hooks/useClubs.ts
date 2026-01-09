@@ -1,5 +1,10 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { clubsApi } from '../api'
+import { clubsApi, analyticsApi } from '../api'
+
+// Helper to track analytics events (fire and forget)
+const trackEvent = (eventName: string, params?: Record<string, any>) => {
+  analyticsApi.trackEvent(eventName, params).catch(() => {})
+}
 
 // Query keys for clubs
 export const clubsKeys = {
@@ -90,6 +95,8 @@ export function useJoinClub() {
   return useMutation({
     mutationFn: (id: number) => clubsApi.join(id),
     onSuccess: (_, id) => {
+      // Track analytics
+      trackEvent('club_join', { club_id: id })
       queryClient.invalidateQueries({ queryKey: clubsKeys.detail(id) })
       queryClient.invalidateQueries({ queryKey: clubsKeys.lists() })
       queryClient.invalidateQueries({ queryKey: clubsKeys.members(id) })

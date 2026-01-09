@@ -15,7 +15,7 @@ import {
     formatDate,
     formatTime
 } from '../data/sample_data'
-import { activitiesApi, clubsApi, groupsApi, tg } from '../api'
+import { activitiesApi, clubsApi, groupsApi, analyticsApi, tg } from '../api'
 import { useToast } from '../contexts/ToastContext'
 
 export default function ActivityDetail() {
@@ -616,6 +616,8 @@ export default function ActivityDetail() {
                         <div className="mt-3 mb-2">
                             <button
                                 onClick={() => {
+                                    // Track GPX download
+                                    analyticsApi.trackEvent('gpx_download', { activity_id: activity.id }).catch(() => {})
                                     const url = activitiesApi.getGpxDownloadUrl(activity.id)
                                     if (tg.webApp?.openLink) {
                                         tg.webApp.openLink(window.location.origin + url)
