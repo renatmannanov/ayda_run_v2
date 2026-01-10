@@ -347,7 +347,12 @@ export default function ActivityCreate() {
                     setCreatedActivityId(result.id)
                     const botUsername = await configApi.getBotUsername()
                     setShareLink(`https://t.me/${botUsername}?start=activity_${result.id}`)
-                    setFlowStep('gpx')
+                    // Skip GPX step for yoga and workout
+                    if (['yoga', 'workout'].includes(sportType)) {
+                        setFlowStep('success')
+                    } else {
+                        setFlowStep('gpx')
+                    }
                 }
             }
         } catch (e) {

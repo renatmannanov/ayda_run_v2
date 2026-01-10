@@ -707,23 +707,26 @@ export default function ActivityDetail() {
                         <>
                             <div className="border-t border-gray-200 my-4" />
                             <div className="space-y-2">
-                                {!activity.hasGpx ? (
-                                    <button
-                                        onClick={() => setShowGpxPopup(true)}
-                                        className="flex items-center gap-2 text-sm text-gray-700 hover:text-gray-900 py-1 transition-colors"
-                                    >
-                                        <span className="w-5 text-center">📍</span>
-                                        <span className="font-medium">Добавить маршрут</span>
-                                    </button>
-                                ) : (
-                                    <button
-                                        onClick={() => setShowGpxPopup(true)}
-                                        className="flex items-center gap-2 text-sm text-gray-700 hover:text-gray-900 py-1 transition-colors"
-                                    >
-                                        <span className="w-5 text-center">📍</span>
-                                        <span>{activity.gpxFilename || 'track.gpx'}</span>
-                                        <span className="text-gray-400 text-xs">✎</span>
-                                    </button>
+                                {/* Hide GPX button for yoga and workout */}
+                                {!['yoga', 'workout'].includes(activity.sportType) && (
+                                    !activity.hasGpx ? (
+                                        <button
+                                            onClick={() => setShowGpxPopup(true)}
+                                            className="flex items-center gap-2 text-sm text-gray-700 hover:text-gray-900 py-1 transition-colors"
+                                        >
+                                            <span className="w-5 text-center">📍</span>
+                                            <span className="font-medium">Добавить маршрут</span>
+                                        </button>
+                                    ) : (
+                                        <button
+                                            onClick={() => setShowGpxPopup(true)}
+                                            className="flex items-center gap-2 text-sm text-gray-700 hover:text-gray-900 py-1 transition-colors"
+                                        >
+                                            <span className="w-5 text-center">📍</span>
+                                            <span>{activity.gpxFilename || 'track.gpx'}</span>
+                                            <span className="text-gray-400 text-xs">✎</span>
+                                        </button>
+                                    )
                                 )}
                                 <button
                                     onClick={handleEdit}

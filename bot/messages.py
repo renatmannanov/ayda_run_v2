@@ -576,6 +576,50 @@ def get_club_access_prompt() -> str:
 
 # ============= JOIN REQUEST MESSAGES =============
 
+# Sport type icons mapping
+SPORT_ICONS = {
+    'running': '🏃',
+    'trail': '⛰️',
+    'hiking': '🥾',
+    'cycling': '🚴',
+    'yoga': '🧘',
+    'workout': '💪',
+}
+
+
+def format_sports_with_icons(sports_data) -> str:
+    """
+    Format sports list with icons.
+    Handles both JSON string and list inputs.
+    """
+    import json
+
+    if not sports_data:
+        return ""
+
+    # Parse if string
+    if isinstance(sports_data, str):
+        try:
+            sports_list = json.loads(sports_data)
+        except json.JSONDecodeError:
+            return ""
+    else:
+        sports_list = sports_data
+
+    if not sports_list:
+        return ""
+
+    # Convert to icons
+    icons = []
+    for sport in sports_list:
+        sport_lower = sport.lower() if isinstance(sport, str) else str(sport).lower()
+        icon = SPORT_ICONS.get(sport_lower, '')
+        if icon:
+            icons.append(icon)
+
+    return ' '.join(icons) if icons else ""
+
+
 def format_join_request_notification(user_data: Dict[str, Any], entity_data: Dict[str, Any]) -> str:
     """
     Format notification message to organizer about new join request.
@@ -602,9 +646,10 @@ def format_join_request_notification(user_data: Dict[str, Any], entity_data: Dic
     username = user_data.get('username', '')
     username_text = f"@{username}" if username else "нет username"
 
-    # Sports
+    # Sports - format with icons
     sports = user_data.get('preferred_sports', '')
-    sports_text = f"\nВиды спорта: {sports}" if sports else ""
+    sports_icons = format_sports_with_icons(sports)
+    sports_text = f"\nВиды спорта: {sports_icons}" if sports_icons else ""
 
     # Strava link
     strava = user_data.get('strava_link', '')
