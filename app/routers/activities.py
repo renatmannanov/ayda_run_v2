@@ -1098,13 +1098,34 @@ async def upload_gpx(
 @router.get("/{activity_id}/gpx")
 async def download_gpx(
     activity_id: str,
+    init_data: Optional[str] = None,
     current_user: Optional[User] = Depends(get_current_user_optional),
     db: Session = Depends(get_db)
 ):
     """
     Download GPX file for an activity.
     Permission check based on activity visibility and user membership.
+
+    Supports auth via:
+    - X-Telegram-Init-Data header (standard)
+    - init_data query param (for mobile download via openLink)
     """
+    # Support auth via query param for mobile downloads
+    if init_data and not current_user:
+        from auth import verify_telegram_webapp_data, get_or_create_user
+        try:
+            data = verify_telegram_webapp_data(init_data)
+            user_data = data.get('user')
+            if user_data and user_data.get('id'):
+                current_user = get_or_create_user(
+                    db=db,
+                    telegram_id=user_data['id'],
+                    username=user_data.get('username'),
+                    first_name=user_data.get('first_name')
+                )
+        except Exception:
+            pass  # Fall through to permission check
+
     # 1. Get activity
     activity = db.query(Activity).filter(Activity.id == activity_id).first()
 

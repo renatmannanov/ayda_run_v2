@@ -272,10 +272,21 @@ export const activitiesApi = {
 
     getGpxDownloadUrl: (activityId) => `${API_BASE}/activities/${activityId}/gpx`,
 
-    // Download GPX file with auth headers
+    // Download GPX file - uses openLink on mobile for reliable download
     downloadGpx: async (activityId, filename) => {
+        const tg = window.Telegram?.WebApp
+        const initData = tg?.initData
+
+        // On mobile Telegram, use openLink to download in external browser
+        // The blob + <a> click method doesn't work reliably in Telegram WebView
+        if (tg && initData && tg.platform !== 'web') {
+            const downloadUrl = `${window.location.origin}${API_BASE}/activities/${activityId}/gpx?init_data=${encodeURIComponent(initData)}`
+            tg.openLink(downloadUrl)
+            return
+        }
+
+        // Desktop fallback - standard fetch + blob download
         const headers = getAuthHeaders()
-        // Remove Content-Type for file download
         delete headers['Content-Type']
 
         const response = await fetch(`${API_BASE}/activities/${activityId}/gpx`, { headers })
@@ -285,7 +296,6 @@ export const activitiesApi = {
             throw new Error(error.detail || 'Failed to download GPX')
         }
 
-        // Get blob and create download link
         const blob = await response.blob()
         const url = window.URL.createObjectURL(blob)
         const a = document.createElement('a')
