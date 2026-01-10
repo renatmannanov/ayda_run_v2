@@ -331,6 +331,37 @@ async def start_onboarding(update: Update, context: ContextTypes.DEFAULT_TYPE) -
                         await update.message.reply_text(get_club_not_found_message())
                         return ConversationHandler.END
                     message = format_club_invitation_message(telegram_user.first_name, entity_data)
+            elif invitation_type == "join":
+                # join_ deep link - find club by chat_id
+                try:
+                    chat_id = int(invitation_id)
+                except ValueError:
+                    await update.message.reply_text("Неверная ссылка.")
+                    return ConversationHandler.END
+
+                with ClubStorage() as club_storage:
+                    club = club_storage.get_club_by_telegram_chat_id(chat_id)
+                    if not club:
+                        await update.message.reply_text(
+                            "❌ Эта группа не связана с клубом в Ayda Run.\n\n"
+                            "Попросите организатора создать клуб командой /create"
+                        )
+                        return ConversationHandler.END
+                    entity_data = club_storage.get_club_preview(club.id)
+                    if not entity_data:
+                        await update.message.reply_text(get_club_not_found_message())
+                        return ConversationHandler.END
+
+                    # Store club_id for later auto-join (replace chat_id with club_id)
+                    context.user_data['invitation_type'] = 'club'
+                    context.user_data['invitation_id'] = club.id
+                    # Also store chat_id for cache update after joining
+                    context.user_data['join_chat_id'] = chat_id
+
+                    message = format_club_invitation_message(telegram_user.first_name, entity_data)
+            elif invitation_type == "activity":
+                # activity deep link - just do regular onboarding, will open activity after
+                message = get_welcome_message(telegram_user.first_name)
             else:  # group
                 with GroupStorage() as group_storage:
                     entity_data = group_storage.get_group_preview(invitation_id)
@@ -480,13 +511,34 @@ async def handle_sports_selection(update: Update, context: ContextTypes.DEFAULT_
                 user_storage.update_preferred_sports(user.id, selected_sports)
                 track_onboarding_step(user.id, "sports", 3)
 
-        # Show role selection
+        # TODO: Role selection temporarily disabled for testing
+        # When re-enabling, uncomment below and change return to SELECTING_ROLE
+        # await query.edit_message_text(
+        #     get_role_selection_message(),
+        #     reply_markup=get_role_selection_keyboard()
+        # )
+        # return SELECTING_ROLE
+
+        # Skip role selection - go directly to Strava question
+        # Track as if role was selected (for analytics consistency)
+        with UserStorage() as user_storage:
+            user = user_storage.get_user_by_telegram_id(telegram_user.id)
+            if user:
+                track_onboarding_step(user.id, "role", 4)
+
+        keyboard = [
+            [InlineKeyboardButton("Да, добавить ссылку", callback_data="strava_yes")],
+            [InlineKeyboardButton("Пропустить →", callback_data="strava_skip")]
+        ]
+
         await query.edit_message_text(
-            get_role_selection_message(),
-            reply_markup=get_role_selection_keyboard()
+            "🏃 У тебя есть профиль на Strava?\n\n"
+            "Если хочешь, можешь добавить ссылку на свой профиль — "
+            "другие участники смогут найти тебя там.",
+            reply_markup=InlineKeyboardMarkup(keyboard)
         )
 
-        return SELECTING_ROLE
+        return ASKING_STRAVA
 
     return SELECTING_SPORTS
 
@@ -665,10 +717,19 @@ async def complete_onboarding(update: Update, context: ContextTypes.DEFAULT_TYPE
         # If has invitation - automatically add to club/group
         if invitation_type and invitation_id:
             try:
+                # Get join_chat_id if this came from a join_ deep link
+                join_chat_id = context.user_data.get('join_chat_id')
+
                 with MembershipStorage() as membership_storage:
                     if invitation_type == "club":
                         membership_storage.add_member_to_club(user.id, invitation_id)
                         logger.info(f"Auto-joined user {user.id} to club {invitation_id}")
+
+                        # Add to cache if this was a join_ deep link
+                        if join_chat_id:
+                            from bot.cache import add_member_to_cache
+                            add_member_to_cache(join_chat_id, telegram_user.id)
+                            logger.info(f"Added user {telegram_user.id} to cache for chat {join_chat_id}")
 
                         with ClubStorage() as club_storage:
                             entity_data = club_storage.get_club_preview(invitation_id)

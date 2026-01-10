@@ -95,9 +95,14 @@ class ClubStorage:
             ).scalar() or 0
 
             # Count groups
-            from storage.db import Group
+            from storage.db import Group, Activity
             groups_count = self.session.query(func.count(Group.id)).filter(
                 Group.club_id == club_id
+            ).scalar() or 0
+
+            # Count activities
+            activities_count = self.session.query(func.count(Activity.id)).filter(
+                Activity.club_id == club_id
             ).scalar() or 0
 
             return {
@@ -106,6 +111,7 @@ class ClubStorage:
                 'description': club.description or '',
                 'member_count': member_count,
                 'groups_count': groups_count,
+                'activities_count': activities_count,
                 'city': club.city,
                 'photo': club.photo
             }

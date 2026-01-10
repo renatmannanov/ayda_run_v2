@@ -5,6 +5,7 @@ import { DaySection } from '../components/home/DaySection'
 import { ModeToggle } from '../components/home/ModeToggle'
 import { SportFilterButton } from '../components/home/SportFilterButton'
 import { ActivityFilterPopup } from '../components/home/ActivityFilterPopup'
+import { WelcomeBanner } from '../components/home/WelcomeBanner'
 import { useActivities, useJoinActivity, useClubs, useGroups } from '../hooks'
 import { groupActivitiesByWeekAndDay, getWeekRangeText, getWeekActivityCount } from '../utils/weekUtils'
 
@@ -85,6 +86,7 @@ export default function Home() {
     // My clubs and groups (for filter options)
     const myClubs = useMemo(() => (clubs || []).filter(c => c.isMember), [clubs])
     const myGroups = useMemo(() => (groups || []).filter(g => g.isMember), [groups])
+
 
     // Build API filters (only sport_types is supported by API)
     const apiFilters = useMemo(() => {
@@ -394,6 +396,11 @@ export default function Home() {
                 onTouchMove={onTouchMove}
                 onTouchEnd={onTouchEnd}
             >
+                {/* Welcome banner for new users with clubs but no activities */}
+                {mode === 'my' && !hasActivities && myClubs.length > 0 && (
+                    <WelcomeBanner club={myClubs[0]} />
+                )}
+
                 {hasActivities && displayedWeek ? (
                     <div className="mb-6">
                         {/* Render days in Mon-Sun order */}
