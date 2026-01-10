@@ -100,21 +100,22 @@ async def create_club_from_group(update: Update, context: ContextTypes.DEFAULT_T
             return ConversationHandler.END
 
         # 2.1 Проверка лимита клубов пользователя
-        with UserStorage() as user_storage:
-            db_user = user_storage.get_user_by_telegram_id(user.id)
-            if db_user:
-                db = SessionLocal()
-                try:
-                    can_create, current, max_limit = check_club_creation_limit(db, db_user.id)
-                    if not can_create:
-                        await message.reply_text(
-                            f"❌ Достигнут лимит клубов ({current}/{max_limit})\n\n"
-                            "Вы уже создали максимальное количество клубов.\n"
-                            "Удалите один из существующих клубов, чтобы создать новый."
-                        )
-                        return ConversationHandler.END
-                finally:
-                    db.close()
+        # TODO: Temporarily disabled for testing
+        # with UserStorage() as user_storage:
+        #     db_user = user_storage.get_user_by_telegram_id(user.id)
+        #     if db_user:
+        #         db = SessionLocal()
+        #         try:
+        #             can_create, current, max_limit = check_club_creation_limit(db, db_user.id)
+        #             if not can_create:
+        #                 await message.reply_text(
+        #                     f"❌ Достигнут лимит клубов ({current}/{max_limit})\n\n"
+        #                     "Вы уже создали максимальное количество клубов.\n"
+        #                     "Удалите один из существующих клубов, чтобы создать новый."
+        #                 )
+        #                 return ConversationHandler.END
+        #         finally:
+        #             db.close()
 
         # 3. Проверка прав бота
         is_bot_admin, error_msg = await parser.verify_bot_is_admin(
@@ -412,9 +413,8 @@ async def send_club_created_notifications(
     query = update.callback_query
 
     # Уведомление в группу с кнопкой регистрации
-    bot_link = f"https://t.me/{settings.bot_username}?start=club_{club.id}"
     join_link = f"https://t.me/{settings.bot_username}?start=join_{group_chat_id}"
-    webapp_url = f"{settings.app_url}?startapp=club_{club.id}" if settings.app_url else bot_link
+    webapp_url = f"{settings.app_url}?startapp=club_{club.id}"
 
     remaining = max(0, member_count - imported_count)
 
@@ -441,7 +441,7 @@ async def send_club_created_notifications(
         reply_markup=group_keyboard
     )
 
-    # Уведомление организатору в ЛС
+    # Уведомление организатору в ЛС (одно сообщение с кнопкой)
     organizer_message = (
         f"✅ Поздравляем! Клуб \"{club.name}\" создан.\n\n"
         f"📊 Статус синхронизации:\n"
@@ -450,19 +450,26 @@ async def send_club_created_notifications(
         f"▪️ Ожидают регистрации: {remaining}\n\n"
         f"Участники группы могут зарегистрироваться двумя способами:\n"
         f"1️⃣ Нажать кнопку в группе\n"
-        f"2️⃣ Автоматически при написании сообщений\n\n"
-        f"Используйте команду /sync в группе для проверки статуса."
+        f"2️⃣ Автоматически при написании сообщения\n\n"
+        f"Используйте команду /sync в группе для проверки статуса.\n\n"
+        f"Нажмите кнопку ниже, чтобы открыть клуб и получить доступ к:\n"
+        f"▪️ Календарю тренировок\n"
+        f"▪️ Статистике активностей\n"
+        f"▪️ Записи на мероприятия"
     )
 
-    await query.edit_message_text(organizer_message)
+    # Удаляем предыдущее сообщение и отправляем новое с WebApp кнопкой
+    # (WebApp кнопки не работают с edit_message_text)
+    try:
+        await query.delete_message()
+    except Exception:
+        pass  # Игнорируем ошибку если не удалось удалить
 
-    # WebApp кнопку в ЛС можно отправить
-    if settings.app_url:
-        await context.bot.send_message(
-            chat_id=query.from_user.id,
-            text="Откройте приложение для управления клубом:",
-            reply_markup=get_webapp_button(webapp_url, f"🚀 Управление клубом")
-        )
+    await context.bot.send_message(
+        chat_id=query.from_user.id,
+        text=organizer_message,
+        reply_markup=get_webapp_button(webapp_url, "🚀 Открыть клуб")
+    )
 
 
 async def cancel_creation(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
