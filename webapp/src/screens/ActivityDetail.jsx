@@ -271,6 +271,15 @@ export default function ActivityDetail() {
         }))
     }
 
+    const handleToggleAll = () => {
+        setAttendanceData(prev => {
+            const allAttended = prev.every(p => p.attended === true)
+            // If all attended -> reset to null, otherwise -> mark all as attended
+            const newValue = allAttended ? null : true
+            return prev.map(p => ({ ...p, attended: newValue }))
+        })
+    }
+
     const handleAddParticipant = async (member) => {
         try {
             // Add to API
@@ -809,6 +818,7 @@ export default function ActivityDetail() {
                 participants={attendanceData}
                 clubMembers={clubGroupMembers}
                 onToggleAttendance={handleToggleAttendance}
+                onToggleAll={handleToggleAll}
                 onAddParticipant={handleAddParticipant}
                 onSave={handleSaveAttendance}
                 saving={savingAttendance}

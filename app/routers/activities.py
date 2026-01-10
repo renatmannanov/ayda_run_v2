@@ -19,7 +19,7 @@ from storage.db import Activity, Participation, User, Membership, JoinRequest, J
 from app.core.dependencies import get_db, get_current_user, get_current_user_optional
 from permissions import can_create_activity_in_club, can_create_activity_in_group, require_activity_owner, check_activity_creation_limit
 from schemas.common import SportType, Difficulty, ActivityVisibility, ActivityStatus, ParticipationStatus, PaymentStatus
-from schemas.activity import ActivityCreate, ActivityUpdate, ActivityResponse, MarkAttendanceRequest
+from schemas.activity import ActivityCreate, ActivityUpdate, ActivityResponse, MarkAttendanceRequest, AddParticipantRequest
 from schemas.user import ParticipantResponse
 from schemas.join_request import JoinRequestCreate, JoinRequestResponse
 from storage.join_request_storage import JoinRequestStorage
@@ -938,7 +938,7 @@ async def mark_attendance(
 @router.post("/{activity_id}/add-participant", status_code=201)
 async def add_participant(
     activity_id: str,
-    request: "AddParticipantRequest",
+    request: AddParticipantRequest,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -947,7 +947,6 @@ async def add_participant(
 
     Used when marking attendance for someone who didn't sign up but attended.
     """
-    from schemas.activity import AddParticipantRequest
 
     activity = db.query(Activity).filter(Activity.id == activity_id).first()
 

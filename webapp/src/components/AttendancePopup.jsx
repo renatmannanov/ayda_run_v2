@@ -16,6 +16,7 @@ export default function AttendancePopup({
     participants = [],
     clubMembers = [], // Members from club/group who didn't register
     onToggleAttendance,
+    onToggleAll, // New: toggle all participants
     onAddParticipant,
     onSave,
     saving = false
@@ -88,7 +89,7 @@ export default function AttendancePopup({
                         </button>
                     </div>
 
-                    {/* Progress bar */}
+                    {/* Progress bar + Toggle all button */}
                     <div className="flex items-center gap-3">
                         <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
                             <div
@@ -99,6 +100,14 @@ export default function AttendancePopup({
                         <span className="text-sm text-gray-500 font-medium">
                             {attendedCount}/{totalCount}
                         </span>
+                        {onToggleAll && totalCount > 0 && (
+                            <button
+                                onClick={onToggleAll}
+                                className="text-xs text-gray-500 hover:text-gray-700 underline whitespace-nowrap"
+                            >
+                                {attendedCount === totalCount ? 'Сбросить' : 'Отметить всех'}
+                            </button>
+                        )}
                     </div>
                 </div>
 
@@ -111,13 +120,13 @@ export default function AttendancePopup({
                                 key={p.id || p.userId}
                                 className="flex items-center py-3 border-b border-gray-100 last:border-0"
                             >
-                                {/* Avatar */}
+                                {/* Avatar - forcePhoto for organizer view */}
                                 <Avatar
                                     src={p.photo}
                                     name={p.name || p.firstName}
                                     size="md"
                                     className="mr-3 flex-shrink-0"
-                                    showPhoto={p.showPhoto}
+                                    forcePhoto={true}
                                 />
 
                                 {/* Name + Sports */}
@@ -215,7 +224,7 @@ export default function AttendancePopup({
                                                     src={m.photo}
                                                     name={m.name || m.firstName}
                                                     size="sm"
-                                                    showPhoto={m.showPhoto}
+                                                    forcePhoto={true}
                                                 />
                                                 <span className="text-sm text-gray-700">
                                                     {m.name || m.firstName}

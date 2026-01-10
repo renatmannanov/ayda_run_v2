@@ -63,7 +63,7 @@ class ParticipantResponse(BaseModel):
     first_name: Optional[str]
     name: str  # Display name for frontend
     status: ParticipationStatus
-    attended: bool
+    attended: Optional[bool] = None  # True = attended, False = missed, None = not marked
     registered_at: datetime
     preferred_sports: Optional[str] = None  # JSON string of sport preferences
     photo: Optional[str] = None  # Telegram avatar file_id or URL

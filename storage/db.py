@@ -439,8 +439,8 @@ class Participation(Base):
     # Participation status
     status = Column(SQLEnum(ParticipationStatus), default=ParticipationStatus.REGISTERED, nullable=False)
 
-    # Did they actually show up?
-    attended = Column(Boolean, default=False)
+    # Did they actually show up? None = not marked, True = attended, False = missed
+    attended = Column(Boolean, default=None, nullable=True)
 
     # Payment tracking (for paid clubs)
     payment_status = Column(SQLEnum(PaymentStatus), default=PaymentStatus.NOT_REQUIRED, nullable=False)
