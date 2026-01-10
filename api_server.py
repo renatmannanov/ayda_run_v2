@@ -31,6 +31,7 @@ from bot.invitation_handler import join_invitation_handlers
 from bot.organizer_handler import organizer_conv_handler
 from bot.admin_notifications import handle_admin_approval
 from bot.group_club_creation_handler import group_club_creation_handler
+from bot.admin_stats_handler import get_admin_stats_handler
 
 # Logger setup (needed before lifespan)
 import sys
@@ -108,6 +109,10 @@ async def lifespan(app: FastAPI):
     from bot.confirmation_handler import get_confirmation_handler
     bot_app.add_handler(get_confirmation_handler())
     logger.info("[SUCCESS] Confirmation handler registered")
+
+    # Admin stats handler (/stats command for admin only)
+    bot_app.add_handler(get_admin_stats_handler())
+    logger.info("[SUCCESS] Admin stats handler registered")
 
     # Initialize bot (but don't start polling - we use webhook)
     await bot_app.initialize()
