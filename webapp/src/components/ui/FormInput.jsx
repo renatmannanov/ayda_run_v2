@@ -10,10 +10,11 @@ export function FormInput({
     type = 'text',
     suffix,
     helper,
-    disabled = false
+    disabled = false,
+    name // Used for data-field attribute for scroll-to-error
 }) {
     return (
-        <div className="mb-4">
+        <div className="mb-4" data-field={name}>
             {label && (
                 <label className="text-sm text-gray-700 mb-2 block">
                     {label} {required && <span className="text-red-400">*</span>}

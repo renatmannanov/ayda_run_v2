@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react'
-import { useNavigate, useLocation, useParams } from 'react-router-dom'
+import { useNavigate, useLocation, useParams, useSearchParams } from 'react-router-dom'
 import {
     FormInput,
     FormTextarea,
@@ -14,13 +14,17 @@ import {
     getDifficultyLabel
 } from '../data/sample_data'
 import { useCreateActivity, useUpdateActivity, useActivity, useActivityParticipants, useClubs, useGroups } from '../hooks'
-import { useCreateRecurringSeries } from '../hooks/useRecurring'
+import { useCreateRecurringSeries, useUpdateRecurring } from '../hooks/useRecurring'
 import { tg, configApi } from '../api'
 import { useToast } from '../contexts/ToastContext'
 
 export default function ActivityCreate() {
     const { id } = useParams()
+    const [searchParams] = useSearchParams()
     const isEditMode = !!id
+
+    // Get scope from URL params (for recurring activity edits)
+    const recurringScope = searchParams.get('scope') // 'this_only' | 'this_and_following'
 
     const navigate = useNavigate()
     const location = useLocation()
@@ -29,6 +33,7 @@ export default function ActivityCreate() {
 
     const { mutateAsync: createActivity, isPending: creating } = useCreateActivity()
     const { mutateAsync: updateActivity, isPending: updating } = useUpdateActivity()
+    const { mutateAsync: updateRecurring, isPending: updatingRecurring } = useUpdateRecurring()
     const { mutateAsync: createRecurringSeries, isPending: creatingRecurring } = useCreateRecurringSeries()
 
     // Fetch existing activity in edit mode
@@ -36,7 +41,7 @@ export default function ActivityCreate() {
     const { data: participantsData } = useActivityParticipants(isEditMode ? id : null)
     const participants = participantsData || []
 
-    const loading = creating || updating || creatingRecurring
+    const loading = creating || updating || updatingRecurring || creatingRecurring
     const { data: clubs = [] } = useClubs()
     const { data: allGroups = [] } = useGroups()
 
@@ -241,7 +246,20 @@ export default function ActivityCreate() {
         if (!date) newErrors.date = true
         if (!locationValue.trim()) newErrors.location = true
         setErrors(newErrors)
-        return Object.keys(newErrors).length === 0
+
+        if (Object.keys(newErrors).length > 0) {
+            // Show toast with error message
+            showToast('Заполните обязательные поля', 'error')
+
+            // Scroll to first error field
+            const firstErrorField = Object.keys(newErrors)[0]
+            const fieldElement = document.querySelector(`[data-field="${firstErrorField}"]`)
+            if (fieldElement) {
+                fieldElement.scrollIntoView({ behavior: 'smooth', block: 'center' })
+            }
+            return false
+        }
+        return true
     }
 
     const handleSubmit = async () => {
@@ -268,13 +286,31 @@ export default function ActivityCreate() {
                     ['registered', 'confirmed'].includes(p.status)
                 ).length
 
+                // Check if this is a recurring activity with scope
+                const isRecurringEdit = existingActivity?.isRecurring && recurringScope
+
                 const saveChanges = async (notifyParticipants) => {
-                    await updateActivity({ id, data: payload, notifyParticipants })
-                    showToast('Изменения сохранены')
+                    if (isRecurringEdit) {
+                        // Use recurring API for recurring activity edits
+                        await updateRecurring({
+                            activityId: id,
+                            scope: recurringScope,
+                            data: payload
+                        })
+                        const scopeText = recurringScope === 'this_and_following'
+                            ? 'Эта и следующие тренировки обновлены'
+                            : 'Тренировка обновлена'
+                        showToast(scopeText)
+                    } else {
+                        // Regular activity update
+                        await updateActivity({ id, data: payload, notifyParticipants })
+                        showToast('Изменения сохранены')
+                    }
                     navigate(`/activity/${id}`)
                 }
 
-                if (joinedCount > 0) {
+                if (joinedCount > 0 && !isRecurringEdit) {
+                    // Only ask for notification confirmation for non-recurring edits
                     const word = joinedCount === 1 ? 'участник' :
                                 joinedCount < 5 ? 'участника' : 'участников'
 
@@ -450,6 +486,7 @@ export default function ActivityCreate() {
             {/* Form */}
             <div className="flex-1 overflow-auto px-4 py-4">
                 <FormInput
+                    name="title"
                     label="Название"
                     value={title}
                     onChange={setTitle}
@@ -459,8 +496,8 @@ export default function ActivityCreate() {
                 />
 
                 {/* Date & Time */}
-                <div className="flex gap-3 mb-4">
-                    <div className="flex-1">
+                <div className="flex gap-3 mb-2">
+                    <div className="flex-1" data-field="date">
                         <label className="text-sm text-gray-700 mb-2 block">
                             Когда <span className="text-red-400">*</span>
                         </label>
@@ -470,10 +507,13 @@ export default function ActivityCreate() {
                                 value={date}
                                 min={new Date().toISOString().split('T')[0]}
                                 onChange={(e) => setDate(e.target.value)}
+                                disabled={recurringScope === 'this_and_following'}
                                 className={`w-full px-4 py-3 border rounded-xl text-sm outline-none transition-colors ${
                                     date ? 'text-gray-800' : 'text-transparent'
                                 } ${
                                     errors.date ? 'border-red-300 bg-red-50' : 'border-gray-200 focus:border-gray-400'
+                                } ${
+                                    recurringScope === 'this_and_following' ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : ''
                                 }`}
                             />
                             {!date && (
@@ -489,10 +529,22 @@ export default function ActivityCreate() {
                             type="time"
                             value={time}
                             onChange={(e) => setTime(e.target.value)}
-                            className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm text-gray-800 outline-none focus:border-gray-400 transition-colors"
+                            disabled={recurringScope === 'this_and_following'}
+                            className={`w-full px-4 py-3 border border-gray-200 rounded-xl text-sm text-gray-800 outline-none focus:border-gray-400 transition-colors ${
+                                recurringScope === 'this_and_following' ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : ''
+                            }`}
                         />
                     </div>
                 </div>
+                {/* For recurring 'this_and_following' - date/time is disabled (can't shift entire series) */}
+                {recurringScope === 'this_and_following' && (
+                    <div className="mb-4 p-3 bg-gray-50 rounded-xl">
+                        <p className="text-sm text-gray-500">
+                            📅 Дата и время не меняются при редактировании серии.
+                            Выберите "Только эту" чтобы перенести одну тренировку.
+                        </p>
+                    </div>
+                )}
 
                 {/* Recurrence Section - only in create mode, after date/time */}
                 {!isEditMode && (
@@ -572,6 +624,7 @@ export default function ActivityCreate() {
                 )}
 
                 <FormInput
+                    name="location"
                     label="Где"
                     value={locationValue}
                     onChange={setLocationValue}

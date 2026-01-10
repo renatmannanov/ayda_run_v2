@@ -123,6 +123,8 @@ class RecurringUpdateRequest(BaseModel):
     distance: Optional[float] = Field(None, ge=0, le=500)
     duration: Optional[int] = Field(None, ge=1, le=1440)
     max_participants: Optional[int] = Field(None, ge=1, le=1000)
+    # Date can only be changed for THIS_ONLY scope
+    date: Optional[datetime] = Field(None, description="New date/time (only for this_only scope)")
 
 
 class RecurringActionResponse(BaseModel):

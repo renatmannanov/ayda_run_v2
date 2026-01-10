@@ -92,21 +92,6 @@ async def handle_sync_command(update: Update, context: ContextTypes.DEFAULT_TYPE
         else:
             sync_reset = False
 
-    # Calculate sync percentage
-    total_registered = active_count + pending_count
-    sync_percent = round(total_registered / tg_count * 100) if tg_count > 0 else 0
-
-    # Determine status emoji
-    if sync_percent >= 90:
-        status_emoji = "✅"
-        status_text = "Отлично!"
-    elif sync_percent >= 50:
-        status_emoji = "🔄"
-        status_text = "Идёт синхронизация..."
-    else:
-        status_emoji = "⏳"
-        status_text = "Ожидание регистрации"
-
     # Build response
     response = (
         f"📊 Статус клуба \"{club.name}\"\n\n"
@@ -120,8 +105,6 @@ async def handle_sync_command(update: Update, context: ContextTypes.DEFAULT_TYPE
 
     if kicked_count > 0:
         response += f"🚫 Исключены: {kicked_count}\n"
-
-    response += f"\n{status_emoji} Синхронизация: {sync_percent}% — {status_text}"
 
     if sync_reset:
         response += "\n\n🔄 Обнаружены новые участники, синхронизация возобновлена."

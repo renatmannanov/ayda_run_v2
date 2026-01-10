@@ -206,8 +206,10 @@ export const usersApi = {
 
 export const activitiesApi = {
     list: (filters = {}) => {
-        const params = new URLSearchParams(filters).toString()
-        return apiFetch(`/activities${params ? `?${params}` : ''}`)
+        // Default to 100 activities to show more weeks
+        const filtersWithLimit = { limit: 100, ...filters }
+        const params = new URLSearchParams(filtersWithLimit).toString()
+        return apiFetch(`/activities?${params}`)
             .then(items => items.map(transformActivity))
     },
 
