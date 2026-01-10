@@ -28,7 +28,6 @@ export default function CreateClub() {
     const [name, setName] = useState('')
     const [description, setDescription] = useState('')
     const [selectedSports, setSelectedSports] = useState([])
-    const [telegramChat, setTelegramChat] = useState('')
     const [visibility, setVisibility] = useState('public')
     const [access, setAccess] = useState('open')
     const [errors, setErrors] = useState({})
@@ -74,7 +73,6 @@ export default function CreateClub() {
         if (existingClub) {
             setName(existingClub.name)
             setDescription(existingClub.description || '')
-            setTelegramChat(existingClub.telegramChatId ? existingClub.telegramChatId.toString() : '')
 
             // Set visibility based on is_private
             if (existingClub.isPrivate) {
@@ -187,17 +185,6 @@ export default function CreateClub() {
                     onChange={setSelectedSports}
                     multiple={true}
                     label="Виды активностей"
-                />
-
-                <div className="border-t border-gray-200 my-4" />
-
-                <FormInput
-                    label="Telegram чат клуба"
-                    value={telegramChat}
-                    onChange={setTelegramChat}
-                    placeholder="@trailrunners_almaty"
-                    helper={isEditMode && existingClub?.telegramChatId ? "Нельзя изменить после привязки" : "Бот будет отправлять уведомления о тренировках"}
-                    disabled={isEditMode && !!existingClub?.telegramChatId}
                 />
 
                 <div className="border-t border-gray-200 my-4" />

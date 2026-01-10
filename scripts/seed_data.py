@@ -29,7 +29,7 @@ AVATAR_PLACEHOLDERS = [
 
 # Sample user data (Telegram-like)
 SAMPLE_USERS = [
-    {"telegram_id": 1, "username": "admin", "first_name": "Ренат", "last_name": "Маннанов"},
+    {"telegram_id": 5414820474, "username": "admin", "first_name": "Ренат", "last_name": "Маннанов"},
     {"telegram_id": 123456789, "username": "alexrunner", "first_name": "Александр", "last_name": "Петров"},
     {"telegram_id": 234567890, "username": "marinasky", "first_name": "Марина", "last_name": "Иванова"},
     {"telegram_id": 345678901, "username": "dmitry_trail", "first_name": "Дмитрий", "last_name": "Соколов"},
@@ -101,7 +101,7 @@ def create_srg_club(db: Session, users: dict) -> tuple:
     print("\n[SRG] Creating SRG - Sky Running Group...")
 
     # Create club
-    admin_user = users[1]
+    admin_user = users[5414820474]
     club = Club(
         name="SRG - Sky Running Group",
         description="Команда скайраннеров Алматы. Тренировки в горах, восхождения, trail running. Только по приглашениям.",
@@ -190,7 +190,7 @@ def create_srg_activities(db: Session, club: Club, groups: list, users: dict):
     """Create SRG activities for 2025-2026"""
     print("\n[ACTIVITIES] Creating SRG activities...")
 
-    admin_user = users[1]
+    admin_user = users[5414820474]
 
     activities_data = [
         # 2025
@@ -322,7 +322,7 @@ def create_nike_club(db: Session, users: dict) -> Club:
     """Create Nike Running Club"""
     print("\n[NIKE] Creating Nike Running Club...")
 
-    admin_user = users[1]
+    admin_user = users[5414820474]
     club = Club(
         name="Nike Running Club",
         description="Открытый беговой клуб Nike. Регулярные тренировки для всех уровней подготовки. Присоединяйтесь!",
@@ -359,7 +359,7 @@ def create_nike_recurring_activities(db: Session, club: Club, users: dict):
     """Create recurring Nike activities (every week for next 6 months)"""
     print("\n[NIKE] Creating Nike recurring activities...")
 
-    admin_user = users[1]
+    admin_user = users[5414820474]
     start_date = datetime(2025, 12, 12)  # Today
     end_date = start_date + timedelta(days=180)  # 6 months
 

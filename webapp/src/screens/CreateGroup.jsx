@@ -29,7 +29,6 @@ export default function CreateGroup() {
     const [name, setName] = useState('')
     const [description, setDescription] = useState('')
     const [selectedSports, setSelectedSports] = useState([])
-    const [telegramChat, setTelegramChat] = useState('')
     const [visibility, setVisibility] = useState('public')
     const [access, setAccess] = useState('open')
     const [errors, setErrors] = useState({})
@@ -89,7 +88,6 @@ export default function CreateGroup() {
         if (existingGroup) {
             setName(existingGroup.name)
             setDescription(existingGroup.description || '')
-            setTelegramChat(existingGroup.telegramChatId ? existingGroup.telegramChatId.toString() : '')
 
             // Set visibility
             if (existingGroup.clubId) {
@@ -209,17 +207,6 @@ export default function CreateGroup() {
                     onChange={setSelectedSports}
                     multiple={true}
                     label="Виды активностей"
-                />
-
-                <div className="border-t border-gray-200 my-4" />
-
-                <FormInput
-                    label="Telegram чат группы"
-                    value={telegramChat}
-                    onChange={setTelegramChat}
-                    placeholder="@srg_intervals"
-                    helper={isEditMode && existingGroup?.telegramChatId ? "Нельзя изменить после привязки" : "Можно использовать тот же чат, что у клуба"}
-                    disabled={isEditMode && !!existingGroup?.telegramChatId}
                 />
 
                 <div className="border-t border-gray-200 my-4" />
