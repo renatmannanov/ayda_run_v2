@@ -27,7 +27,9 @@ from storage.club_storage import ClubStorage
 from storage.membership_storage import MembershipStorage
 from bot.cache import (
     is_member_cached, add_member_to_cache, remove_member_from_cache,
-    get_club_from_cache, set_club_in_cache, is_sync_completed, mark_sync_completed
+    get_entity_from_cache, set_entity_in_cache, is_sync_completed, mark_sync_completed,
+    # Legacy imports for backward compatibility
+    get_club_from_cache, set_club_in_cache
 )
 
 logger = logging.getLogger(__name__)
@@ -169,6 +171,7 @@ async def handle_chat_member_update(update: Update, context: ContextTypes.DEFAUL
     """
     Handle chat_member events (user joins/leaves group).
     Requires bot to be admin with appropriate permissions.
+    Supports both clubs and groups.
 
     Args:
         update: Telegram update
@@ -184,23 +187,33 @@ async def handle_chat_member_update(update: Update, context: ContextTypes.DEFAUL
     if user.is_bot:
         return
 
-    # Check if this chat is a registered club
-    club_info = get_club_from_cache(chat_id)
-    if not club_info:
+    # Check if this chat is a registered club or group
+    entity_info = get_entity_from_cache(chat_id)
+    if not entity_info:
         with ClubStorage() as cs:
+            # First check for club
             club = cs.get_club_by_telegram_chat_id(chat_id)
-            if not club:
-                return
-            set_club_in_cache(chat_id, club.id, getattr(club, 'sync_completed', False))
-            club_info = {"club_id": club.id}
+            if club:
+                set_entity_in_cache(chat_id, club.id, "club", getattr(club, 'sync_completed', False))
+                entity_info = {"entity_type": "club", "entity_id": club.id, "club_id": club.id}
+            else:
+                # Then check for group
+                group = cs.get_group_by_telegram_chat_id(chat_id)
+                if group:
+                    set_entity_in_cache(chat_id, group.id, "group", False)
+                    entity_info = {"entity_type": "group", "entity_id": group.id, "group_id": group.id}
+                else:
+                    return
 
-    club_id = club_info["club_id"]
+    entity_type = entity_info.get("entity_type", "club")
+    entity_id = entity_info.get("entity_id") or entity_info.get("club_id")
 
     # User joined
     if new_status in ["member", "administrator", "creator"]:
         await _handle_member_joined(
             chat_id=chat_id,
-            club_id=club_id,
+            entity_id=entity_id,
+            entity_type=entity_type,
             telegram_user=user,
             is_admin=(new_status in ["administrator", "creator"]),
             bot=context.bot
@@ -210,14 +223,22 @@ async def handle_chat_member_update(update: Update, context: ContextTypes.DEFAUL
     elif new_status in ["left", "kicked", "banned"]:
         await _handle_member_left(
             chat_id=chat_id,
-            club_id=club_id,
+            entity_id=entity_id,
+            entity_type=entity_type,
             telegram_id=user.id,
             status=new_status
         )
 
 
-async def _handle_member_joined(chat_id: int, club_id: str, telegram_user, is_admin: bool, bot) -> None:
-    """Process new member joining the group."""
+async def _handle_member_joined(
+    chat_id: int,
+    entity_id: str,
+    entity_type: str,
+    telegram_user,
+    is_admin: bool,
+    bot
+) -> None:
+    """Process new member joining the group. Supports both clubs and groups."""
 
     with UserStorage() as us:
         user = us.get_or_create_user(
@@ -229,21 +250,36 @@ async def _handle_member_joined(chat_id: int, club_id: str, telegram_user, is_ad
     role = UserRole.ORGANIZER if is_admin else UserRole.MEMBER
 
     with MembershipStorage() as ms:
-        ms.add_member_to_club_with_source(
-            user_id=user.id,
-            club_id=club_id,
-            role=role,
-            source=MembershipSource.CHAT_MEMBER_EVENT,
-            status=MembershipStatus.PENDING  # Needs explicit registration to become ACTIVE
-        )
+        if entity_type == "club":
+            ms.add_member_to_club_with_source(
+                user_id=user.id,
+                club_id=entity_id,
+                role=role,
+                source=MembershipSource.CHAT_MEMBER_EVENT,
+                status=MembershipStatus.PENDING
+            )
+        else:  # group
+            ms.add_member_to_group_with_source(
+                user_id=user.id,
+                group_id=entity_id,
+                role=role,
+                source=MembershipSource.CHAT_MEMBER_EVENT,
+                status=MembershipStatus.PENDING
+            )
 
     add_member_to_cache(chat_id, telegram_user.id)
 
-    logger.info(f"Member {telegram_user.id} joined club {club_id} via chat_member event (PENDING)")
+    logger.info(f"Member {telegram_user.id} joined {entity_type} {entity_id} via chat_member event (PENDING)")
 
 
-async def _handle_member_left(chat_id: int, club_id: str, telegram_id: int, status: str) -> None:
-    """Process member leaving the group."""
+async def _handle_member_left(
+    chat_id: int,
+    entity_id: str,
+    entity_type: str,
+    telegram_id: int,
+    status: str
+) -> None:
+    """Process member leaving the group. Supports both clubs and groups."""
 
     with UserStorage() as us:
         user = us.get_user_by_telegram_id(telegram_id)
@@ -259,14 +295,21 @@ async def _handle_member_left(chat_id: int, club_id: str, telegram_id: int, stat
     membership_status = status_map.get(status, MembershipStatus.LEFT)
 
     with MembershipStorage() as ms:
-        ms.mark_member_inactive(
-            user_id=user.id,
-            club_id=club_id,
-            status=membership_status
-        )
+        if entity_type == "club":
+            ms.mark_member_inactive(
+                user_id=user.id,
+                club_id=entity_id,
+                status=membership_status
+            )
+        else:  # group
+            ms.mark_member_inactive_in_group(
+                user_id=user.id,
+                group_id=entity_id,
+                status=membership_status
+            )
 
     remove_member_from_cache(chat_id, telegram_id)
-    logger.info(f"Member {telegram_id} marked as {status} in club {club_id}")
+    logger.info(f"Member {telegram_id} marked as {status} in {entity_type} {entity_id}")
 
 
 # ============= STRATEGY 4: Message Activity =============
@@ -275,8 +318,9 @@ async def handle_group_message(update: Update, context: ContextTypes.DEFAULT_TYP
     """
     Passive member tracking through message activity.
     Uses cache to minimize DB queries.
+    Supports both clubs and groups.
 
-    OPTIMIZATION: Skips processing if sync_completed=True for this club.
+    OPTIMIZATION: Skips processing if sync_completed=True for this entity.
 
     Args:
         update: Telegram update
@@ -297,7 +341,7 @@ async def handle_group_message(update: Update, context: ContextTypes.DEFAULT_TYP
     chat_id = message.chat.id
     user_id = message.from_user.id
 
-    # Fast path 1: check if sync already completed for this club
+    # Fast path 1: check if sync already completed for this entity
     if is_sync_completed(chat_id):
         return
 
@@ -305,39 +349,53 @@ async def handle_group_message(update: Update, context: ContextTypes.DEFAULT_TYP
     if is_member_cached(chat_id, user_id):
         return
 
-    # Check if this chat is a registered club
-    club_info = get_club_from_cache(chat_id)
-    if club_info is None:
+    # Check if this chat is a registered club or group
+    entity_info = get_entity_from_cache(chat_id)
+    if entity_info is None:
         with ClubStorage() as cs:
+            # First check for club
             club = cs.get_club_by_telegram_chat_id(chat_id)
-            if not club:
-                # Not a registered club
-                return
-            sync_completed = getattr(club, 'sync_completed', False)
-            set_club_in_cache(chat_id, club.id, sync_completed)
-            club_info = {"club_id": club.id, "sync_completed": sync_completed}
+            if club:
+                sync_completed = getattr(club, 'sync_completed', False)
+                set_entity_in_cache(chat_id, club.id, "club", sync_completed)
+                entity_info = {"entity_type": "club", "entity_id": club.id, "sync_completed": sync_completed}
+            else:
+                # Then check for group
+                group = cs.get_group_by_telegram_chat_id(chat_id)
+                if group:
+                    set_entity_in_cache(chat_id, group.id, "group", False)
+                    entity_info = {"entity_type": "group", "entity_id": group.id, "sync_completed": False}
+                else:
+                    # Not a registered club or group
+                    return
 
             # If sync already completed, skip
-            if sync_completed:
+            if entity_info.get("sync_completed"):
                 return
 
-    club_id = club_info["club_id"]
+    entity_type = entity_info.get("entity_type", "club")
+    entity_id = entity_info.get("entity_id") or entity_info.get("club_id")
 
     # Check DB (slow path)
     with UserStorage() as us:
         user = us.get_user_by_telegram_id(user_id)
         if user:
             with MembershipStorage() as ms:
-                if ms.is_member_of_club(user.id, club_id):
-                    # Already in DB, add to cache
-                    add_member_to_cache(chat_id, user_id)
-                    return
+                if entity_type == "club":
+                    if ms.is_member_of_club(user.id, entity_id):
+                        add_member_to_cache(chat_id, user_id)
+                        return
+                else:  # group
+                    if ms.is_member_of_group(user.id, entity_id):
+                        add_member_to_cache(chat_id, user_id)
+                        return
 
     # New member! Register in background
     asyncio.create_task(
         _register_member_from_message(
             chat_id=chat_id,
-            club_id=club_id,
+            entity_id=entity_id,
+            entity_type=entity_type,
             telegram_user=message.from_user
         )
     )
@@ -346,8 +404,13 @@ async def handle_group_message(update: Update, context: ContextTypes.DEFAULT_TYP
     add_member_to_cache(chat_id, user_id)
 
 
-async def _register_member_from_message(chat_id: int, club_id: str, telegram_user) -> None:
-    """Background task to register member detected from message."""
+async def _register_member_from_message(
+    chat_id: int,
+    entity_id: str,
+    entity_type: str,
+    telegram_user
+) -> None:
+    """Background task to register member detected from message. Supports clubs and groups."""
     try:
         with UserStorage() as us:
             user = us.get_or_create_user(
@@ -357,18 +420,26 @@ async def _register_member_from_message(chat_id: int, club_id: str, telegram_use
             )
 
         with MembershipStorage() as ms:
-            ms.add_member_to_club_with_source(
-                user_id=user.id,
-                club_id=club_id,
-                role=UserRole.MEMBER,
-                source=MembershipSource.MESSAGE_ACTIVITY,
-                status=MembershipStatus.PENDING  # Not fully onboarded yet
-            )
+            if entity_type == "club":
+                ms.add_member_to_club_with_source(
+                    user_id=user.id,
+                    club_id=entity_id,
+                    role=UserRole.MEMBER,
+                    source=MembershipSource.MESSAGE_ACTIVITY,
+                    status=MembershipStatus.PENDING
+                )
+                # Check if sync completed after this registration
+                _check_and_update_sync_status(ms, entity_id, chat_id)
+            else:  # group
+                ms.add_member_to_group_with_source(
+                    user_id=user.id,
+                    group_id=entity_id,
+                    role=UserRole.MEMBER,
+                    source=MembershipSource.MESSAGE_ACTIVITY,
+                    status=MembershipStatus.PENDING
+                )
 
-            # Check if sync completed after this registration
-            _check_and_update_sync_status(ms, club_id, chat_id)
-
-        logger.info(f"Registered member {telegram_user.id} from message in {chat_id}")
+        logger.info(f"Registered member {telegram_user.id} from message in {entity_type} {entity_id}")
 
     except Exception as e:
         logger.error(f"Failed to register member from message: {e}")

@@ -345,6 +345,66 @@ class MembershipStorage:
             logger.error(f"Error in add_member_to_club_with_source: {e}")
             raise
 
+    def add_member_to_group_with_source(
+        self,
+        user_id: str,
+        group_id: str,
+        role: UserRole = UserRole.MEMBER,
+        source: MembershipSource = MembershipSource.MANUAL_REGISTRATION,
+        status: MembershipStatus = MembershipStatus.ACTIVE
+    ) -> Optional[Membership]:
+        """
+        Add member to group with source tracking.
+
+        If member already exists but was inactive, reactivates them.
+
+        Args:
+            user_id: User UUID
+            group_id: Group UUID
+            role: User role in the group
+            source: How member was added
+            status: Initial status
+
+        Returns:
+            Membership object
+        """
+        try:
+            existing = self.session.query(Membership).filter(
+                Membership.user_id == user_id,
+                Membership.group_id == group_id
+            ).first()
+
+            if existing:
+                # Reactivate if was inactive
+                if existing.status != MembershipStatus.ACTIVE:
+                    existing.status = status
+                    existing.source = source
+                    existing.left_at = None
+                    existing.last_seen = datetime.utcnow()
+                    self.session.commit()
+                    self.session.refresh(existing)
+                    logger.info(f"Reactivated member {user_id} in group {group_id} via {source.value}")
+                return existing
+
+            membership = Membership(
+                user_id=user_id,
+                group_id=group_id,
+                role=role,
+                source=source,
+                status=status,
+                last_seen=datetime.utcnow()
+            )
+            self.session.add(membership)
+            self.session.commit()
+            self.session.refresh(membership)
+            logger.info(f"Added member {user_id} to group {group_id} via {source.value}")
+            return membership
+
+        except Exception as e:
+            self.session.rollback()
+            logger.error(f"Error in add_member_to_group_with_source: {e}")
+            raise
+
     def mark_member_inactive(
         self,
         user_id: str,
@@ -352,7 +412,7 @@ class MembershipStorage:
         status: MembershipStatus = MembershipStatus.LEFT
     ) -> bool:
         """
-        Mark member as inactive (left/kicked/banned).
+        Mark member as inactive (left/kicked/banned) in club.
 
         Args:
             user_id: User UUID
@@ -380,6 +440,43 @@ class MembershipStorage:
         except Exception as e:
             self.session.rollback()
             logger.error(f"Error in mark_member_inactive: {e}")
+            return False
+
+    def mark_member_inactive_in_group(
+        self,
+        user_id: str,
+        group_id: str,
+        status: MembershipStatus = MembershipStatus.LEFT
+    ) -> bool:
+        """
+        Mark member as inactive (left/kicked/banned) in group.
+
+        Args:
+            user_id: User UUID
+            group_id: Group UUID
+            status: New status (LEFT, KICKED, or BANNED)
+
+        Returns:
+            True if successful, False if not found
+        """
+        try:
+            membership = self.session.query(Membership).filter(
+                Membership.user_id == user_id,
+                Membership.group_id == group_id
+            ).first()
+
+            if not membership:
+                return False
+
+            membership.status = status
+            membership.left_at = datetime.utcnow()
+            self.session.commit()
+            logger.info(f"Marked member {user_id} as {status.value} in group {group_id}")
+            return True
+
+        except Exception as e:
+            self.session.rollback()
+            logger.error(f"Error in mark_member_inactive_in_group: {e}")
             return False
 
     def update_last_seen(self, user_id: str, club_id: str) -> None:

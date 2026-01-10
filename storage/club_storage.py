@@ -5,13 +5,13 @@ Provides high-level interface for club-related database operations.
 Used by both Telegram bot and FastAPI endpoints.
 """
 
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Tuple
 from datetime import datetime
 import logging
 
 from sqlalchemy.orm import Session
-from sqlalchemy import func
-from storage.db import SessionLocal, Club, Membership, MembershipStatus
+from sqlalchemy import func, or_
+from storage.db import SessionLocal, Club, Membership, MembershipStatus, Group, UserRole
 
 logger = logging.getLogger(__name__)
 
@@ -469,3 +469,228 @@ class ClubStorage:
         except Exception as e:
             self.session.rollback()
             logger.error(f"Error updating bot_is_admin: {e}")
+
+    def find_similar_entities_for_user(
+        self,
+        user_id: str,
+        tg_group_name: str,
+        similarity_threshold: float = 0.6
+    ) -> List[Dict[str, Any]]:
+        """
+        Find clubs and groups created by user that have similar names to the Telegram group.
+
+        Args:
+            user_id: User UUID (creator)
+            tg_group_name: Name of the Telegram group
+            similarity_threshold: Minimum similarity score (0-1) to consider as match
+
+        Returns:
+            List of matching entities:
+            [
+                {
+                    'type': 'club' | 'group',
+                    'id': 'uuid',
+                    'name': 'Entity Name',
+                    'member_count': 10,
+                    'has_telegram': True/False,  # Already linked to Telegram
+                    'similarity': 0.85
+                }
+            ]
+        """
+        try:
+            results = []
+            tg_name_lower = tg_group_name.lower().strip()
+
+            # Get user's clubs (where they are creator or organizer)
+            clubs = self.session.query(Club).filter(
+                or_(
+                    Club.creator_id == user_id,
+                    Club.id.in_(
+                        self.session.query(Membership.club_id).filter(
+                            Membership.user_id == user_id,
+                            Membership.role == UserRole.ORGANIZER,
+                            Membership.club_id.isnot(None)
+                        )
+                    )
+                )
+            ).all()
+
+            for club in clubs:
+                similarity = self._calculate_similarity(tg_name_lower, club.name.lower())
+                if similarity >= similarity_threshold:
+                    member_count = self.session.query(func.count(Membership.id)).filter(
+                        Membership.club_id == club.id
+                    ).scalar() or 0
+
+                    results.append({
+                        'type': 'club',
+                        'id': club.id,
+                        'name': club.name,
+                        'member_count': member_count,
+                        'has_telegram': club.telegram_chat_id is not None,
+                        'similarity': similarity
+                    })
+
+            # Get user's groups (where they are creator or organizer)
+            groups = self.session.query(Group).filter(
+                or_(
+                    Group.creator_id == user_id,
+                    Group.id.in_(
+                        self.session.query(Membership.group_id).filter(
+                            Membership.user_id == user_id,
+                            Membership.role == UserRole.ORGANIZER,
+                            Membership.group_id.isnot(None)
+                        )
+                    )
+                )
+            ).all()
+
+            for group in groups:
+                similarity = self._calculate_similarity(tg_name_lower, group.name.lower())
+                if similarity >= similarity_threshold:
+                    member_count = self.session.query(func.count(Membership.id)).filter(
+                        Membership.group_id == group.id
+                    ).scalar() or 0
+
+                    results.append({
+                        'type': 'group',
+                        'id': group.id,
+                        'name': group.name,
+                        'member_count': member_count,
+                        'has_telegram': group.telegram_chat_id is not None,
+                        'club_name': group.club.name if group.club else None,
+                        'similarity': similarity
+                    })
+
+            # Sort by similarity (descending)
+            results.sort(key=lambda x: x['similarity'], reverse=True)
+
+            return results
+
+        except Exception as e:
+            logger.error(f"Error in find_similar_entities_for_user: {e}")
+            return []
+
+    def _calculate_similarity(self, str1: str, str2: str) -> float:
+        """
+        Calculate similarity between two strings.
+        Uses a combination of containment and character-level similarity.
+
+        Args:
+            str1: First string (lowercase)
+            str2: Second string (lowercase)
+
+        Returns:
+            Similarity score (0-1)
+        """
+        # Exact match
+        if str1 == str2:
+            return 1.0
+
+        # One contains the other
+        if str1 in str2 or str2 in str1:
+            return 0.9
+
+        # Word overlap
+        words1 = set(str1.split())
+        words2 = set(str2.split())
+        if words1 and words2:
+            overlap = len(words1 & words2)
+            total = len(words1 | words2)
+            if overlap > 0:
+                return 0.7 + (0.2 * overlap / total)
+
+        # Character-level Jaccard similarity
+        chars1 = set(str1)
+        chars2 = set(str2)
+        if chars1 and chars2:
+            intersection = len(chars1 & chars2)
+            union = len(chars1 | chars2)
+            return intersection / union
+
+        return 0.0
+
+    def link_telegram_chat_to_club(self, club_id: str, chat_id: int, member_count: int = 0) -> bool:
+        """
+        Link a Telegram chat to an existing club.
+
+        Args:
+            club_id: Club UUID
+            chat_id: Telegram chat ID
+            member_count: Number of members in TG group
+
+        Returns:
+            True if successful, False otherwise
+        """
+        try:
+            club = self.session.query(Club).filter(Club.id == club_id).first()
+            if not club:
+                logger.error(f"Club {club_id} not found")
+                return False
+
+            if club.telegram_chat_id:
+                logger.warning(f"Club {club_id} already linked to chat {club.telegram_chat_id}")
+                return False
+
+            club.telegram_chat_id = chat_id
+            club.telegram_member_count = member_count
+            club.last_sync_at = datetime.utcnow()
+
+            self.session.commit()
+            logger.info(f"Linked club {club_id} to Telegram chat {chat_id}")
+            return True
+
+        except Exception as e:
+            self.session.rollback()
+            logger.error(f"Error in link_telegram_chat_to_club: {e}")
+            return False
+
+    def link_telegram_chat_to_group(self, group_id: str, chat_id: int) -> bool:
+        """
+        Link a Telegram chat to an existing group.
+
+        Args:
+            group_id: Group UUID
+            chat_id: Telegram chat ID
+
+        Returns:
+            True if successful, False otherwise
+        """
+        try:
+            group = self.session.query(Group).filter(Group.id == group_id).first()
+            if not group:
+                logger.error(f"Group {group_id} not found")
+                return False
+
+            if group.telegram_chat_id:
+                logger.warning(f"Group {group_id} already linked to chat {group.telegram_chat_id}")
+                return False
+
+            group.telegram_chat_id = chat_id
+
+            self.session.commit()
+            logger.info(f"Linked group {group_id} to Telegram chat {chat_id}")
+            return True
+
+        except Exception as e:
+            self.session.rollback()
+            logger.error(f"Error in link_telegram_chat_to_group: {e}")
+            return False
+
+    def get_group_by_telegram_chat_id(self, chat_id: int) -> Optional[Group]:
+        """
+        Get group by telegram_chat_id.
+
+        Args:
+            chat_id: Telegram chat ID
+
+        Returns:
+            Group or None
+        """
+        try:
+            return self.session.query(Group).filter(
+                Group.telegram_chat_id == chat_id
+            ).first()
+        except Exception as e:
+            logger.error(f"Error in get_group_by_telegram_chat_id: {e}")
+            return None

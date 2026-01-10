@@ -14,7 +14,7 @@ class GroupCreate(BaseModel):
 
     # Telegram
     username: Optional[str] = Field(None, max_length=255)
-    telegram_chat_id: Optional[str] = None
+    telegram_chat_id: Optional[int] = None
     invite_link: Optional[str] = Field(None, max_length=500)
     photo: Optional[str] = Field(None, max_length=255)
 
@@ -44,7 +44,7 @@ class GroupResponse(BaseResponse):
 
     # Telegram
     username: Optional[str] = None
-    telegram_chat_id: Optional[str] = None
+    telegram_chat_id: Optional[int] = None
     invite_link: Optional[str] = None
     photo: Optional[str] = None
 

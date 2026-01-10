@@ -28,6 +28,7 @@ from permissions import check_club_creation_limit
 logger = logging.getLogger(__name__)
 
 # Conversation states
+SELECTING_ENTITY = 0  # Choose between linking existing or creating new
 CONFIRMING_CLUB_CREATION = 1
 SELECTING_SPORTS = 2
 SELECTING_ACCESS = 3
@@ -130,16 +131,25 @@ async def create_club_from_group(update: Update, context: ContextTypes.DEFAULT_T
             )
             return ConversationHandler.END
 
-        # 4. Проверка, что группа не связана с клубом
+        # 4. Проверка, что группа не связана с клубом или группой
         with ClubStorage() as club_storage:
+            # Check if linked to a club
             existing_club = club_storage.get_club_by_telegram_chat_id(chat.id)
             if existing_club:
-                # Генерация deep link
                 club_link = f"https://t.me/{settings.bot_username}?start=club_{existing_club.id}"
-
                 await message.reply_text(
-                    f"❌ Группа уже связана с клубом \"{existing_club.name}\"\n\n"
+                    f"✅ Группа уже связана с клубом \"{existing_club.name}\"\n\n"
                     f"🔗 Перейти в клуб: {club_link}"
+                )
+                return ConversationHandler.END
+
+            # Check if linked to a group
+            existing_group = club_storage.get_group_by_telegram_chat_id(chat.id)
+            if existing_group:
+                group_link = f"https://t.me/{settings.bot_username}?start=group_{existing_group.id}"
+                await message.reply_text(
+                    f"✅ Группа уже связана с \"{existing_group.name}\"\n\n"
+                    f"🔗 Перейти: {group_link}"
                 )
                 return ConversationHandler.END
 
@@ -170,7 +180,25 @@ async def create_club_from_group(update: Update, context: ContextTypes.DEFAULT_T
         context.user_data['group_data'] = group_data
         context.user_data['creator_telegram_id'] = user.id
 
-        # 7. Показать preview
+        # 7. Проверить, есть ли у пользователя похожие клубы/группы
+        with UserStorage() as user_storage:
+            db_user = user_storage.get_user_by_telegram_id(user.id)
+            if db_user:
+                with ClubStorage() as club_storage:
+                    similar_entities = club_storage.find_similar_entities_for_user(
+                        user_id=db_user.id,
+                        tg_group_name=group_data['title'],
+                        similarity_threshold=0.6
+                    )
+
+                    # Filter out entities that are already linked to Telegram
+                    available_entities = [e for e in similar_entities if not e['has_telegram']]
+
+                    if available_entities:
+                        context.user_data['similar_entities'] = available_entities
+                        return await show_entity_selection(update, context, group_data, available_entities)
+
+        # 8. Если похожих нет - показать стандартный preview создания
         return await show_club_preview(update, context, group_data)
 
     except Exception as e:
@@ -179,6 +207,232 @@ async def create_club_from_group(update: Update, context: ContextTypes.DEFAULT_T
             "Произошла ошибка. Попробуйте позже."
         )
         return ConversationHandler.END
+
+
+async def show_entity_selection(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE,
+    group_data: dict,
+    similar_entities: list
+) -> int:
+    """
+    Show selection between linking existing entity or creating new club.
+    """
+    message_text = (
+        f"🔗 Найдены похожие сущности в приложении\n\n"
+        f"Telegram группа: \"{group_data['title']}\"\n\n"
+        f"Вы можете связать эту группу с существующим клубом/группой "
+        f"или создать новый клуб:\n\n"
+    )
+
+    keyboard = []
+
+    # Add buttons for similar entities (max 5)
+    for i, entity in enumerate(similar_entities[:5]):
+        entity_type = "🏆" if entity['type'] == 'club' else "👥"
+        club_info = f" ({entity.get('club_name', '')})" if entity.get('club_name') else ""
+        label = f"{entity_type} {entity['name']}{club_info}"
+
+        # Truncate if too long
+        if len(label) > 40:
+            label = label[:37] + "..."
+
+        keyboard.append([
+            InlineKeyboardButton(
+                label,
+                callback_data=f"link_{entity['type']}_{entity['id'][:8]}"
+            )
+        ])
+
+    # Store full IDs for lookup
+    context.user_data['entity_id_map'] = {
+        f"{e['type']}_{e['id'][:8]}": e['id'] for e in similar_entities[:5]
+    }
+
+    # Add "Create new" button
+    keyboard.append([
+        InlineKeyboardButton("➕ Создать новый клуб", callback_data="link_create_new")
+    ])
+
+    # Add cancel button
+    keyboard.append([
+        InlineKeyboardButton("❌ Отменить", callback_data="link_cancel")
+    ])
+
+    await update.message.reply_text(
+        message_text,
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+
+    return SELECTING_ENTITY
+
+
+async def handle_entity_selection(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """
+    Handle selection: link existing entity or create new.
+    """
+    query = update.callback_query
+    await query.answer()
+
+    callback_data = query.data
+
+    if callback_data == "link_cancel":
+        await query.edit_message_text("❌ Операция отменена")
+        return ConversationHandler.END
+
+    if callback_data == "link_create_new":
+        # Proceed to create new club
+        group_data = context.user_data.get('group_data')
+        return await show_club_preview_from_query(update, context, group_data)
+
+    # Link to existing entity
+    if callback_data.startswith("link_"):
+        parts = callback_data.replace("link_", "").split("_", 1)
+        if len(parts) == 2:
+            entity_type, entity_short_id = parts
+            entity_id_map = context.user_data.get('entity_id_map', {})
+            full_key = f"{entity_type}_{entity_short_id}"
+            entity_id = entity_id_map.get(full_key)
+
+            if entity_id:
+                return await link_telegram_to_entity(update, context, entity_type, entity_id)
+
+    await query.edit_message_text("❌ Ошибка. Попробуйте снова.")
+    return ConversationHandler.END
+
+
+async def link_telegram_to_entity(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE,
+    entity_type: str,
+    entity_id: str
+) -> int:
+    """
+    Link Telegram group to existing club or group.
+    """
+    query = update.callback_query
+    group_data = context.user_data.get('group_data')
+    chat_id = group_data['chat_id']
+
+    try:
+        with ClubStorage() as club_storage:
+            if entity_type == 'club':
+                # Get member count
+                try:
+                    tg_count = await context.bot.get_chat_member_count(chat_id)
+                    member_count = max(0, tg_count - 1)
+                except Exception:
+                    member_count = group_data.get('member_count', 0)
+
+                success = club_storage.link_telegram_chat_to_club(entity_id, chat_id, member_count)
+                if success:
+                    club = club_storage.get_club_by_id(entity_id)
+                    club_name = club.name if club else "клуб"
+
+                    # Send notification to group
+                    join_link = f"https://t.me/{settings.bot_username}?start=join_{chat_id}"
+                    group_message = (
+                        f"🔗 Группа связана с клубом \"{club_name}\" в Ayda Run!\n\n"
+                        f"Нажмите кнопку ниже, чтобы зарегистрироваться и получить доступ к:\n"
+                        f"▪️ Календарю тренировок\n"
+                        f"▪️ Статистике активностей\n"
+                        f"▪️ Записи на мероприятия"
+                    )
+
+                    group_keyboard = InlineKeyboardMarkup([
+                        [InlineKeyboardButton("🏃 Зарегистрироваться в Ayda Run", url=join_link)]
+                    ])
+
+                    await context.bot.send_message(
+                        chat_id=chat_id,
+                        text=group_message,
+                        reply_markup=group_keyboard
+                    )
+
+                    # Import admins
+                    try:
+                        from bot.member_sync_handler import import_group_admins
+                        imported_count = await import_group_admins(context.bot, chat_id, entity_id)
+                        logger.info(f"Imported {imported_count} admins to club {entity_id}")
+                    except Exception as e:
+                        logger.error(f"Error importing admins: {e}")
+
+                    # Notify organizer
+                    webapp_url = f"{settings.app_url}?startapp=club_{entity_id}"
+                    await query.edit_message_text(
+                        f"✅ Telegram группа связана с клубом \"{club_name}\"!\n\n"
+                        f"Теперь участники группы могут регистрироваться через кнопку.\n"
+                        f"Используйте /sync для проверки статуса синхронизации."
+                    )
+
+                    # Send webapp button as separate message
+                    await context.bot.send_message(
+                        chat_id=query.from_user.id,
+                        text="Откройте клуб в приложении:",
+                        reply_markup=get_webapp_button(webapp_url, "🚀 Открыть клуб")
+                    )
+
+                    return ConversationHandler.END
+
+            else:  # group
+                success = club_storage.link_telegram_chat_to_group(entity_id, chat_id)
+                if success:
+                    from storage.group_storage import GroupStorage
+                    with GroupStorage() as gs:
+                        group = gs.get_group_by_id(entity_id)
+                        group_name = group.name if group else "группа"
+
+                    await query.edit_message_text(
+                        f"✅ Telegram группа связана с \"{group_name}\"!\n\n"
+                        f"Участники группы теперь синхронизированы."
+                    )
+                    return ConversationHandler.END
+
+        await query.edit_message_text("❌ Не удалось связать группу. Попробуйте позже.")
+        return ConversationHandler.END
+
+    except Exception as e:
+        logger.error(f"Error in link_telegram_to_entity: {e}", exc_info=True)
+        await query.edit_message_text("❌ Произошла ошибка. Попробуйте позже.")
+        return ConversationHandler.END
+
+
+async def show_club_preview_from_query(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE,
+    group_data: dict
+) -> int:
+    """
+    Show club preview (from callback query, not message).
+    """
+    query = update.callback_query
+
+    message_text = (
+        f"📋 Создание клуба на основе группы \"{group_data['title']}\"\n\n"
+        f"Я нашел следующую информацию:\n"
+        f"▪️ Название: {group_data['title']}\n"
+        f"▪️ Описание: {group_data['description'] or 'Не указано'}\n"
+        f"▪️ Участников: {group_data['member_count']}\n"
+    )
+
+    if group_data['username']:
+        message_text += f"▪️ Группа: @{group_data['username']}\n"
+
+    message_text += "\nХотите создать клуб с этими данными?"
+
+    keyboard = [
+        [
+            InlineKeyboardButton("✅ Создать", callback_data="group_club_confirm"),
+            InlineKeyboardButton("❌ Отменить", callback_data="group_club_cancel")
+        ]
+    ]
+
+    await query.edit_message_text(
+        message_text,
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+
+    return CONFIRMING_CLUB_CREATION
 
 
 async def show_club_preview(
@@ -484,6 +738,9 @@ group_club_creation_handler = ConversationHandler(
         CommandHandler("create_club", create_club_from_group)
     ],
     states={
+        SELECTING_ENTITY: [
+            CallbackQueryHandler(handle_entity_selection, pattern="^link_")
+        ],
         CONFIRMING_CLUB_CREATION: [
             CallbackQueryHandler(handle_club_confirmation, pattern="^group_club_")
         ],
