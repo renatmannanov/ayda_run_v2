@@ -272,6 +272,31 @@ export const activitiesApi = {
 
     getGpxDownloadUrl: (activityId) => `${API_BASE}/activities/${activityId}/gpx`,
 
+    // Download GPX file with auth headers
+    downloadGpx: async (activityId, filename) => {
+        const headers = getAuthHeaders()
+        // Remove Content-Type for file download
+        delete headers['Content-Type']
+
+        const response = await fetch(`${API_BASE}/activities/${activityId}/gpx`, { headers })
+
+        if (!response.ok) {
+            const error = await response.json().catch(() => ({}))
+            throw new Error(error.detail || 'Failed to download GPX')
+        }
+
+        // Get blob and create download link
+        const blob = await response.blob()
+        const url = window.URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = filename || `activity_${activityId}.gpx`
+        document.body.appendChild(a)
+        a.click()
+        window.URL.revokeObjectURL(url)
+        document.body.removeChild(a)
+    },
+
     // Attendance marking (for organizers)
     markAttendance: (activityId, participants) => apiFetch(`/activities/${activityId}/mark-attendance`, {
         method: 'POST',
@@ -388,6 +413,25 @@ export const groupsApi = {
 }
 
 // ============================================================================
+// Config API
+// ============================================================================
+
+let cachedConfig = null
+
+export const configApi = {
+    get: async () => {
+        if (cachedConfig) return cachedConfig
+        cachedConfig = await apiFetch('/config')
+        return cachedConfig
+    },
+
+    getBotUsername: async () => {
+        const config = await configApi.get()
+        return config.bot_username
+    }
+}
+
+// ============================================================================
 // Analytics API
 // ============================================================================
 
@@ -466,4 +510,4 @@ export const tg = {
     }
 }
 
-export default { activitiesApi, clubsApi, groupsApi, usersApi, analyticsApi, tg }
+export default { activitiesApi, clubsApi, groupsApi, usersApi, analyticsApi, configApi, tg }

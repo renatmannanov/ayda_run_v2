@@ -15,7 +15,7 @@ import {
     formatDate,
     formatTime
 } from '../data/sample_data'
-import { activitiesApi, clubsApi, groupsApi, analyticsApi, tg } from '../api'
+import { activitiesApi, clubsApi, groupsApi, analyticsApi, configApi, tg } from '../api'
 import { useToast } from '../contexts/ToastContext'
 
 export default function ActivityDetail() {
@@ -129,8 +129,9 @@ export default function ActivityDetail() {
         }
     }
 
-    const handleShare = () => {
-        const shareUrl = `https://t.me/aydarun_bot?start=activity_${activity.id}`
+    const handleShare = async () => {
+        const botUsername = await configApi.getBotUsername()
+        const shareUrl = `https://t.me/${botUsername}?start=activity_${activity.id}`
         navigator.clipboard.writeText(shareUrl)
         showToast('Ссылка скопирована', 'info')
     }
@@ -615,14 +616,14 @@ export default function ActivityDetail() {
                     {activity.hasGpx && activity.canDownloadGpx && (
                         <div className="mt-3 mb-2">
                             <button
-                                onClick={() => {
-                                    // Track GPX download
-                                    analyticsApi.trackEvent('gpx_download', { activity_id: activity.id }).catch(() => {})
-                                    const url = activitiesApi.getGpxDownloadUrl(activity.id)
-                                    if (tg.webApp?.openLink) {
-                                        tg.webApp.openLink(window.location.origin + url)
-                                    } else {
-                                        window.open(url, '_blank')
+                                onClick={async () => {
+                                    try {
+                                        // Track GPX download
+                                        analyticsApi.trackEvent('gpx_download', { activity_id: activity.id }).catch(() => {})
+                                        await activitiesApi.downloadGpx(activity.id, activity.gpxFilename)
+                                        showToast('GPX файл скачан')
+                                    } catch (e) {
+                                        showToast(e.message || 'Не удалось скачать GPX', 'error')
                                     }
                                 }}
                                 className="text-xs text-gray-500 underline hover:text-gray-700 transition-colors"

@@ -19,10 +19,11 @@ from bot.validators import validate_group_data
 from storage.user_storage import UserStorage
 from storage.club_storage import ClubStorage
 from storage.membership_storage import MembershipStorage
-from storage.db import UserRole
+from storage.db import UserRole, SessionLocal
 from config import settings
 from bot.keyboards import get_sports_selection_keyboard, get_club_access_keyboard, get_webapp_button
 from bot.messages import get_club_access_prompt
+from permissions import check_club_creation_limit
 
 logger = logging.getLogger(__name__)
 
@@ -97,6 +98,23 @@ async def create_club_from_group(update: Update, context: ContextTypes.DEFAULT_T
                 "Только администраторы и создатель группы могут создавать клубы."
             )
             return ConversationHandler.END
+
+        # 2.1 Проверка лимита клубов пользователя
+        with UserStorage() as user_storage:
+            db_user = user_storage.get_user_by_telegram_id(user.id)
+            if db_user:
+                db = SessionLocal()
+                try:
+                    can_create, current, max_limit = check_club_creation_limit(db, db_user.id)
+                    if not can_create:
+                        await message.reply_text(
+                            f"❌ Достигнут лимит клубов ({current}/{max_limit})\n\n"
+                            "Вы уже создали максимальное количество клубов.\n"
+                            "Удалите один из существующих клубов, чтобы создать новый."
+                        )
+                        return ConversationHandler.END
+                finally:
+                    db.close()
 
         # 3. Проверка прав бота
         is_bot_admin, error_msg = await parser.verify_bot_is_admin(

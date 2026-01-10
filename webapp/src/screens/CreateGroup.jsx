@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { FormInput, FormTextarea, SportChips, Button, LoadingScreen, ErrorScreen } from '../components'
 import { DropdownPicker, ToggleButtons, SuccessPopup } from '../components/ui'
 import { useClubs, useCreateGroup, useUpdateGroup, useGroup } from '../hooks'
-import { tg } from '../api'
+import { tg, configApi } from '../api'
 import { useToast } from '../contexts/ToastContext'
 
 export default function CreateGroup() {
@@ -131,7 +131,8 @@ export default function CreateGroup() {
                 navigate(-1)
             } else {
                 const result = await createGroup(payload)
-                setShareLink(`https://t.me/aydarun_bot?start=group_${result.id}`)
+                const botUsername = await configApi.getBotUsername()
+                setShareLink(`https://t.me/${botUsername}?start=group_${result.id}`)
                 setCreatedId(result.id)
                 setShowSuccess(true)
             }

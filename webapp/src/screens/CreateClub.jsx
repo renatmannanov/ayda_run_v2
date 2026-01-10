@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { FormInput, FormTextarea, SportChips, Button, LoadingScreen, ErrorScreen } from '../components'
 import { DropdownPicker, ToggleButtons, FixedAccess, SuccessPopup } from '../components/ui'
 import { useCreateClub, useUpdateClub, useClub } from '../hooks'
-import { tg } from '../api'
+import { tg, configApi } from '../api'
 import { useToast } from '../contexts/ToastContext'
 
 export default function CreateClub() {
@@ -113,7 +113,8 @@ export default function CreateClub() {
                 navigate(-1)
             } else {
                 const result = await createClub(payload)
-                setShareLink(`https://t.me/aydarun_bot?start=club_${result.id}`)
+                const botUsername = await configApi.getBotUsername()
+                setShareLink(`https://t.me/${botUsername}?start=club_${result.id}`)
                 setCreatedId(result.id)
                 setShowSuccess(true)
             }

@@ -18,6 +18,9 @@ class GroupCreate(BaseModel):
     invite_link: Optional[str] = Field(None, max_length=500)
     photo: Optional[str] = Field(None, max_length=255)
 
+    # Access control
+    is_open: bool = True  # True = anyone can join, False = requires approval
+
 class GroupUpdate(BaseModel):
     """Schema for updating group.
 

@@ -15,7 +15,7 @@ import {
 } from '../data/sample_data'
 import { useCreateActivity, useUpdateActivity, useActivity, useActivityParticipants, useClubs, useGroups } from '../hooks'
 import { useCreateRecurringSeries } from '../hooks/useRecurring'
-import { tg } from '../api'
+import { tg, configApi } from '../api'
 import { useToast } from '../contexts/ToastContext'
 
 export default function ActivityCreate() {
@@ -320,7 +320,8 @@ export default function ActivityCreate() {
                     }
 
                     setCreatedActivityId(result.first_activity_id)
-                    setShareLink(`https://t.me/aydarun_bot?start=activity_${result.first_activity_id}`)
+                    const botUsername = await configApi.getBotUsername()
+                    setShareLink(`https://t.me/${botUsername}?start=activity_${result.first_activity_id}`)
                     setFlowStep('success') // Skip GPX for recurring
                 } else {
                     // Create single activity
@@ -344,7 +345,8 @@ export default function ActivityCreate() {
                     }
 
                     setCreatedActivityId(result.id)
-                    setShareLink(`https://t.me/aydarun_bot?start=activity_${result.id}`)
+                    const botUsername = await configApi.getBotUsername()
+                    setShareLink(`https://t.me/${botUsername}?start=activity_${result.id}`)
                     setFlowStep('gpx')
                 }
             }
