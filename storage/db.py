@@ -564,6 +564,34 @@ class JoinRequest(Base):
         return f"<JoinRequest(user_id={self.user_id}, {entity}, status={self.status})>"
 
 
+class Feedback(Base):
+    """
+    User Feedback model - stores feedback messages from users.
+
+    Users can send text messages to the bot in private chat,
+    and they will be saved here and forwarded to the feedback group.
+    """
+    __tablename__ = 'feedback'
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    user_id = Column(String(36), ForeignKey('users.id'), nullable=True, index=True)
+    telegram_id = Column(BigInteger, nullable=False, index=True)
+
+    # Message content
+    message = Column(Text, nullable=False)
+    message_id = Column(Integer, nullable=True)  # Telegram message ID
+
+    # Timestamps
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+    # Relationships
+    user = relationship("User", foreign_keys=[user_id])
+
+    def __repr__(self):
+        preview = self.message[:50] + "..." if len(self.message) > 50 else self.message
+        return f"<Feedback(telegram_id={self.telegram_id}, message='{preview}')>"
+
+
 # ============= DATABASE SETUP =============
 
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./app.db")

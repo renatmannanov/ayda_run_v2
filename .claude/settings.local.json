@@ -27,7 +27,10 @@
       "Bash(set PGPASSWORD=raymann4)",
       "Bash(\"C:\\\\Program Files\\\\PostgreSQL\\\\16\\\\bin\\\\psql.exe\" -U postgres -c \"SELECT 1;\")",
       "Bash(alembic upgrade:*)",
-      "Bash(alembic revision:*)"
+      "Bash(alembic revision:*)",
+      "Bash(find:*)",
+      "Bash(\"C:\\\\Program Files\\\\PostgreSQL\\\\16\\\\bin\\\\psql.exe\" -U postgres -d ayda_run -c \"SELECT id, title, start_date, end_date, parent_activity_id, recurrence_pattern FROM activities WHERE title LIKE ''%Tttttttt%'' OR title LIKE ''%tttt%'' ORDER BY start_date;\")",
+      "Bash(PGPASSWORD=raymann4 /c/Program Files/PostgreSQL/16/bin/psql.exe:*)"
     ]
   }
 }

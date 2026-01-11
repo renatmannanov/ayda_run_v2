@@ -68,6 +68,13 @@ class Settings(BaseSettings):
         description="Telegram channel ID for storing GPX files"
     )
 
+    # === Feedback ===
+    feedback_chat_id: Optional[int] = Field(
+        None,
+        alias="FEEDBACK_CHAT_ID",
+        description="Telegram group ID for forwarding user feedback"
+    )
+
     # === Rate Limiting ===
     rate_limit_enabled: bool = Field(default=True, description="Enable rate limiting")
     rate_limit_global: str = Field(default="200/minute", description="Global rate limit")

@@ -114,6 +114,11 @@ async def lifespan(app: FastAPI):
     bot_app.add_handler(get_admin_stats_handler())
     logger.info("[SUCCESS] Admin stats handler registered")
 
+    # Phase 9: Feedback handler (text messages in private chat)
+    from bot.feedback_handler import get_feedback_handler
+    bot_app.add_handler(get_feedback_handler())
+    logger.info("[SUCCESS] Feedback handler registered")
+
     # Initialize bot (but don't start polling - we use webhook)
     await bot_app.initialize()
     await bot_app.start()
