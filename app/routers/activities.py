@@ -17,6 +17,7 @@ from typing import List, Optional
 
 from storage.db import Activity, Participation, User, Membership, JoinRequest, JoinRequestStatus, Club, Group
 from app.core.dependencies import get_db, get_current_user, get_current_user_optional
+from app.core.timezone import utc_now, ensure_utc, is_past, is_future
 from permissions import can_create_activity_in_club, can_create_activity_in_group, require_activity_owner, check_activity_creation_limit
 from schemas.common import SportType, Difficulty, ActivityVisibility, ActivityStatus, ParticipationStatus, PaymentStatus
 from schemas.activity import ActivityCreate, ActivityUpdate, ActivityResponse, MarkAttendanceRequest, AddParticipantRequest
@@ -214,7 +215,7 @@ async def list_activities(
                 # Show awaiting status "on the fly" if activity has passed
                 # This ensures UI shows correct state even before background service runs
                 if (participation.status in [ParticipationStatus.REGISTERED, ParticipationStatus.CONFIRMED]
-                    and activity.date < datetime.now()):
+                    and is_past(activity.date)):
                     response.participation_status = ParticipationStatus.AWAITING
                 else:
                     response.participation_status = participation.status
@@ -280,7 +281,7 @@ async def get_activity(
             # Show awaiting status "on the fly" if activity has passed
             # This ensures UI shows correct state even before background service runs
             if (participation.status in [ParticipationStatus.REGISTERED, ParticipationStatus.CONFIRMED]
-                and activity.date < datetime.now()):
+                and is_past(activity.date)):
                 response.participation_status = ParticipationStatus.AWAITING
             else:
                 response.participation_status = participation.status
@@ -321,7 +322,7 @@ async def update_activity(
     require_activity_owner(current_user, activity)
 
     # Check if activity is in the past
-    if activity.date < datetime.now():
+    if is_past(activity.date):
         raise HTTPException(status_code=400, detail="Cannot update past activities")
 
     # Save old values for change summary
@@ -392,7 +393,7 @@ async def delete_activity(
     require_activity_owner(current_user, activity)
 
     # Check if activity is in the past
-    if activity.date < datetime.now():
+    if is_past(activity.date):
         raise HTTPException(status_code=400, detail="Cannot delete past activities")
 
     # Get participants to notify BEFORE deleting
@@ -555,7 +556,7 @@ async def confirm_attendance(
 
     # Verify activity has actually ended (can only confirm past activities)
     activity = db.query(Activity).filter(Activity.id == activity_id).first()
-    if activity and activity.date > datetime.now():
+    if activity and is_future(activity.date):
         raise HTTPException(
             status_code=400,
             detail="Cannot confirm attendance for future activities"
@@ -896,7 +897,7 @@ async def mark_attendance(
         )
 
     # Check if activity has ended
-    if activity.date > datetime.now():
+    if is_future(activity.date):
         raise HTTPException(status_code=400, detail="Cannot mark attendance for future activities")
 
     # Check permissions (creator or club/group admin)

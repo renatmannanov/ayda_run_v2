@@ -18,6 +18,7 @@ from storage.db import (
     ActivityStatus, ParticipationStatus, PaymentStatus
 )
 from app.core.dependencies import get_db, get_current_user
+from app.core.timezone import utc_now, is_past, is_future
 from permissions import can_create_activity_in_club, can_create_activity_in_group
 from schemas.recurring import (
     RecurringTemplateCreate,
@@ -246,7 +247,7 @@ async def update_recurring_activity(
             )
 
     # Check if activity is in the past
-    if activity.date < datetime.now():
+    if is_past(activity.date):
         raise HTTPException(status_code=400, detail="Cannot update past activities")
 
     update_data = data.model_dump(exclude_unset=True) if data else {}
@@ -275,7 +276,7 @@ async def update_recurring_activity(
         updated_count = 0
         for act in activities:
             # Don't update past activities
-            if act.date < datetime.now():
+            if is_past(act.date):
                 continue
 
             for field, value in update_data.items():
@@ -343,7 +344,7 @@ async def cancel_recurring_activity(
 
     if scope == RecurringCancelScope.THIS_ONLY:
         # Cancel only this instance
-        if activity.date < datetime.now():
+        if is_past(activity.date):
             raise HTTPException(status_code=400, detail="Cannot cancel past activities")
 
         activity.status = ActivityStatus.CANCELLED
@@ -359,7 +360,7 @@ async def cancel_recurring_activity(
         # Cancel all future instances and deactivate template
         activities = db.query(Activity).filter(
             Activity.recurring_template_id == template_id,
-            Activity.date > datetime.now(),
+            Activity.date > utc_now(),
             Activity.status == ActivityStatus.UPCOMING
         ).all()
 

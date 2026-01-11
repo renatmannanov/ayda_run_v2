@@ -17,6 +17,7 @@ import { useCreateActivity, useUpdateActivity, useActivity, useActivityParticipa
 import { useCreateRecurringSeries, useUpdateRecurring } from '../hooks/useRecurring'
 import { tg, configApi } from '../api'
 import { useToast } from '../contexts/ToastContext'
+import { formatDateTimeForAPI, getLocalDateString, getLocalTimeString } from '../utils/timezone'
 
 export default function ActivityCreate() {
     const { id } = useParams()
@@ -209,8 +210,8 @@ export default function ActivityCreate() {
 
             if (existingActivity.date) {
                 const dateObj = new Date(existingActivity.date)
-                setDate(dateObj.toISOString().split('T')[0])
-                setTime(dateObj.toTimeString().slice(0, 5))
+                setDate(getLocalDateString(dateObj))
+                setTime(getLocalTimeString(dateObj))
             }
 
             setLocationValue(existingActivity.location || '')
@@ -270,7 +271,7 @@ export default function ActivityCreate() {
                 // Update existing activity
                 const payload = {
                     title,
-                    date: `${date}T${time}:00`,
+                    date: formatDateTimeForAPI(date, time),
                     location: locationValue,
                     distance: distance ? parseFloat(distance) : null,
                     duration: duration ? parseInt(duration) : null,
@@ -338,7 +339,7 @@ export default function ActivityCreate() {
                         description,
                         day_of_week: dayOfWeek,
                         time_of_day: time,
-                        start_date: `${date}T${time}:00`,
+                        start_date: formatDateTimeForAPI(date, time),
                         frequency: recurrenceFrequency,
                         total_occurrences: recurrenceCount,
                         location: locationValue,
@@ -363,7 +364,7 @@ export default function ActivityCreate() {
                     // Create single activity
                     const result = await createActivity({
                         title,
-                        date: `${date}T${time}:00`,
+                        date: formatDateTimeForAPI(date, time),
                         location: locationValue,
                         sport_type: sportType,
                         distance: distance ? parseFloat(distance) : null,

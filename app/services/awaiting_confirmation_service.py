@@ -23,6 +23,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import and_
 
 from storage.db import SessionLocal, Participation, Activity, User, ParticipationStatus
+from app.core.timezone import utc_now
 from bot.activity_notifications import send_awaiting_confirmation_notification, send_organizer_checkin_notification
 from config import settings
 
@@ -91,7 +92,7 @@ class AwaitingConfirmationService:
         session = SessionLocal()
 
         try:
-            now = datetime.now()  # Use local time (dates in DB are local)
+            now = utc_now()  # Use UTC time for consistent comparison
 
             # Find all participations where:
             # - status is REGISTERED or CONFIRMED

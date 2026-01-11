@@ -2,6 +2,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, ValidationIn
 from datetime import datetime
 from typing import Optional, List
 from .common import SportType, Difficulty, BaseResponse, ActivityVisibility, ActivityStatus, ParticipationStatus
+from app.core.timezone import ensure_utc, is_future
 
 class ActivityCreate(BaseModel):
     """Schema for creating activity"""
@@ -40,10 +41,11 @@ class ActivityCreate(BaseModel):
     @field_validator('date')
     @classmethod
     def date_must_be_future(cls, v: datetime) -> datetime:
-        """Activity date must be in the future"""
-        if v < datetime.now():
+        """Activity date must be in the future. Converts to UTC."""
+        v_utc = ensure_utc(v)
+        if not is_future(v_utc):
             raise ValueError('Activity date must be in the future')
-        return v
+        return v_utc
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -82,9 +84,13 @@ class ActivityUpdate(BaseModel):
     @field_validator('date')
     @classmethod
     def date_must_be_future(cls, v: Optional[datetime]) -> Optional[datetime]:
-        if v and v < datetime.now():
+        """Activity date must be in the future. Converts to UTC."""
+        if v is None:
+            return None
+        v_utc = ensure_utc(v)
+        if not is_future(v_utc):
             raise ValueError('Activity date must be in the future')
-        return v
+        return v_utc
 
 class ActivityResponse(BaseResponse):
     """Schema for activity response"""

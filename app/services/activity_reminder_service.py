@@ -21,6 +21,7 @@ from storage.db import (
     SessionLocal, Activity, Club, Group, Membership,
     Participation, User, ActivityStatus, ParticipationStatus
 )
+from app.core.timezone import utc_now
 from bot.activity_notifications import (
     send_activity_reminder_to_user,
     send_activity_reminder_to_group
@@ -93,8 +94,8 @@ class ActivityReminderService:
 
         try:
             # Calculate time window for reminders
-            # Use local time (naive datetime) because activity.date is stored as naive datetime
-            now = datetime.now()
+            # Use UTC time for consistent comparison with stored dates
+            now = utc_now()
             target_start = now + timedelta(days=2)
             target_end = target_start + timedelta(hours=1)
 
