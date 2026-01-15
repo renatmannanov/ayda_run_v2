@@ -13,7 +13,8 @@ import {
 import { useCancelRecurring } from '../hooks/useRecurring'
 import {
     formatDate,
-    formatTime
+    formatTime,
+    getDifficultyLabel
 } from '../data/sample_data'
 import { activitiesApi, clubsApi, groupsApi, analyticsApi, configApi, tg } from '../api'
 import { useToast } from '../contexts/ToastContext'
@@ -603,6 +604,15 @@ export default function ActivityDetail() {
                             <span className="text-base">📅</span>
                             <span className="text-sm text-gray-700">
                                 {formatDate(activity.date)}, {formatTime(activity.date)}
+                            </span>
+                        </div>
+
+                        {/* Difficulty and Duration */}
+                        <div className="flex items-center gap-3">
+                            <span className="text-base">💪</span>
+                            <span className="text-sm text-gray-700">
+                                {getDifficultyLabel(activity.difficulty)}
+                                {activity.duration && ` · ${activity.duration} мин`}
                             </span>
                         </div>
 

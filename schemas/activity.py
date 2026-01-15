@@ -1,7 +1,7 @@
-from pydantic import BaseModel, ConfigDict, Field, field_validator, ValidationInfo
+from pydantic import BaseModel, ConfigDict, Field, field_validator, field_serializer, ValidationInfo
 from datetime import datetime
 from typing import Optional, List
-from .common import SportType, Difficulty, BaseResponse, ActivityVisibility, ActivityStatus, ParticipationStatus
+from .common import SportType, Difficulty, BaseResponse, ActivityVisibility, ActivityStatus, ParticipationStatus, serialize_datetime_utc
 from app.core.timezone import ensure_utc, is_future
 
 class ActivityCreate(BaseModel):
@@ -98,6 +98,10 @@ class ActivityResponse(BaseResponse):
     description: Optional[str]
     date: datetime
     location: Optional[str]
+
+    @field_serializer('date')
+    def serialize_date(self, dt: datetime) -> str:
+        return serialize_datetime_utc(dt)
 
     # Location
     country: str

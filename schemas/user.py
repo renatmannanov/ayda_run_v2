@@ -1,7 +1,7 @@
 from pydantic import BaseModel, field_serializer, ConfigDict
 from typing import Optional, List
 from datetime import datetime
-from .common import ParticipationStatus
+from .common import ParticipationStatus, serialize_datetime_utc
 
 class UserResponse(BaseModel):
     """Response model for user"""
@@ -39,6 +39,10 @@ class UserResponse(BaseModel):
     # Timestamps
     created_at: datetime
 
+    @field_serializer('first_seen_at', 'last_seen_at', 'created_at')
+    def serialize_datetimes(self, dt: datetime) -> str:
+        return serialize_datetime_utc(dt)
+
 class UserProfileUpdate(BaseModel):
     """Request model for updating user profile"""
     photo: Optional[str] = None  # Telegram file_id or URL
@@ -66,6 +70,10 @@ class ParticipantResponse(BaseModel):
     attended: Optional[bool] = None  # True = attended, False = missed, None = not marked
     registered_at: datetime
     preferred_sports: Optional[str] = None  # JSON string of sport preferences
+
+    @field_serializer('registered_at')
+    def serialize_registered_at(self, dt: datetime) -> str:
+        return serialize_datetime_utc(dt)
     photo: Optional[str] = None  # Telegram avatar file_id or URL
     strava_link: Optional[str] = None  # URL to Strava profile
     show_photo: bool = False  # Show photo instead of initials
