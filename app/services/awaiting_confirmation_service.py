@@ -194,7 +194,9 @@ class AwaitingConfirmationService:
                     activity_id=activity.id,
                     activity_title=activity.title,
                     activity_date=activity.date,
-                    location=activity.location or "Не указано"
+                    location=activity.location or "Не указано",
+                    country=activity.country,
+                    city=activity.city
                 )
                 logger.info(f"Sent awaiting confirmation notification to user {user.id} for activity {activity.id}")
             except Exception as e:
@@ -231,7 +233,9 @@ class AwaitingConfirmationService:
                 activity_title=activity.title,
                 activity_date=activity.date,
                 participants_count=participants_count,
-                webapp_link=webapp_link
+                webapp_link=webapp_link,
+                country=activity.country,
+                city=activity.city
             )
             logger.info(f"Sent organizer checkin notification for activity {activity.id}")
         except Exception as e:

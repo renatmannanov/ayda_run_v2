@@ -181,7 +181,9 @@ class ActivityReminderService:
                     activity_title=activity.title,
                     activity_date=activity.date,
                     location=activity.location or "Не указано",
-                    is_registered=True
+                    is_registered=True,
+                    country=activity.country,
+                    city=activity.city
                 )
             except Exception as e:
                 logger.error(f"Failed to send reminder to participant {participant.telegram_id}: {e}")
@@ -200,7 +202,9 @@ class ActivityReminderService:
                     activity_title=activity.title,
                     activity_date=activity.date,
                     participants_count=participants_count,
-                    max_participants=activity.max_participants
+                    max_participants=activity.max_participants,
+                    country=activity.country,
+                    city=activity.city
                 )
                 logger.info(f"Sent reminder to Telegram group {telegram_group_id}")
             except Exception as e:

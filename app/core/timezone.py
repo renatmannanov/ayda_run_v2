@@ -28,10 +28,30 @@ except ImportError:
     ZONEINFO_AVAILABLE = False
     ZoneInfo = None
 
-# Default timezone for the app (Moscow for now, will be user-configurable)
-DEFAULT_TIMEZONE = "Europe/Moscow"
-# Moscow is UTC+3
-DEFAULT_OFFSET = timezone(timedelta(hours=3))
+# Default timezone for the app
+DEFAULT_TIMEZONE = "Asia/Almaty"
+# Almaty is UTC+5
+DEFAULT_OFFSET = timezone(timedelta(hours=5))
+
+# Country to timezone mapping
+# Used when we don't have city-level timezone info
+COUNTRY_TIMEZONES = {
+    "Kazakhstan": "Asia/Almaty",      # UTC+5 (whole country)
+    "Russia": "Europe/Moscow",         # UTC+3 (default, varies by region)
+    "Uzbekistan": "Asia/Tashkent",     # UTC+5
+    "Kyrgyzstan": "Asia/Bishkek",      # UTC+6
+    "UAE": "Asia/Dubai",               # UTC+4
+    "United Arab Emirates": "Asia/Dubai",
+}
+
+# Fallback timezone offsets when ZoneInfo is not available
+TIMEZONE_OFFSETS = {
+    "Asia/Almaty": timezone(timedelta(hours=5)),
+    "Europe/Moscow": timezone(timedelta(hours=3)),
+    "Asia/Tashkent": timezone(timedelta(hours=5)),
+    "Asia/Bishkek": timezone(timedelta(hours=6)),
+    "Asia/Dubai": timezone(timedelta(hours=4)),
+}
 
 
 def utc_now() -> datetime:
@@ -50,8 +70,76 @@ def _get_timezone(tz_name: str):
             return ZoneInfo(tz_name)
         except Exception:
             pass
-    # Fallback to default offset (Moscow UTC+3)
-    return DEFAULT_OFFSET
+    # Fallback to known offsets or default
+    return TIMEZONE_OFFSETS.get(tz_name, DEFAULT_OFFSET)
+
+
+def get_timezone_for_location(country: str = None, city: str = None) -> str:
+    """
+    Get timezone string for a given location.
+
+    Args:
+        country: Country name (e.g., "Kazakhstan")
+        city: City name (optional, for future city-level mapping)
+
+    Returns:
+        IANA timezone string (e.g., "Asia/Almaty")
+    """
+    # For now, use country-level mapping
+    # In future, can add city-level mapping for countries with multiple timezones
+    if country and country in COUNTRY_TIMEZONES:
+        return COUNTRY_TIMEZONES[country]
+    return DEFAULT_TIMEZONE
+
+
+def to_local_time(dt: datetime, country: str = None, city: str = None) -> datetime:
+    """
+    Convert UTC datetime to local time based on location.
+
+    Args:
+        dt: UTC datetime (naive or aware)
+        country: Country name for timezone lookup
+        city: City name (optional, for future use)
+
+    Returns:
+        Datetime in local timezone
+    """
+    if dt is None:
+        return None
+
+    # Ensure dt is UTC-aware
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+
+    # Get timezone for location
+    tz_name = get_timezone_for_location(country, city)
+    local_tz = _get_timezone(tz_name)
+
+    return dt.astimezone(local_tz)
+
+
+def format_datetime_local(
+    dt: datetime,
+    country: str = None,
+    city: str = None,
+    fmt: str = "%d %B в %H:%M"
+) -> str:
+    """
+    Format UTC datetime to local time string for display in bot messages.
+
+    Args:
+        dt: UTC datetime
+        country: Country name for timezone lookup
+        city: City name (optional)
+        fmt: strftime format string
+
+    Returns:
+        Formatted datetime string in local time
+    """
+    local_dt = to_local_time(dt, country, city)
+    if local_dt is None:
+        return ""
+    return local_dt.strftime(fmt)
 
 
 def ensure_utc(dt: Optional[datetime]) -> Optional[datetime]:

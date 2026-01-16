@@ -12,6 +12,7 @@ from typing import Optional, List
 from datetime import datetime
 from telegram import Bot
 from telegram.error import TelegramError
+from app.core.timezone import format_datetime_local
 
 logger = logging.getLogger(__name__)
 
@@ -23,25 +24,29 @@ def format_new_activity_notification(
     participants_count: int,
     max_participants: Optional[int],
     entity_name: str,
-    webapp_link: str
+    webapp_link: str,
+    country: str = None,
+    city: str = None
 ) -> str:
     """
     Format notification message for new activity.
 
     Args:
         activity_title: Activity title
-        activity_date: Activity date and time
+        activity_date: Activity date and time (UTC)
         location: Activity location
         participants_count: Current number of participants
         max_participants: Maximum participants (None if unlimited)
         entity_name: Club/Group name
         webapp_link: Link to activity in webapp
+        country: Country for timezone conversion
+        city: City for timezone conversion
 
     Returns:
         Formatted message text
     """
-    # Format date
-    date_str = activity_date.strftime("%d %B в %H:%M")
+    # Format date in local timezone
+    date_str = format_datetime_local(activity_date, country, city, "%d %B в %H:%M")
 
     # Format participants
     if max_participants:
@@ -65,22 +70,26 @@ def format_new_activity_group_notification(
     activity_title: str,
     activity_date: datetime,
     location: str,
-    webapp_link: str
+    webapp_link: str,
+    country: str = None,
+    city: str = None
 ) -> str:
     """
     Format notification message for Telegram group posting.
 
     Args:
         activity_title: Activity title
-        activity_date: Activity date and time
+        activity_date: Activity date and time (UTC)
         location: Activity location
         webapp_link: Link to activity in webapp
+        country: Country for timezone conversion
+        city: City for timezone conversion
 
     Returns:
         Formatted message text for group
     """
-    # Format date
-    date_str = activity_date.strftime("%d %B в %H:%M")
+    # Format date in local timezone
+    date_str = format_datetime_local(activity_date, country, city, "%d %B в %H:%M")
 
     message = (
         f"@channel Новая активность!\n\n"
@@ -97,22 +106,26 @@ def format_activity_reminder_notification(
     activity_title: str,
     activity_date: datetime,
     location: str,
-    is_registered: bool = True
+    is_registered: bool = True,
+    country: str = None,
+    city: str = None
 ) -> str:
     """
     Format reminder notification (2 days before activity).
 
     Args:
         activity_title: Activity title
-        activity_date: Activity date and time
+        activity_date: Activity date and time (UTC)
         location: Activity location
         is_registered: Whether user is registered for activity
+        country: Country for timezone conversion
+        city: City for timezone conversion
 
     Returns:
         Formatted message text
     """
-    # Format date
-    date_str = activity_date.strftime("%d %B в %H:%M")
+    # Format date in local timezone
+    date_str = format_datetime_local(activity_date, country, city, "%d %B в %H:%M")
 
     message = (
         f"⏰ Напоминание!\n\n"
@@ -132,22 +145,26 @@ def format_activity_reminder_group_notification(
     activity_title: str,
     activity_date: datetime,
     participants_count: int,
-    max_participants: Optional[int]
+    max_participants: Optional[int],
+    country: str = None,
+    city: str = None
 ) -> str:
     """
     Format reminder notification for Telegram group.
 
     Args:
         activity_title: Activity title
-        activity_date: Activity date and time
+        activity_date: Activity date and time (UTC)
         participants_count: Current number of participants
         max_participants: Maximum participants (None if unlimited)
+        country: Country for timezone conversion
+        city: City for timezone conversion
 
     Returns:
         Formatted message text for group
     """
-    # Format date
-    date_str = activity_date.strftime("%d %B в %H:%M")
+    # Format date in local timezone
+    date_str = format_datetime_local(activity_date, country, city, "%d %B в %H:%M")
 
     # Format participants
     if max_participants:
@@ -281,7 +298,9 @@ async def send_activity_reminder_to_user(
     activity_title: str,
     activity_date: datetime,
     location: str,
-    is_registered: bool = True
+    is_registered: bool = True,
+    country: str = None,
+    city: str = None
 ) -> bool:
     """
     Send activity reminder to a single user (2 days before).
@@ -290,9 +309,11 @@ async def send_activity_reminder_to_user(
         bot: Telegram Bot instance
         user_telegram_id: User's Telegram ID
         activity_title: Activity title
-        activity_date: Activity date and time
+        activity_date: Activity date and time (UTC)
         location: Activity location
         is_registered: Whether user is registered
+        country: Country for timezone conversion
+        city: City for timezone conversion
 
     Returns:
         True if sent successfully, False otherwise
@@ -302,7 +323,9 @@ async def send_activity_reminder_to_user(
             activity_title=activity_title,
             activity_date=activity_date,
             location=location,
-            is_registered=is_registered
+            is_registered=is_registered,
+            country=country,
+            city=city
         )
 
         await bot.send_message(
@@ -324,7 +347,9 @@ async def send_activity_reminder_to_group(
     activity_title: str,
     activity_date: datetime,
     participants_count: int,
-    max_participants: Optional[int]
+    max_participants: Optional[int],
+    country: str = None,
+    city: str = None
 ) -> bool:
     """
     Send activity reminder to Telegram group (2 days before).
@@ -333,9 +358,11 @@ async def send_activity_reminder_to_group(
         bot: Telegram Bot instance
         group_chat_id: Telegram group chat ID
         activity_title: Activity title
-        activity_date: Activity date and time
+        activity_date: Activity date and time (UTC)
         participants_count: Current number of participants
         max_participants: Maximum participants
+        country: Country for timezone conversion
+        city: City for timezone conversion
 
     Returns:
         True if sent successfully, False otherwise
@@ -345,7 +372,9 @@ async def send_activity_reminder_to_group(
             activity_title=activity_title,
             activity_date=activity_date,
             participants_count=participants_count,
-            max_participants=max_participants
+            max_participants=max_participants,
+            country=country,
+            city=city
         )
 
         await bot.send_message(
@@ -364,7 +393,9 @@ async def send_activity_reminder_to_group(
 def format_awaiting_confirmation_notification(
     activity_title: str,
     activity_date: datetime,
-    location: str
+    location: str,
+    country: str = None,
+    city: str = None
 ) -> str:
     """
     Format awaiting confirmation notification.
@@ -373,14 +404,16 @@ def format_awaiting_confirmation_notification(
 
     Args:
         activity_title: Activity title
-        activity_date: Activity date and time
+        activity_date: Activity date and time (UTC)
         location: Activity location
+        country: Country for timezone conversion
+        city: City for timezone conversion
 
     Returns:
         Formatted message text
     """
-    # Format date
-    date_str = activity_date.strftime("%a, %d %b · %H:%M")
+    # Format date in local timezone
+    date_str = format_datetime_local(activity_date, country, city, "%a, %d %b · %H:%M")
 
     message = (
         f"🏃 Тренировка завершена!\n\n"
@@ -398,7 +431,9 @@ async def send_awaiting_confirmation_notification(
     activity_id: str,
     activity_title: str,
     activity_date: datetime,
-    location: str
+    location: str,
+    country: str = None,
+    city: str = None
 ) -> bool:
     """
     Send awaiting confirmation notification to user.
@@ -411,8 +446,10 @@ async def send_awaiting_confirmation_notification(
         user_telegram_id: User's Telegram ID
         activity_id: Activity ID (for callback data)
         activity_title: Activity title
-        activity_date: Activity date and time
+        activity_date: Activity date and time (UTC)
         location: Activity location
+        country: Country for timezone conversion
+        city: City for timezone conversion
 
     Returns:
         True if sent successfully, False otherwise
@@ -423,7 +460,9 @@ async def send_awaiting_confirmation_notification(
         message_text = format_awaiting_confirmation_notification(
             activity_title=activity_title,
             activity_date=activity_date,
-            location=location
+            location=location,
+            country=country,
+            city=city
         )
 
         # Create inline buttons for confirmation (order matches web UI)
@@ -451,21 +490,25 @@ def format_activity_cancelled_notification(
     activity_title: str,
     activity_date: datetime,
     location: str,
-    organizer_name: str
+    organizer_name: str,
+    country: str = None,
+    city: str = None
 ) -> str:
     """
     Format notification about activity cancellation.
 
     Args:
         activity_title: Activity title
-        activity_date: Activity date and time
+        activity_date: Activity date and time (UTC)
         location: Activity location
         organizer_name: Name of the organizer who cancelled
+        country: Country for timezone conversion
+        city: City for timezone conversion
 
     Returns:
         Formatted message text
     """
-    date_str = activity_date.strftime("%d %B в %H:%M")
+    date_str = format_datetime_local(activity_date, country, city, "%d %B в %H:%M")
 
     message = (
         f"Тренировка отменена\n\n"
@@ -596,7 +639,9 @@ def format_organizer_checkin_notification(
     activity_title: str,
     activity_date: datetime,
     participants_count: int,
-    webapp_link: str
+    webapp_link: str,
+    country: str = None,
+    city: str = None
 ) -> str:
     """
     Format notification for organizer to mark attendance.
@@ -605,14 +650,16 @@ def format_organizer_checkin_notification(
 
     Args:
         activity_title: Activity title
-        activity_date: Activity date and time
+        activity_date: Activity date and time (UTC)
         participants_count: Number of registered participants
         webapp_link: Link to activity in webapp
+        country: Country for timezone conversion
+        city: City for timezone conversion
 
     Returns:
         Formatted message text
     """
-    date_str = activity_date.strftime("%a, %d %b")
+    date_str = format_datetime_local(activity_date, country, city, "%a, %d %b")
 
     message = (
         f"📋 Тренировка завершена!\n\n"
@@ -632,7 +679,9 @@ async def send_organizer_checkin_notification(
     activity_title: str,
     activity_date: datetime,
     participants_count: int,
-    webapp_link: str
+    webapp_link: str,
+    country: str = None,
+    city: str = None
 ) -> bool:
     """
     Send notification to organizer to mark attendance.
@@ -645,9 +694,11 @@ async def send_organizer_checkin_notification(
         organizer_telegram_id: Organizer's Telegram ID
         activity_id: Activity ID (for callback data)
         activity_title: Activity title
-        activity_date: Activity date and time
+        activity_date: Activity date and time (UTC)
         participants_count: Number of registered participants
         webapp_link: Link to activity in webapp
+        country: Country for timezone conversion
+        city: City for timezone conversion
 
     Returns:
         True if sent successfully, False otherwise
@@ -659,7 +710,9 @@ async def send_organizer_checkin_notification(
             activity_title=activity_title,
             activity_date=activity_date,
             participants_count=participants_count,
-            webapp_link=webapp_link
+            webapp_link=webapp_link,
+            country=country,
+            city=city
         )
 
         # Create inline button to open webapp
