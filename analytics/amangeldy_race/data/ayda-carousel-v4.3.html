@@ -1,0 +1,988 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ayda — Amangeldy Race 2026 v4</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --white: #FFFFFF;
+            --off-white: #FAFAFA;
+            --gray-50: #F9FAFB;
+            --gray-100: #F3F4F6;
+            --gray-200: #E5E7EB;
+            --gray-400: #9CA3AF;
+            --gray-500: #6B7280;
+            --gray-600: #4B5563;
+            --gray-800: #1F2937;
+            --gray-900: #111827;
+            
+            /* Accent - тёплый терракотовый */
+            --accent: #C85A3B;
+            --accent-light: #E8DDD8;
+            --accent-bg: rgba(200, 90, 59, 0.08);
+            
+            /* Medals */
+            --gold: #D4A853;
+            --silver: #8B95A1;
+            --bronze: #A67C52;
+        }
+
+        body {
+            font-family: 'Manrope', -apple-system, sans-serif;
+            background: var(--gray-100);
+            min-height: 100vh;
+            padding: 40px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 30px;
+        }
+
+        h1 {
+            color: var(--gray-800);
+            font-size: 22px;
+            font-weight: 700;
+        }
+
+        .export-panel {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            background: white;
+            padding: 15px 25px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+
+        .export-btn {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+
+        .export-btn:hover {
+            transform: scale(1.02);
+        }
+
+        .export-btn:active {
+            transform: scale(0.98);
+        }
+
+        .export-hint {
+            color: var(--gray-500);
+            font-size: 13px;
+        }
+
+        .slides-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 25px;
+            justify-content: center;
+            max-width: 1800px;
+        }
+
+        .slide-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .slide-label {
+            color: var(--gray-500);
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        /* Base slide */
+        .slide {
+            width: 405px;
+            height: 506px; /* 4:5 ratio for Instagram */
+            background: var(--white);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 40px;
+            border-radius: 4px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+
+        /* Logo watermark */
+        .logo-mark {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            font-size: 14px;
+            font-weight: 800;
+            color: var(--gray-200);
+            letter-spacing: -0.5px;
+        }
+
+        /* ==================== SLIDE 1: Hook ==================== */
+        .slide-1 {
+            text-align: center;
+        }
+
+        .slide-1 .eyebrow {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--accent);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 20px;
+        }
+
+        .slide-1 .headline {
+            font-size: 28px;
+            font-weight: 800;
+            color: var(--gray-900);
+            line-height: 1.25;
+        }
+
+        .slide-1 .race-name {
+            display: block;
+            margin-top: 10px;
+            font-size: 32px;
+            color: var(--accent);
+        }
+
+        .slide-1 .subline {
+            margin-top: 25px;
+            font-size: 14px;
+            color: var(--gray-500);
+            font-weight: 500;
+        }
+
+        .slide-1 .swipe {
+            position: absolute;
+            bottom: 25px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--gray-400);
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .slide-1 .swipe svg {
+            width: 14px;
+            height: 14px;
+            fill: currentColor;
+        }
+
+        /* ==================== SLIDE 2: Record ==================== */
+        .slide-2 {
+            text-align: center;
+        }
+
+        .slide-2 .label {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--gray-500);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 15px;
+        }
+
+        .slide-2 .big-number {
+            font-size: 120px;
+            font-weight: 800;
+            color: var(--gray-900);
+            line-height: 1;
+            letter-spacing: -4px;
+        }
+
+        .slide-2 .unit {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--gray-600);
+            margin-top: 10px;
+        }
+
+        .slide-2 .badge {
+            display: inline-block;
+            margin-top: 20px;
+            background: var(--accent-bg);
+            color: var(--accent);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        /* ==================== SLIDE 3: Winner ==================== */
+        .slide-3 {
+            text-align: center;
+        }
+
+        .slide-3 .medal {
+            width: 70px;
+            height: 70px;
+            background: var(--gold);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            font-weight: 800;
+            color: white;
+            margin-bottom: 25px;
+            box-shadow: 0 4px 12px rgba(212, 168, 83, 0.3);
+        }
+
+        .slide-3 .title {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--gray-500);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+        }
+
+        .slide-3 .club-name {
+            font-size: 38px;
+            font-weight: 800;
+            color: var(--gray-900);
+            line-height: 1.1;
+        }
+
+        .slide-3 .stat-row {
+            display: flex;
+            gap: 30px;
+            margin-top: 30px;
+        }
+
+        .slide-3 .stat {
+            text-align: center;
+        }
+
+        .slide-3 .stat-value {
+            font-size: 28px;
+            font-weight: 800;
+            color: var(--accent);
+        }
+
+        .slide-3 .stat-label {
+            font-size: 11px;
+            color: var(--gray-500);
+            margin-top: 4px;
+        }
+
+        /* ==================== SLIDE 4: Top 3 ==================== */
+        .slide-4 {
+            padding: 35px;
+        }
+
+        .slide-4 .header {
+            width: 100%;
+            margin-bottom: 20px;
+        }
+
+        .slide-4 .header h2 {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--gray-900);
+        }
+
+        .podium-list {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .podium-row {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 16px;
+            background: var(--gray-50);
+            border-radius: 12px;
+        }
+
+        .podium-row.first {
+            background: linear-gradient(135deg, #FEF9E7 0%, #FCF3CF 100%);
+            border: 1px solid rgba(212, 168, 83, 0.2);
+        }
+
+        .podium-rank {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 800;
+            flex-shrink: 0;
+        }
+
+        .podium-rank.r1 { background: var(--gold); color: white; }
+        .podium-rank.r2 { background: var(--silver); color: white; }
+        .podium-rank.r3 { background: var(--bronze); color: white; }
+
+        .podium-info {
+            flex: 1;
+        }
+
+        .podium-name {
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--gray-900);
+        }
+
+        .podium-stats {
+            font-size: 12px;
+            color: var(--gray-500);
+            margin-top: 2px;
+        }
+
+        .podium-count {
+            font-size: 22px;
+            font-weight: 800;
+            color: var(--gray-900);
+        }
+
+        /* ==================== SLIDE 5: Women Growth ==================== */
+        .slide-5 {
+            text-align: center;
+        }
+
+        /* ==================== SLIDE: Dynamics Table ==================== */
+        .slide-dynamics {
+            padding: 35px;
+        }
+
+        .slide-dynamics .header {
+            width: 100%;
+            margin-bottom: 20px;
+        }
+
+        .slide-dynamics .header h2 {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--gray-900);
+        }
+
+        .dynamics-table {
+            width: 100%;
+        }
+
+        .dyn-header {
+            display: grid;
+            grid-template-columns: 1.5fr 1fr 1fr 1fr;
+            gap: 8px;
+            padding: 10px 12px;
+            background: var(--gray-100);
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+
+        .dyn-header span {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--gray-500);
+            text-transform: uppercase;
+        }
+
+        .dyn-club-col {
+            text-align: left;
+        }
+
+        .dyn-year {
+            text-align: center;
+        }
+
+        .dyn-row {
+            display: grid;
+            grid-template-columns: 1.5fr 1fr 1fr 1fr;
+            gap: 8px;
+            padding: 14px 12px;
+            border-bottom: 1px solid var(--gray-100);
+        }
+
+        .dyn-row:last-child {
+            border-bottom: none;
+        }
+
+        .dyn-club {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--gray-800);
+            text-align: left;
+        }
+
+        .dyn-val {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--gray-500);
+            text-align: center;
+        }
+
+        .dyn-val.highlight {
+            color: var(--accent);
+            font-weight: 800;
+        }
+
+        .dynamics-note {
+            margin-top: 20px;
+            text-align: center;
+            font-size: 13px;
+            color: var(--gray-400);
+            font-style: italic;
+        }
+
+        .slide-5 .emoji {
+            font-size: 50px;
+            margin-bottom: 20px;
+        }
+
+        .slide-5 .big-stat {
+            font-size: 80px;
+            font-weight: 800;
+            color: var(--accent);
+            line-height: 1;
+        }
+
+        .slide-5 .stat-desc {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--gray-800);
+            margin-top: 10px;
+        }
+
+        .slide-5 .comparison {
+            margin-top: 25px;
+            padding: 15px 25px;
+            background: var(--gray-50);
+            border-radius: 12px;
+        }
+
+        .slide-5 .comparison-text {
+            font-size: 14px;
+            color: var(--gray-600);
+        }
+
+        .slide-5 .comparison-text strong {
+            color: var(--gray-900);
+            font-weight: 700;
+        }
+
+        /* ==================== SLIDE 6: Clubs Explosion ==================== */
+        .slide-6 {
+            text-align: center;
+        }
+
+        .slide-6 .numbers-row {
+            display: flex;
+            gap: 10px;
+            align-items: baseline;
+            margin-bottom: 15px;
+        }
+
+        .slide-6 .small-num {
+            font-size: 48px;
+            font-weight: 800;
+            color: var(--gray-300);
+        }
+
+        .slide-6 .arrow {
+            font-size: 28px;
+            color: var(--gray-400);
+        }
+
+        .slide-6 .big-num {
+            font-size: 72px;
+            font-weight: 800;
+            color: var(--accent);
+        }
+
+        .slide-6 .desc {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--gray-600);
+        }
+
+        .slide-6 .substat {
+            margin-top: 30px;
+            padding: 16px 24px;
+            background: var(--accent-bg);
+            border-radius: 12px;
+        }
+
+        .slide-6 .substat-text {
+            font-size: 14px;
+            color: var(--gray-700);
+        }
+
+        .slide-6 .substat-text strong {
+            color: var(--accent);
+            font-weight: 800;
+        }
+
+        /* ==================== SLIDE 7: Veterans ==================== */
+        .slide-7 {
+            text-align: center;
+            padding: 35px;
+        }
+
+        .slide-7 .title {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--gray-500);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+        }
+
+        .slide-7 .headline {
+            font-size: 22px;
+            font-weight: 800;
+            color: var(--gray-900);
+            line-height: 1.3;
+        }
+
+        .slide-7 .headline .accent {
+            color: var(--accent);
+        }
+
+        .slide-7 .names-grid {
+            margin-top: 25px;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            text-align: left;
+        }
+
+        .slide-7 .name-item {
+            padding: 10px 12px;
+            background: var(--gray-50);
+            border-radius: 8px;
+            font-size: 11px;
+        }
+
+        .slide-7 .name-item .name {
+            font-weight: 700;
+            color: var(--gray-800);
+        }
+
+        .slide-7 .name-item .club {
+            color: var(--accent);
+            font-weight: 600;
+        }
+
+        .slide-7 .more {
+            margin-top: 15px;
+            font-size: 12px;
+            color: var(--gray-400);
+        }
+
+        /* ==================== SLIDE 8: Fastest Growing ==================== */
+        .slide-8 {
+            text-align: center;
+        }
+
+        .slide-8 .eyebrow {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--accent);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 15px;
+        }
+
+        .slide-8 .club-name {
+            font-size: 28px;
+            font-weight: 800;
+            color: var(--gray-900);
+        }
+
+        .slide-8 .growth-badge {
+            display: inline-block;
+            margin-top: 15px;
+            background: #DCFCE7;
+            color: #15803D;
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-size: 24px;
+            font-weight: 800;
+        }
+
+        .slide-8 .context {
+            margin-top: 25px;
+            font-size: 14px;
+            color: var(--gray-500);
+            line-height: 1.5;
+        }
+
+        /* ==================== SLIDE 9: CTA ==================== */
+        .slide-9 {
+            text-align: center;
+        }
+
+        .slide-9 .question {
+            font-size: 30px;
+            font-weight: 800;
+            color: var(--gray-900);
+            line-height: 1.3;
+        }
+
+        .slide-9 .cta {
+            margin-top: 25px;
+            font-size: 16px;
+            color: var(--gray-600);
+            line-height: 1.5;
+        }
+
+        .slide-9 .action {
+            margin-top: 25px;
+            display: inline-block;
+            background: var(--accent);
+            color: white;
+            padding: 14px 28px;
+            border-radius: 30px;
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        /* ==================== SLIDE 10: Brand ==================== */
+        .slide-10 {
+            text-align: center;
+            background: var(--gray-900);
+        }
+
+        .slide-10 .logo {
+            font-size: 60px;
+            font-weight: 800;
+            color: white;
+            letter-spacing: -2px;
+        }
+
+        .slide-10 .beta {
+            display: inline-block;
+            margin-top: 10px;
+            background: white;
+            color: var(--gray-900);
+            padding: 5px 14px;
+            border-radius: 15px;
+            font-size: 11px;
+            font-weight: 700;
+        }
+
+        .slide-10 .tagline {
+            margin-top: 25px;
+            font-size: 14px;
+            color: var(--gray-400);
+            line-height: 1.5;
+        }
+
+        .slide-10 .tg-link {
+            margin-top: 25px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--accent);
+            color: white;
+            padding: 12px 22px;
+            border-radius: 25px;
+            font-size: 14px;
+            font-weight: 700;
+            text-decoration: none;
+        }
+
+        .slide-10 .tg-link svg {
+            width: 18px;
+            height: 18px;
+            fill: currentColor;
+        }
+
+        .slide-10 .credit {
+            position: absolute;
+            bottom: 20px;
+            font-size: 10px;
+            color: var(--gray-600);
+        }
+
+        .slide-10 .logo-mark {
+            color: var(--gray-700);
+        }
+    </style>
+</head>
+<body>
+    <h1>Amangeldy Race 2026 — v4.1 (9 слайдов)</h1>
+    
+    <div class="export-panel">
+        <button onclick="exportAllSlides()" class="export-btn">📥 Скачать все слайды (PNG)</button>
+        <span class="export-hint">1080×1350px — готово для Instagram/Threads/Telegram</span>
+    </div>
+    
+    <div class="slides-container">
+        
+        <!-- 1: Hook -->
+        <div class="slide-wrapper">
+            <span class="slide-label">1. Hook</span>
+            <div class="slide slide-1">
+                <div class="eyebrow">Аналитика 2022–2026</div>
+                <div class="headline">
+                    Какой клуб Алматы доминирует на
+                    <span class="race-name">Amangeldy Race?</span>
+                </div>
+                <div class="subline">5 лет · 212 клубов · 2003 участника</div>
+                <div class="swipe">
+                    Листай →
+                </div>
+                <div class="logo-mark">ayda</div>
+            </div>
+        </div>
+
+        <!-- 2: Record -->
+        <div class="slide-wrapper">
+            <span class="slide-label">2. Рекорд</span>
+            <div class="slide slide-2">
+                <div class="label">Участников в 2026</div>
+                <div class="big-number">977</div>
+                <div class="unit">бегунов на старте</div>
+                <div class="badge">+95% за 5 лет</div>
+                <div class="logo-mark">ayda</div>
+            </div>
+        </div>
+
+        <!-- 3: Top 3 -->
+        <div class="slide-wrapper">
+            <span class="slide-label">3. Топ-3</span>
+            <div class="slide slide-4">
+                <div class="header">
+                    <h2>Топ-3 клубов 2026</h2>
+                </div>
+                <div class="podium-list">
+                    <div class="podium-row first">
+                        <div class="podium-rank r1">1</div>
+                        <div class="podium-info">
+                            <div class="podium-name">HomeRun</div>
+                            <div class="podium-stats">43 финишёра · 37% женщин</div>
+                        </div>
+                        <div class="podium-count">🥇</div>
+                    </div>
+                    <div class="podium-row">
+                        <div class="podium-rank r2">2</div>
+                        <div class="podium-info">
+                            <div class="podium-name">Бег с удовольствием</div>
+                            <div class="podium-stats">34 финишёра · 59% женщин</div>
+                        </div>
+                        <div class="podium-count">🥈</div>
+                    </div>
+                    <div class="podium-row">
+                        <div class="podium-rank r3">3</div>
+                        <div class="podium-info">
+                            <div class="podium-name">SkyRunGroup</div>
+                            <div class="podium-stats">20 финишёров · 40% женщин</div>
+                        </div>
+                        <div class="podium-count">🥉</div>
+                    </div>
+                </div>
+                <div class="logo-mark">ayda</div>
+            </div>
+        </div>
+
+        <!-- 4: Clubs Dynamics -->
+        <div class="slide-wrapper">
+            <span class="slide-label">4. Динамика</span>
+            <div class="slide slide-dynamics">
+                <div class="header">
+                    <h2>Топ-3 за 5 лет</h2>
+                </div>
+                <div class="dynamics-table">
+                    <div class="dyn-header">
+                        <span class="dyn-club-col">Клуб</span>
+                        <span class="dyn-year">2024</span>
+                        <span class="dyn-year">2025</span>
+                        <span class="dyn-year">2026</span>
+                    </div>
+                    <div class="dyn-row">
+                        <span class="dyn-club">HomeRun</span>
+                        <span class="dyn-val">28</span>
+                        <span class="dyn-val">29</span>
+                        <span class="dyn-val highlight">43</span>
+                    </div>
+                    <div class="dyn-row">
+                        <span class="dyn-club">Бег с удов.</span>
+                        <span class="dyn-val">2</span>
+                        <span class="dyn-val highlight">30</span>
+                        <span class="dyn-val">34</span>
+                    </div>
+                    <div class="dyn-row">
+                        <span class="dyn-club">SkyRunGroup</span>
+                        <span class="dyn-val">27</span>
+                        <span class="dyn-val">26</span>
+                        <span class="dyn-val">20</span>
+                    </div>
+                    <div class="dyn-row">
+                        <span class="dyn-club">Alay.pro</span>
+                        <span class="dyn-val highlight">29</span>
+                        <span class="dyn-val">16</span>
+                        <span class="dyn-val">15</span>
+                    </div>
+                </div>
+                <div class="dynamics-note">Лидеры меняются каждый год</div>
+                <div class="logo-mark">ayda</div>
+            </div>
+        </div>
+
+        <!-- 5: Women Growth -->
+        <div class="slide-wrapper">
+            <span class="slide-label">5. Женщины</span>
+            <div class="slide slide-5">
+                <div class="emoji">👩‍🦰</div>
+                <div class="big-stat">+104%</div>
+                <div class="stat-desc">рост женщин за 5 лет</div>
+                <div class="comparison">
+                    <div class="comparison-text">
+                        <strong>134</strong> в 2022 → <strong>274</strong> в 2026
+                    </div>
+                </div>
+                <div class="logo-mark">ayda</div>
+            </div>
+        </div>
+
+        <!-- 6: Clubs Explosion -->
+        <div class="slide-wrapper">
+            <span class="slide-label">6. Клубы</span>
+            <div class="slide slide-6">
+                <div class="numbers-row">
+                    <span class="small-num">17</span>
+                    <span class="arrow">→</span>
+                    <span class="big-num">115</span>
+                </div>
+                <div class="desc">клубов за 5 лет</div>
+                <div class="substat">
+                    <div class="substat-text">Всего <strong>212</strong> уникальных клубов участвовали в гонке</div>
+                </div>
+                <div class="logo-mark">ayda</div>
+            </div>
+        </div>
+
+        <!-- 7: Veterans -->
+        <div class="slide-wrapper">
+            <span class="slide-label">7. Ветераны</span>
+            <div class="slide slide-7">
+                <div class="title">Легенды гонки</div>
+                <div class="headline">
+                    <span class="accent">25</span> человек пробежали<br>все 5 гонок
+                </div>
+                <div class="names-grid">
+                    <div class="name-item"><span class="name">Shilov Ivan</span> <span class="club">SRG</span></div>
+                    <div class="name-item"><span class="name">Valiulina Diana</span> <span class="club">NRC</span></div>
+                    <div class="name-item"><span class="name">Aitkazin Madiyar</span> <span class="club">Alay</span></div>
+                    <div class="name-item"><span class="name">Gali Amir</span> <span class="club">TriClub</span></div>
+                    <div class="name-item"><span class="name">Krasnov Ivan</span> <span class="club">TRC</span></div>
+                    <div class="name-item"><span class="name">Matveev Nikita</span> <span class="club">Отморозки</span></div>
+                </div>
+                <div class="more">+ ещё 19 легенд</div>
+                <div class="logo-mark">ayda</div>
+            </div>
+        </div>
+
+        <!-- 8: CTA -->
+        <div class="slide-wrapper">
+            <span class="slide-label">8. CTA</span>
+            <div class="slide slide-9">
+                <div class="question">А твой клуб<br>в списке?</div>
+                <div class="cta">Напиши название клуба<br>и сколько раз участвовал</div>
+                <div class="action">💬 Пиши в комменты</div>
+                <div class="logo-mark">ayda</div>
+            </div>
+        </div>
+
+        <!-- 9: Brand -->
+        <div class="slide-wrapper">
+            <span class="slide-label">9. Бренд</span>
+            <div class="slide slide-10">
+                <div class="logo">ayda</div>
+                <div class="beta">beta</div>
+                <div class="tagline">Координация беговых<br>клубов в Telegram</div>
+                <a class="tg-link" href="https://t.me/ayda_almaty">
+                    <svg viewBox="0 0 24 24"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.161c-.18 1.897-.962 6.502-1.359 8.627-.168.9-.5 1.201-.82 1.23-.697.064-1.226-.461-1.901-.903-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.911.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.139-5.062 3.345-.479.329-.913.489-1.302.481-.428-.009-1.252-.242-1.865-.442-.752-.244-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.831-2.529 6.998-3.015 3.333-1.386 4.025-1.627 4.477-1.635.099-.002.321.023.465.141.121.099.154.232.17.325.015.094.034.306.019.472z"/></svg>
+                    @ayda_almaty
+                </a>
+                <div class="credit">Источник данных: athletex.kz, live.myrace.info</div>
+                <div class="logo-mark">ayda</div>
+            </div>
+        </div>
+        
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script>
+        async function exportAllSlides() {
+            const slides = document.querySelectorAll('.slide');
+            const btn = document.querySelector('.export-btn');
+            const originalText = btn.textContent;
+            
+            btn.textContent = '⏳ Генерирую...';
+            btn.disabled = true;
+            
+            // Масштаб для получения 1080x1350
+            const targetWidth = 1080;
+            const targetHeight = 1350;
+            
+            for (let i = 0; i < slides.length; i++) {
+                const slide = slides[i];
+                btn.textContent = `⏳ Слайд ${i + 1}/${slides.length}...`;
+                
+                // Рассчитываем scale для точного размера
+                const scale = targetWidth / slide.offsetWidth;
+                
+                try {
+                    const canvas = await html2canvas(slide, {
+                        scale: scale,
+                        width: slide.offsetWidth,
+                        height: slide.offsetHeight,
+                        backgroundColor: null,
+                        useCORS: true,
+                        logging: false
+                    });
+                    
+                    // Скачиваем
+                    const link = document.createElement('a');
+                    link.download = `ayda-amangeldy-2026-slide-${String(i + 1).padStart(2, '0')}.png`;
+                    link.href = canvas.toDataURL('image/png');
+                    link.click();
+                    
+                    // Небольшая пауза между скачиваниями
+                    await new Promise(r => setTimeout(r, 300));
+                } catch (err) {
+                    console.error(`Ошибка слайда ${i + 1}:`, err);
+                }
+            }
+            
+            btn.textContent = '✅ Готово!';
+            setTimeout(() => {
+                btn.textContent = originalText;
+                btn.disabled = false;
+            }, 2000);
+        }
+    </script>
+</body>
+</html>

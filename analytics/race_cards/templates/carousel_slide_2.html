@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="carousel-slide slide-details">
+    <div class="slide-header">Детали забега</div>
+
+    <div class="details-grid">
+        {# Place - with medal for top 3 #}
+        <div class="metric-card {% if participant.medal.value == 'gold' %}gold{% elif participant.medal.value == 'silver' %}silver{% elif participant.medal.value == 'bronze' %}bronze{% endif %}">
+            <div class="metric-value">
+                {% if participant.medal.value == 'gold' %}🥇 {% endif %}
+                {% if participant.medal.value == 'silver' %}🥈 {% endif %}
+                {% if participant.medal.value == 'bronze' %}🥉 {% endif %}
+                {{ participant.place }}
+            </div>
+            <div class="metric-label">место</div>
+        </div>
+
+        {# Category place - highlight if first #}
+        {% if participant.place_category %}
+        {% set cat_place = participant.place_category.split('/')[0]|int if '/' in participant.place_category else 0 %}
+        <div class="metric-card {% if cat_place == 1 %}gold{% endif %}">
+            <div class="metric-value">{% if cat_place == 1 %}🥇 {% endif %}{{ participant.place_category }}</div>
+            <div class="metric-label">в категории</div>
+        </div>
+        {% else %}
+        <div class="metric-card">
+            <div class="metric-value">—</div>
+            <div class="metric-label">в категории</div>
+        </div>
+        {% endif %}
+
+        {# Gender place #}
+        {% if participant.place_gender %}
+        <div class="metric-card">
+            <div class="metric-value">{{ participant.place_gender }}°</div>
+            <div class="metric-label">абсолют {{ participant.gender_label }}</div>
+        </div>
+        {% else %}
+        <div class="metric-card">
+            <div class="metric-value">—</div>
+            <div class="metric-label">абсолют</div>
+        </div>
+        {% endif %}
+
+        {# Row 2: Either elevation data or race info #}
+        {% if participant.has_elevation_data %}
+        {# With elevation data #}
+        <div class="metric-card">
+            <div class="metric-value">{{ participant.start_elevation }}м</div>
+            <div class="metric-label">старт</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-value">+{{ participant.elevation_gain }}м</div>
+            <div class="metric-label">набор</div>
+        </div>
+        <div class="metric-card accent">
+            <div class="metric-value">{{ participant.finish_elevation }}м</div>
+            <div class="metric-label">финиш</div>
+        </div>
+        {% else %}
+        {# Without elevation - show race info #}
+        {% if participant.race %}
+        <div class="metric-card accent">
+            <div class="metric-value">{{ participant.race }}</div>
+            <div class="metric-label">гонка</div>
+        </div>
+        {% else %}
+        <div class="metric-card">
+            <div class="metric-value">—</div>
+            <div class="metric-label">гонка</div>
+        </div>
+        {% endif %}
+
+        {% if participant.distance_km %}
+        <div class="metric-card">
+            <div class="metric-value">{{ participant.distance_km|int }} км</div>
+            <div class="metric-label">дистанция</div>
+        </div>
+        {% else %}
+        <div class="metric-card">
+            <div class="metric-value">—</div>
+            <div class="metric-label">дистанция</div>
+        </div>
+        {% endif %}
+
+        {% if participant.elevation_gain %}
+        <div class="metric-card">
+            <div class="metric-value">+{{ participant.elevation_gain }}м</div>
+            <div class="metric-label">набор</div>
+        </div>
+        {% elif participant.pace %}
+        <div class="metric-card">
+            <div class="metric-value">{{ participant.pace }}</div>
+            <div class="metric-label">темп</div>
+        </div>
+        {% else %}
+        <div class="metric-card">
+            <div class="metric-value">—</div>
+            <div class="metric-label">темп</div>
+        </div>
+        {% endif %}
+        {% endif %}
+    </div>
+
+    {# Bottom section: either elevation profile or race description #}
+    {% if participant.has_elevation_data %}
+    <div class="elevation-container">
+        <div class="elevation-title">Профиль высоты</div>
+        <div class="elevation-chart">
+            <svg class="elevation-svg" viewBox="0 0 340 80" preserveAspectRatio="none">
+                <defs>
+                    <linearGradient id="elevGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                        <stop offset="0%" style="stop-color:#C85A3B;stop-opacity:0.25" />
+                        <stop offset="100%" style="stop-color:#C85A3B;stop-opacity:0.02" />
+                    </linearGradient>
+                </defs>
+                <path d="M0,72 C40,68 80,60 120,50 C160,40 200,28 240,18 C280,10 320,4 340,0 L340,80 L0,80 Z" fill="url(#elevGrad)" />
+                <path d="M0,72 C40,68 80,60 120,50 C160,40 200,28 240,18 C280,10 320,4 340,0" stroke="#C85A3B" stroke-width="3" fill="none" stroke-linecap="round" />
+                <circle cx="0" cy="72" r="5" fill="#9CA3AF" />
+                <circle cx="340" cy="0" r="6" fill="#C85A3B" />
+            </svg>
+        </div>
+        <div class="elevation-labels">
+            <span>Старт {{ participant.start_elevation }}м</span>
+            <span>Финиш {{ participant.finish_elevation }}м</span>
+        </div>
+    </div>
+    {% else %}
+    <div class="race-description">
+        <div class="race-desc-title">О гонке</div>
+        <div class="race-desc-text">
+            {{ event.name }}{% if event.date %} — {{ event.date }}{% endif %}.
+            {% if participant.category %}Категория: {{ participant.category }}.{% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="swipe-hint">листай →</div>
+    <div class="logo-mark">ayda</div>
+</div>
+{% endblock %}

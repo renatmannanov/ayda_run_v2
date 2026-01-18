@@ -1,0 +1,66 @@
+{
+  "participation": [
+    {
+      "year": 2022,
+      "registered": 537,
+      "finished": 466,
+      "finishRate": 87
+    },
+    {
+      "year": 2023,
+      "registered": 778,
+      "finished": 626,
+      "finishRate": 80
+    },
+    {
+      "year": 2024,
+      "registered": 882,
+      "finished": 653,
+      "finishRate": 74
+    },
+    {
+      "year": 2025,
+      "registered": 919,
+      "finished": 714,
+      "finishRate": 78
+    },
+    {
+      "year": 2026,
+      "registered": 1027,
+      "finished": 747,
+      "finishRate": 73
+    }
+  ],
+  "genderRatio": [
+    {
+      "year": 2022,
+      "men": 318,
+      "women": 138,
+      "womenPercent": 30
+    },
+    {
+      "year": 2023,
+      "men": 442,
+      "women": 184,
+      "womenPercent": 29
+    },
+    {
+      "year": 2024,
+      "men": 455,
+      "women": 198,
+      "womenPercent": 30
+    },
+    {
+      "year": 2025,
+      "men": 491,
+      "women": 223,
+      "womenPercent": 31
+    },
+    {
+      "year": 2026,
+      "men": 463,
+      "women": 284,
+      "womenPercent": 38
+    }
+  ]
+}

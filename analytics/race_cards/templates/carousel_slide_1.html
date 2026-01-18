@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="carousel-slide slide-main">
+    <div class="participant-name">{{ participant.name }}</div>
+    {% if participant.club %}
+    <div class="participant-club">{{ participant.club }}</div>
+    {% endif %}
+
+    <div class="time-block">
+        <div class="hero-time-label">финишное время</div>
+        <div class="hero-time">{{ participant.time }}</div>
+        <div class="race-name">{{ event.name }}</div>
+    </div>
+
+    <div class="quick-stats">
+        <div class="quick-stat">
+            <div class="value">
+                {% if participant.medal.value == 'gold' %}🥇 {% endif %}
+                {% if participant.medal.value == 'silver' %}🥈 {% endif %}
+                {% if participant.medal.value == 'bronze' %}🥉 {% endif %}
+                {{ participant.place }}
+            </div>
+            <div class="label">место</div>
+        </div>
+        {% if participant.distance_km %}
+        <div class="quick-stat">
+            <div class="value">{{ participant.distance_km|int }} км</div>
+            <div class="label">дистанция</div>
+        </div>
+        {% elif participant.race %}
+        <div class="quick-stat">
+            <div class="value">{{ participant.race }}</div>
+            <div class="label">дистанция</div>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="swipe-hint">листай →</div>
+    <div class="logo-mark">ayda</div>
+</div>
+{% endblock %}

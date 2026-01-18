@@ -1,0 +1,77 @@
+[
+  {
+    "year": 2022,
+    "date": "29-30 января 2022 г.",
+    "registered": 537,
+    "finished": 466,
+    "dns": 51,
+    "men": 318,
+    "women": 138,
+    "distances": [
+      "SkyRace 1500",
+      "Vertical Kilometer 1000",
+      "SkySprint 600",
+      "Unknown"
+    ]
+  },
+  {
+    "year": 2023,
+    "date": "14 января 2023 г.",
+    "registered": 778,
+    "finished": 626,
+    "dns": 68,
+    "men": 442,
+    "women": 184,
+    "distances": [
+      "SR 1500",
+      "SR 1400",
+      "VK 1000",
+      "SS 600"
+    ]
+  },
+  {
+    "year": 2024,
+    "date": "суббота, 13 января 2024 г.",
+    "registered": 882,
+    "finished": 653,
+    "dns": 65,
+    "men": 455,
+    "women": 198,
+    "distances": [
+      "SR 1500",
+      "SR 1400",
+      "VK 1000",
+      "SS 600"
+    ]
+  },
+  {
+    "year": 2025,
+    "date": "суббота, 11 января 2025 г.",
+    "registered": 919,
+    "finished": 714,
+    "dns": 75,
+    "men": 491,
+    "women": 223,
+    "distances": [
+      "SR 1400",
+      "SR 1500",
+      "VK 1000",
+      "SS 600"
+    ]
+  },
+  {
+    "year": 2026,
+    "date": "суббота, 17 января 2026 г.",
+    "registered": 1027,
+    "finished": 747,
+    "dns": 89,
+    "men": 463,
+    "women": 284,
+    "distances": [
+      "VK 1000",
+      "SS 600",
+      "SR 1500",
+      "SR 1400"
+    ]
+  }
+]

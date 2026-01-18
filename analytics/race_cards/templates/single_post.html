@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card card-post" style="display: flex; flex-direction: column;">
+    <div class="hero-block">
+        <div class="participant-name">{{ participant.name }}</div>
+        {% if participant.club %}
+        <div class="participant-club">{{ participant.club }}</div>
+        {% endif %}
+
+        <div class="time-block">
+            <div class="hero-time-label">финишное время</div>
+            <div class="hero-time">{{ participant.time }}</div>
+            <div class="race-name">{{ event.name }}</div>
+        </div>
+    </div>
+
+    <div class="metrics-grid">
+        {# Place - with medal for top 3 #}
+        <div class="metric-card {% if participant.medal.value == 'gold' %}gold{% elif participant.medal.value == 'silver' %}silver{% elif participant.medal.value == 'bronze' %}bronze{% endif %}">
+            <div class="metric-value">
+                {% if participant.medal.value == 'gold' %}<span class="medal-icon">🥇</span>{% endif %}
+                {% if participant.medal.value == 'silver' %}<span class="medal-icon">🥈</span>{% endif %}
+                {% if participant.medal.value == 'bronze' %}<span class="medal-icon">🥉</span>{% endif %}
+                {{ participant.place }}
+            </div>
+            <div class="metric-label">место</div>
+        </div>
+
+        {# Category place #}
+        {% if participant.place_category %}
+        <div class="metric-card">
+            <div class="metric-value">{{ participant.place_category }}</div>
+            <div class="metric-label">в категории</div>
+        </div>
+        {% else %}
+        <div class="metric-card">
+            <div class="metric-value">—</div>
+            <div class="metric-label">в категории</div>
+        </div>
+        {% endif %}
+
+        {# Pace #}
+        {% if participant.pace %}
+        <div class="metric-card">
+            <div class="metric-value">{{ participant.pace }}</div>
+            <div class="metric-label">мин/км</div>
+        </div>
+        {% else %}
+        <div class="metric-card">
+            <div class="metric-value">—</div>
+            <div class="metric-label">темп</div>
+        </div>
+        {% endif %}
+
+        {# Category #}
+        {% if participant.category %}
+        <div class="metric-card">
+            <div class="metric-value">{{ participant.category }}</div>
+            <div class="metric-label">категория</div>
+        </div>
+        {% else %}
+        <div class="metric-card">
+            <div class="metric-value">—</div>
+            <div class="metric-label">категория</div>
+        </div>
+        {% endif %}
+
+        {# Distance or Race name #}
+        {% if participant.distance_km %}
+        <div class="metric-card">
+            <div class="metric-value">{{ participant.distance_km|int }} км</div>
+            <div class="metric-label">дистанция</div>
+        </div>
+        {% elif participant.race %}
+        <div class="metric-card accent">
+            <div class="metric-value">{{ participant.race }}</div>
+            <div class="metric-label">дистанция</div>
+        </div>
+        {% else %}
+        <div class="metric-card">
+            <div class="metric-value">—</div>
+            <div class="metric-label">дистанция</div>
+        </div>
+        {% endif %}
+
+        {# Gender place #}
+        {% if participant.place_gender %}
+        <div class="metric-card">
+            <div class="metric-value">{{ participant.place_gender }}°</div>
+            <div class="metric-label">абсолют {{ participant.gender_label }}</div>
+        </div>
+        {% else %}
+        <div class="metric-card">
+            <div class="metric-value">—</div>
+            <div class="metric-label">абсолют</div>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="card-footer">
+        <div class="footer-credits">
+            <span><span class="label">Организатор</span> <span class="value">{{ event.organizer }}</span></span>
+            <span><span class="label">Хронометраж</span> <span class="value">{{ event.timing_provider }}</span></span>
+            <span><span class="label">Сгенерировано</span> <span class="ayda-val">ayda<span class="beta">β</span></span></span>
+        </div>
+    </div>
+</div>
+{% endblock %}

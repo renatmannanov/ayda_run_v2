@@ -119,6 +119,11 @@ async def lifespan(app: FastAPI):
     bot_app.add_handler(get_feedback_handler())
     logger.info("[SUCCESS] Feedback handler registered")
 
+    # Phase 10: Race card generator handler (/racecard command)
+    from bot.race_card_handler import get_racecard_handler
+    bot_app.add_handler(get_racecard_handler())
+    logger.info("[SUCCESS] Race card handler registered")
+
     # Initialize bot (but don't start polling - we use webhook)
     await bot_app.initialize()
     await bot_app.start()
@@ -127,6 +132,7 @@ async def lifespan(app: FastAPI):
     # Commands for private chats
     private_commands = [
         BotCommand("start", "Начать или вернуться в главное меню"),
+        BotCommand("racecard", "Создать карточку с результатами гонки"),
         BotCommand("requests", "Просмотреть заявки на участие"),
         BotCommand("my_requests", "Мои заявки на участие"),
         BotCommand("sync", "Проверить статус синхронизации"),

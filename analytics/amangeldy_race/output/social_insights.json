@@ -1,0 +1,373 @@
+{
+  "headline": "AMANGELDY RACE 2026: Рекорд участия - 1027 человек!",
+  "keyNumbers": {
+    "participants2026": 1027,
+    "growthSince2022": "+91%",
+    "womenGrowth": "+106%",
+    "womenPercent2026": "38%",
+    "countries2026": 12,
+    "uniqueParticipantsAllTime": 2003,
+    "fiveYearVeterans": 24,
+    "totalClubs2026": 115
+  },
+  "carouselSlides": [
+    {
+      "title": "🏔️ Рекордный 2026",
+      "stats": [
+        "1027 участников",
+        "Рост на 91% с 2022",
+        "747 финишёров"
+      ]
+    },
+    {
+      "title": "👩 Женский бег на подъёме",
+      "stats": [
+        "284 женщин в 2026",
+        "Рост на 106% с 2022",
+        "38% от всех участников"
+      ]
+    },
+    {
+      "title": "🌍 География",
+      "stats": [
+        "12 стран",
+        "Топ: KAZ, RUS, BLR",
+        "21% иностранцев"
+      ]
+    },
+    {
+      "title": "🏃 Топ клубы 2026",
+      "stats": [
+        "HomeRun: 100",
+        "SkyRunGroup: 74",
+        "Бег с удовольствием: 66",
+        "Alay.pro: 60",
+        "Экстремальная Атлетика: 31"
+      ]
+    },
+    {
+      "title": "🎖️ Ветераны",
+      "stats": [
+        "24 участников всех 5 гонок",
+        "2003 уникальных бегунов за всё время",
+        "44% вернулись в 2026"
+      ]
+    },
+    {
+      "title": "👴👶 Возраст",
+      "stats": [
+        "Самый молодой: 16 лет",
+        "Самый возрастной: 73 лет",
+        "Средний возраст: 39 лет"
+      ]
+    }
+  ],
+  "topClubs2026": [
+    {
+      "name": "HomeRun",
+      "total": 100,
+      "yearsActive": 3
+    },
+    {
+      "name": "SkyRunGroup",
+      "total": 74,
+      "yearsActive": 3
+    },
+    {
+      "name": "Бег с удовольствием",
+      "total": 66,
+      "yearsActive": 3
+    },
+    {
+      "name": "Alay.pro",
+      "total": 60,
+      "yearsActive": 3
+    },
+    {
+      "name": "Экстремальная Атлетика",
+      "total": 31,
+      "yearsActive": 4
+    },
+    {
+      "name": "Barys KZ",
+      "total": 23,
+      "yearsActive": 3
+    },
+    {
+      "name": "Krida",
+      "total": 23,
+      "yearsActive": 2
+    },
+    {
+      "name": "TriClub Esentai",
+      "total": 21,
+      "yearsActive": 3
+    },
+    {
+      "name": "Nike Run Club",
+      "total": 20,
+      "yearsActive": 3
+    },
+    {
+      "name": "Боран",
+      "total": 18,
+      "yearsActive": 2
+    }
+  ],
+  "fiveYearVeterans": [
+    {
+      "name": "Krasnov Ivan",
+      "club": "TRC ALMATY",
+      "participations": 5
+    },
+    {
+      "name": "Kuchina Tatyana",
+      "club": "SkyRunGroup",
+      "participations": 5
+    },
+    {
+      "name": "Kostyunin Vladimir",
+      "club": "HomeRun",
+      "participations": 5
+    },
+    {
+      "name": "Shatnaya Yekaterina",
+      "club": "SHATNAYA TEAM",
+      "participations": 5
+    },
+    {
+      "name": "Aleshov Dmitriy",
+      "club": "Экстремальная Атлетика",
+      "participations": 5
+    },
+    {
+      "name": "Krivoruchko Alexsey",
+      "club": "Alpine Asia Team",
+      "participations": 5
+    },
+    {
+      "name": "Iskhakova Aigerim",
+      "club": "Young Runner",
+      "participations": 5
+    },
+    {
+      "name": "Ovcharenko Nikolay",
+      "club": "BUDOKAN",
+      "participations": 5
+    },
+    {
+      "name": "Sinelnikov Andrey",
+      "club": "Экстремальная Атлетика",
+      "participations": 5
+    },
+    {
+      "name": "Sholanova Torgyn",
+      "club": null,
+      "participations": 5
+    },
+    {
+      "name": "Maiorov Pavel",
+      "club": "Экстремальная Атлетика",
+      "participations": 5
+    },
+    {
+      "name": "Distinguin Marc",
+      "club": "SkyRunGroup",
+      "participations": 5
+    },
+    {
+      "name": "Aitkazin Madiyar",
+      "club": "Alay.pro",
+      "participations": 5
+    },
+    {
+      "name": "Sambetova Zere",
+      "club": "Alay.pro",
+      "participations": 5
+    },
+    {
+      "name": "Fedosseyev Ilya",
+      "club": null,
+      "participations": 5
+    },
+    {
+      "name": "Fedosseyev Vadim",
+      "club": "Barys KZ",
+      "participations": 5
+    },
+    {
+      "name": "Valiulina Diana",
+      "club": "Nike Run Club",
+      "participations": 5
+    },
+    {
+      "name": "Arginbaev Sayat",
+      "club": null,
+      "participations": 5
+    },
+    {
+      "name": "Abuov Arsen",
+      "club": "Alay.pro",
+      "participations": 5
+    },
+    {
+      "name": "Nurgaliyev Alibek",
+      "club": "Alay.pro",
+      "participations": 5
+    }
+  ],
+  "topImprovers": [
+    {
+      "name": "Iskakov Ilyas",
+      "firstYear": 2025,
+      "lastYear": 2026,
+      "firstTime": "2:34:40",
+      "lastTime": "1:07:23",
+      "improvementSeconds": 5237,
+      "improvementFormatted": "1:27:17",
+      "improved": true,
+      "participations": 2
+    },
+    {
+      "name": "Makhulbekova Assel",
+      "firstYear": 2024,
+      "lastYear": 2026,
+      "firstTime": "2:13:38",
+      "lastTime": "1:11:58",
+      "improvementSeconds": 3700,
+      "improvementFormatted": "1:01:40",
+      "improved": true,
+      "participations": 2
+    },
+    {
+      "name": "Tugelbaev Zhakan",
+      "firstYear": 2022,
+      "lastYear": 2026,
+      "firstTime": "2:31:22",
+      "lastTime": "1:30:57",
+      "improvementSeconds": 3625,
+      "improvementFormatted": "1:00:25",
+      "improved": true,
+      "participations": 4
+    },
+    {
+      "name": "Kolchugin Vyacheslav",
+      "firstYear": 2023,
+      "lastYear": 2026,
+      "firstTime": "2:35:11",
+      "lastTime": "1:42:12",
+      "improvementSeconds": 3179,
+      "improvementFormatted": "52:59",
+      "improved": true,
+      "participations": 3
+    },
+    {
+      "name": "Proshchenko Maxim",
+      "firstYear": 2023,
+      "lastYear": 2024,
+      "firstTime": "2:30:10",
+      "lastTime": "1:40:55",
+      "improvementSeconds": 2955,
+      "improvementFormatted": "49:15",
+      "improved": true,
+      "participations": 2
+    },
+    {
+      "name": "KOZHAYEVA ILSIYA",
+      "firstYear": 2023,
+      "lastYear": 2026,
+      "firstTime": "2:23:35",
+      "lastTime": "1:38:12",
+      "improvementSeconds": 2723,
+      "improvementFormatted": "45:23",
+      "improved": true,
+      "participations": 4
+    },
+    {
+      "name": "Bobrovskaya Yana",
+      "firstYear": 2023,
+      "lastYear": 2025,
+      "firstTime": "1:57:53",
+      "lastTime": "1:15:43",
+      "improvementSeconds": 2530,
+      "improvementFormatted": "42:10",
+      "improved": true,
+      "participations": 2
+    },
+    {
+      "name": "Gabdullina Aliya",
+      "firstYear": 2025,
+      "lastYear": 2026,
+      "firstTime": "2:26:01",
+      "lastTime": "1:45:23",
+      "improvementSeconds": 2438,
+      "improvementFormatted": "40:38",
+      "improved": true,
+      "participations": 2
+    },
+    {
+      "name": "Kydyraliyeva Zhibek",
+      "firstYear": 2024,
+      "lastYear": 2026,
+      "firstTime": "1:49:26",
+      "lastTime": "1:10:48",
+      "improvementSeconds": 2318,
+      "improvementFormatted": "38:38",
+      "improved": true,
+      "participations": 3
+    },
+    {
+      "name": "Uderbayev Madi",
+      "firstYear": 2022,
+      "lastYear": 2024,
+      "firstTime": "2:00:59",
+      "lastTime": "1:24:21",
+      "improvementSeconds": 2198,
+      "improvementFormatted": "36:38",
+      "improved": true,
+      "participations": 2
+    }
+  ],
+  "newClubs2026": [
+    {
+      "name": "DIEHARD_Pavlodar",
+      "participants": 4
+    },
+    {
+      "name": "BCC RUN",
+      "participants": 3
+    },
+    {
+      "name": "#СвойЗабег",
+      "participants": 3
+    },
+    {
+      "name": "Easy run club",
+      "participants": 3
+    },
+    {
+      "name": "Nordic21Secret",
+      "participants": 3
+    },
+    {
+      "name": "Tennisi Running Club",
+      "participants": 2
+    },
+    {
+      "name": "Trigada",
+      "participants": 2
+    },
+    {
+      "name": "KITNG",
+      "participants": 2
+    },
+    {
+      "name": "INTEGRITY running club",
+      "participants": 2
+    },
+    {
+      "name": "TRAINING CLUB",
+      "participants": 2
+    }
+  ]
+}

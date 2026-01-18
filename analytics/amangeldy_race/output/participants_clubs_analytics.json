@@ -1,0 +1,2823 @@
+{
+  "generatedAt": "2026-01-18T10:55:33.784Z",
+  "eventName": "AMANGELDY RACE",
+  "participants": {
+    "record2026": 977,
+    "participantsDynamics": [
+      {
+        "year": 2022,
+        "registered": 500,
+        "finished": 430,
+        "finishRate": 86
+      },
+      {
+        "year": 2023,
+        "registered": 734,
+        "finished": 594,
+        "finishRate": 81
+      },
+      {
+        "year": 2024,
+        "registered": 831,
+        "finished": 616,
+        "finishRate": 74
+      },
+      {
+        "year": 2025,
+        "registered": 874,
+        "finished": 680,
+        "finishRate": 78
+      },
+      {
+        "year": 2026,
+        "registered": 977,
+        "finished": 714,
+        "finishRate": 73
+      }
+    ],
+    "growthYoY": [
+      {
+        "period": "2022-2023",
+        "growth": 234,
+        "growthPercent": 47
+      },
+      {
+        "period": "2023-2024",
+        "growth": 97,
+        "growthPercent": 13
+      },
+      {
+        "period": "2024-2025",
+        "growth": 43,
+        "growthPercent": 5
+      },
+      {
+        "period": "2025-2026",
+        "growth": 103,
+        "growthPercent": 12
+      }
+    ],
+    "totalGrowth": {
+      "from": 500,
+      "to": 977,
+      "growth": 477,
+      "growthPercent": 95
+    },
+    "womenDynamics": [
+      {
+        "year": 2022,
+        "women": 134,
+        "total": 430,
+        "womenPercent": 31.2
+      },
+      {
+        "year": 2023,
+        "women": 177,
+        "total": 594,
+        "womenPercent": 29.8
+      },
+      {
+        "year": 2024,
+        "women": 185,
+        "total": 616,
+        "womenPercent": 30
+      },
+      {
+        "year": 2025,
+        "women": 213,
+        "total": 680,
+        "womenPercent": 31.3
+      },
+      {
+        "year": 2026,
+        "women": 274,
+        "total": 714,
+        "womenPercent": 38.4
+      }
+    ],
+    "womenGrowthYoY": [
+      {
+        "period": "2022-2023",
+        "growth": 43,
+        "growthPercent": 32
+      },
+      {
+        "period": "2023-2024",
+        "growth": 8,
+        "growthPercent": 5
+      },
+      {
+        "period": "2024-2025",
+        "growth": 28,
+        "growthPercent": 15
+      },
+      {
+        "period": "2025-2026",
+        "growth": 61,
+        "growthPercent": 29
+      }
+    ],
+    "womenTotalGrowth": {
+      "from": 134,
+      "to": 274,
+      "growth": 140,
+      "growthPercent": 104,
+      "shareFrom": 31.2,
+      "shareTo": 38.4
+    },
+    "newcomersByYear": [
+      {
+        "year": 2022,
+        "newcomers": 430,
+        "returning": 0,
+        "total": 430,
+        "newcomersPercent": 100,
+        "returningPercent": 0
+      },
+      {
+        "year": 2023,
+        "newcomers": 436,
+        "returning": 161,
+        "total": 597,
+        "newcomersPercent": 73,
+        "returningPercent": 27
+      },
+      {
+        "year": 2024,
+        "newcomers": 347,
+        "returning": 273,
+        "total": 620,
+        "newcomersPercent": 56,
+        "returningPercent": 44
+      },
+      {
+        "year": 2025,
+        "newcomers": 404,
+        "returning": 279,
+        "total": 683,
+        "newcomersPercent": 59,
+        "returningPercent": 41
+      },
+      {
+        "year": 2026,
+        "newcomers": 386,
+        "returning": 332,
+        "total": 718,
+        "newcomersPercent": 54,
+        "returningPercent": 46
+      }
+    ],
+    "veterans": {
+      "fiveRaces": [
+        {
+          "name": "Aitkazin Madiyar",
+          "club": "Alay.pro",
+          "gender": "M",
+          "participations": 5
+        },
+        {
+          "name": "Sambetova Zere",
+          "club": "Alay.pro",
+          "gender": "F",
+          "participations": 5
+        },
+        {
+          "name": "Abuov Arsen",
+          "club": "Alay.pro",
+          "gender": "M",
+          "participations": 5
+        },
+        {
+          "name": "Fedosseyev Vadim",
+          "club": "Barys KZ",
+          "gender": "M",
+          "participations": 5
+        },
+        {
+          "name": "Tomilov Viktor",
+          "club": "BP Contact",
+          "gender": "M",
+          "participations": 5
+        },
+        {
+          "name": "Yashin Alexandr",
+          "club": "I LOVERUNNING Almaty",
+          "gender": "M",
+          "participations": 5
+        },
+        {
+          "name": "Valiulina Diana",
+          "club": "Nike Run Club",
+          "gender": "F",
+          "participations": 5
+        },
+        {
+          "name": "Sakhiyev Zhandos",
+          "club": "Perfectum Team",
+          "gender": "M",
+          "participations": 5
+        },
+        {
+          "name": "Shatnaya Yekaterina",
+          "club": "SHATNAYA TEAM",
+          "gender": "F",
+          "participations": 5
+        },
+        {
+          "name": "Shilov Ivan",
+          "club": "SkyRunGroup",
+          "gender": "M",
+          "participations": 5
+        },
+        {
+          "name": "Chernyshov Ivan",
+          "club": "SkyRunGroup",
+          "gender": "M",
+          "participations": 5
+        },
+        {
+          "name": "Baikashev Shyngys",
+          "club": "SkyRunGroup",
+          "gender": "M",
+          "participations": 5
+        },
+        {
+          "name": "Krasnov Ivan",
+          "club": "TRC ALMATY",
+          "gender": "M",
+          "participations": 5
+        },
+        {
+          "name": "Gali Amir",
+          "club": "TriClub Esentai",
+          "gender": "M",
+          "participations": 5
+        },
+        {
+          "name": "Iskhakova Aigerim",
+          "club": "Young Runner",
+          "gender": "F",
+          "participations": 5
+        },
+        {
+          "name": "Tyngishev Kairat",
+          "club": null,
+          "gender": "M",
+          "participations": 5
+        },
+        {
+          "name": "Fedosseyev Ilya",
+          "club": null,
+          "gender": "M",
+          "participations": 5
+        },
+        {
+          "name": "Arginbaev Sayat",
+          "club": null,
+          "gender": "M",
+          "participations": 5
+        },
+        {
+          "name": "Tulebayev Baktygali",
+          "club": null,
+          "gender": "M",
+          "participations": 5
+        },
+        {
+          "name": "Amangeldina Saule",
+          "club": null,
+          "gender": "F",
+          "participations": 5
+        },
+        {
+          "name": "Laptev Sergey",
+          "club": null,
+          "gender": "M",
+          "participations": 5
+        },
+        {
+          "name": "Krukhmalyov Vladimir",
+          "club": "Боран",
+          "gender": "M",
+          "participations": 5
+        },
+        {
+          "name": "Matveev Nikita",
+          "club": "Отморозки",
+          "gender": "M",
+          "participations": 5
+        },
+        {
+          "name": "Dunenbayev Nurzhan",
+          "club": "Пограничная Академия",
+          "gender": "M",
+          "participations": 5
+        },
+        {
+          "name": "Akbayeva Madina",
+          "club": "Экстремальная Атлетика",
+          "gender": "F",
+          "participations": 5
+        }
+      ],
+      "fiveRacesCount": 25,
+      "fourRaces": [
+        {
+          "name": "Niyazov Eldar",
+          "club": "8848",
+          "gender": "M",
+          "participations": 4,
+          "years": [
+            2023,
+            2024,
+            2025,
+            2026
+          ]
+        },
+        {
+          "name": "Nuriev Askar",
+          "club": "Alatau Racing Team",
+          "gender": "M",
+          "participations": 4,
+          "years": [
+            2022,
+            2023,
+            2025,
+            2026
+          ]
+        },
+        {
+          "name": "Bayekenova Bibinur",
+          "club": "Alay.pro",
+          "gender": "F",
+          "participations": 4,
+          "years": [
+            2022,
+            2023,
+            2024,
+            2025
+          ]
+        },
+        {
+          "name": "Rozanov Pavel",
+          "club": "AUT team",
+          "gender": "M",
+          "participations": 4,
+          "years": [
+            2025,
+            2025,
+            2026,
+            2026
+          ]
+        },
+        {
+          "name": "Tazhiyev Koblandy",
+          "club": "Barys KZ",
+          "gender": "M",
+          "participations": 4,
+          "years": [
+            2023,
+            2024,
+            2025,
+            2026
+          ]
+        },
+        {
+          "name": "Zhetessova Guldana",
+          "club": "Barys KZ",
+          "gender": "F",
+          "participations": 4,
+          "years": [
+            2023,
+            2024,
+            2025,
+            2026
+          ]
+        },
+        {
+          "name": "Lyachshenko Alexey",
+          "club": "BCC RUN",
+          "gender": "M",
+          "participations": 4,
+          "years": [
+            2022,
+            2023,
+            2024,
+            2026
+          ]
+        },
+        {
+          "name": "Duben Nikolaj",
+          "club": "BUDOKAN",
+          "gender": "M",
+          "participations": 4,
+          "years": [
+            2024,
+            2024,
+            2025,
+            2026
+          ]
+        },
+        {
+          "name": "Cherkassova Oxana",
+          "club": "BUREVESTNIK KAZNU",
+          "gender": "F",
+          "participations": 4,
+          "years": [
+            2023,
+            2024,
+            2025,
+            2026
+          ]
+        },
+        {
+          "name": "Amanbaev Askar",
+          "club": "Coaching Running Club - Коучинговый Беговой Клуб",
+          "gender": "M",
+          "participations": 4,
+          "years": [
+            2022,
+            2023,
+            2024,
+            2025
+          ]
+        },
+        {
+          "name": "ZHOLDYBAYEV ARSEN",
+          "club": "Dem Al",
+          "gender": "M",
+          "participations": 4,
+          "years": [
+            2023,
+            2024,
+            2025,
+            2026
+          ]
+        },
+        {
+          "name": "KIM ALINA",
+          "club": "DV Team",
+          "gender": "F",
+          "participations": 4,
+          "years": [
+            2022,
+            2023,
+            2025,
+            2026
+          ]
+        },
+        {
+          "name": "MASHINSKAYA OLGA",
+          "club": "Fast Run Almaty",
+          "gender": "F",
+          "participations": 4,
+          "years": [
+            2023,
+            2024,
+            2025,
+            2026
+          ]
+        },
+        {
+          "name": "Baimbetov Yerdos",
+          "club": "Gussarov Track Club",
+          "gender": "M",
+          "participations": 4,
+          "years": [
+            2022,
+            2022,
+            2023,
+            2025
+          ]
+        },
+        {
+          "name": "Akbergen Yestay",
+          "club": "Gussarov Track Club",
+          "gender": "M",
+          "participations": 4,
+          "years": [
+            2022,
+            2024,
+            2024,
+            2025
+          ]
+        },
+        {
+          "name": "Kiyekbayeva Raushan",
+          "club": "Gussarov Track Club",
+          "gender": "F",
+          "participations": 4,
+          "years": [
+            2023,
+            2024,
+            2025,
+            2026
+          ]
+        },
+        {
+          "name": "Askarov Yerkin",
+          "club": "HomeRun",
+          "gender": "M",
+          "participations": 4,
+          "years": [
+            2022,
+            2023,
+            2024,
+            2025
+          ]
+        },
+        {
+          "name": "Umarbekov Rustam",
+          "club": "HomeRun",
+          "gender": "M",
+          "participations": 4,
+          "years": [
+            2022,
+            2023,
+            2024,
+            2025
+          ]
+        },
+        {
+          "name": "Vizuete Castro Pedro",
+          "club": "HomeRun",
+          "gender": "M",
+          "participations": 4,
+          "years": [
+            2023,
+            2024,
+            2025,
+            2026
+          ]
+        },
+        {
+          "name": "Ovcharenko Maxim",
+          "club": "HomeRun",
+          "gender": "M",
+          "participations": 4,
+          "years": [
+            2023,
+            2024,
+            2025,
+            2026
+          ]
+        },
+        {
+          "name": "Akishev Rakhat",
+          "club": "HomeRun",
+          "gender": "M",
+          "participations": 4,
+          "years": [
+            2023,
+            2024,
+            2025,
+            2026
+          ]
+        },
+        {
+          "name": "KOZHAYEVA ILSIYA",
+          "club": "HomeRun",
+          "gender": "F",
+          "participations": 4,
+          "years": [
+            2023,
+            2024,
+            2025,
+            2026
+          ]
+        },
+        {
+          "name": "Khlystov Vladislav",
+          "club": "Hookah run",
+          "gender": "M",
+          "participations": 4,
+          "years": [
+            2022,
+            2023,
+            2024,
+            2025
+          ]
+        },
+        {
+          "name": "Nessipzhan Marat",
+          "club": "I LOVERUNNING Almaty",
+          "gender": "M",
+          "participations": 4,
+          "years": [
+            2022,
+            2023,
+            2024,
+            2025
+          ]
+        },
+        {
+          "name": "AMANKULOVA Gulzhan",
+          "club": "IRBIS RUNNERS",
+          "gender": "F",
+          "participations": 4,
+          "years": [
+            2022,
+            2023,
+            2024,
+            2025
+          ]
+        },
+        {
+          "name": "Iyemberdiyev Diyas",
+          "club": "Kazmountclub",
+          "gender": "M",
+          "participations": 4,
+          "years": [
+            2024,
+            2024,
+            2025,
+            2025
+          ]
+        },
+        {
+          "name": "Ibragimov Sergey",
+          "club": "KITNG",
+          "gender": "M",
+          "participations": 4,
+          "years": [
+            2023,
+            2024,
+            2025,
+            2026
+          ]
+        },
+        {
+          "name": "Khitrov Dmitri",
+          "club": "Krida",
+          "gender": "M",
+          "participations": 4,
+          "years": [
+            2022,
+            2025,
+            2025,
+            2026
+          ]
+        },
+        {
+          "name": "Ilyassova Nazymgul",
+          "club": "LIKE A PRO",
+          "gender": "F",
+          "participations": 4,
+          "years": [
+            2023,
+            2024,
+            2025,
+            2026
+          ]
+        },
+        {
+          "name": "Mukhitova Assel",
+          "club": "Q14 Mountain Club",
+          "gender": "F",
+          "participations": 4,
+          "years": [
+            2023,
+            2024,
+            2025,
+            2026
+          ]
+        },
+        {
+          "name": "Ramazanov Kairat",
+          "club": "Run Content",
+          "gender": "M",
+          "participations": 4,
+          "years": [
+            2022,
+            2023,
+            2023,
+            2024
+          ]
+        },
+        {
+          "name": "Makarov Ivan",
+          "club": "RUN FOR FUN",
+          "gender": "M",
+          "participations": 4,
+          "years": [
+            2022,
+            2023,
+            2024,
+            2025
+          ]
+        },
+        {
+          "name": "KAIRZHANOVA ZHENIS",
+          "club": "RUN TIME ALMATY",
+          "gender": "F",
+          "participations": 4,
+          "years": [
+            2022,
+            2023,
+            2024,
+            2026
+          ]
+        },
+        {
+          "name": "Abdirakhman Dauren",
+          "club": "SBR School",
+          "gender": "M",
+          "participations": 4,
+          "years": [
+            2023,
+            2024,
+            2025,
+            2026
+          ]
+        },
+        {
+          "name": "Karabalin Sunkar",
+          "club": "SCIJ Kazakhstan",
+          "gender": "M",
+          "participations": 4,
+          "years": [
+            2023,
+            2024,
+            2025,
+            2026
+          ]
+        },
+        {
+          "name": "Nussipova Zhanna",
+          "club": "SHATNAYA TEAM",
+          "gender": "F",
+          "participations": 4,
+          "years": [
+            2022,
+            2024,
+            2025,
+            2026
+          ]
+        },
+        {
+          "name": "Kultazin Nurlan",
+          "club": "Ski Club Astana",
+          "gender": "M",
+          "participations": 4,
+          "years": [
+            2023,
+            2024,
+            2025,
+            2026
+          ]
+        },
+        {
+          "name": "Sagidolla Bagzhan",
+          "club": "SkyRunGroup",
+          "gender": "M",
+          "participations": 4,
+          "years": [
+            2022,
+            2023,
+            2024,
+            2025
+          ]
+        },
+        {
+          "name": "Berstenyov Alexey",
+          "club": "SkyRunGroup",
+          "gender": "M",
+          "participations": 4,
+          "years": [
+            2022,
+            2023,
+            2024,
+            2025
+          ]
+        },
+        {
+          "name": "Mishin Alexey",
+          "club": "SkyRunGroup",
+          "gender": "M",
+          "participations": 4,
+          "years": [
+            2023,
+            2023,
+            2024,
+            2024
+          ]
+        },
+        {
+          "name": "Kaimanova Dina",
+          "club": "SkyRunGroup",
+          "gender": "F",
+          "participations": 4,
+          "years": [
+            2023,
+            2024,
+            2025,
+            2026
+          ]
+        },
+        {
+          "name": "Possokhov Konstantin",
+          "club": "SkyRunGroup",
+          "gender": "M",
+          "participations": 4,
+          "years": [
+            2023,
+            2024,
+            2025,
+            2026
+          ]
+        },
+        {
+          "name": "Kisselyova Veronika",
+          "club": "SkyRunGroup",
+          "gender": "F",
+          "participations": 4,
+          "years": [
+            2023,
+            2024,
+            2025,
+            2026
+          ]
+        },
+        {
+          "name": "RASHIDOV ZHANNUR",
+          "club": "Sparta Kazakhstan",
+          "gender": "M",
+          "participations": 4,
+          "years": [
+            2023,
+            2024,
+            2025,
+            2026
+          ]
+        },
+        {
+          "name": "Baimbetov Kajrat",
+          "club": "SV TEAM",
+          "gender": "M",
+          "participations": 4,
+          "years": [
+            2023,
+            2024,
+            2025,
+            2026
+          ]
+        },
+        {
+          "name": "Agafonov Ivan",
+          "club": "Trail64",
+          "gender": "M",
+          "participations": 4,
+          "years": [
+            2023,
+            2024,
+            2025,
+            2026
+          ]
+        },
+        {
+          "name": "Kurmanov Meirzhan",
+          "club": "TRC ALMATY",
+          "gender": "M",
+          "participations": 4,
+          "years": [
+            2022,
+            2023,
+            2024,
+            2025
+          ]
+        },
+        {
+          "name": "Erzhanov Ruslan",
+          "club": "TriClub Esentai",
+          "gender": "M",
+          "participations": 4,
+          "years": [
+            2022,
+            2023,
+            2024,
+            2026
+          ]
+        },
+        {
+          "name": "Gabdullina Aliya",
+          "club": "Universal Bicycle Team",
+          "gender": "F",
+          "participations": 4,
+          "years": [
+            2023,
+            2024,
+            2025,
+            2026
+          ]
+        },
+        {
+          "name": "Kirsanov Alexandr",
+          "club": null,
+          "gender": "M",
+          "participations": 4,
+          "years": [
+            2022,
+            2023,
+            2025,
+            2026
+          ]
+        },
+        {
+          "name": "Aukenov Aidar",
+          "club": null,
+          "gender": "M",
+          "participations": 4,
+          "years": [
+            2022,
+            2023,
+            2024,
+            2025
+          ]
+        },
+        {
+          "name": "Kabylbekov Bakhyt",
+          "club": null,
+          "gender": "M",
+          "participations": 4,
+          "years": [
+            2022,
+            2023,
+            2024,
+            2025
+          ]
+        },
+        {
+          "name": "Sukhonossov Fedor",
+          "club": null,
+          "gender": "M",
+          "participations": 4,
+          "years": [
+            2022,
+            2022,
+            2023,
+            2023
+          ]
+        },
+        {
+          "name": "Amirbekov Talgat",
+          "club": null,
+          "gender": "M",
+          "participations": 4,
+          "years": [
+            2022,
+            2023,
+            2025,
+            2026
+          ]
+        },
+        {
+          "name": "kamarutdinov Fedirat",
+          "club": null,
+          "gender": "M",
+          "participations": 4,
+          "years": [
+            2022,
+            2023,
+            2024,
+            2026
+          ]
+        },
+        {
+          "name": "JUMANIYAZOVA AIGUL",
+          "club": null,
+          "gender": "F",
+          "participations": 4,
+          "years": [
+            2022,
+            2023,
+            2024,
+            2026
+          ]
+        },
+        {
+          "name": "Tolkunova Vera",
+          "club": null,
+          "gender": "F",
+          "participations": 4,
+          "years": [
+            2022,
+            2023,
+            2024,
+            2026
+          ]
+        },
+        {
+          "name": "Bal Emil",
+          "club": null,
+          "gender": "M",
+          "participations": 4,
+          "years": [
+            2022,
+            2023,
+            2024,
+            2025
+          ]
+        },
+        {
+          "name": "Tugelbaev Zhakan",
+          "club": null,
+          "gender": "M",
+          "participations": 4,
+          "years": [
+            2022,
+            2024,
+            2025,
+            2026
+          ]
+        },
+        {
+          "name": "Kolmakova Svetlana",
+          "club": null,
+          "gender": "F",
+          "participations": 4,
+          "years": [
+            2022,
+            2023,
+            2024,
+            2025
+          ]
+        },
+        {
+          "name": "Edelbay Saniya",
+          "club": null,
+          "gender": "F",
+          "participations": 4,
+          "years": [
+            2022,
+            2023,
+            2024,
+            2025
+          ]
+        },
+        {
+          "name": "Zhabassov Konstantin",
+          "club": null,
+          "gender": "M",
+          "participations": 4,
+          "years": [
+            2023,
+            2024,
+            2025,
+            2026
+          ]
+        },
+        {
+          "name": "Zhguta Olga",
+          "club": null,
+          "gender": "F",
+          "participations": 4,
+          "years": [
+            2023,
+            2024,
+            2024,
+            2026
+          ]
+        },
+        {
+          "name": "Fedoseeva Olga",
+          "club": null,
+          "gender": "F",
+          "participations": 4,
+          "years": [
+            2023,
+            2024,
+            2025,
+            2026
+          ]
+        },
+        {
+          "name": "Kozlov Alexandr",
+          "club": null,
+          "gender": "M",
+          "participations": 4,
+          "years": [
+            2023,
+            2024,
+            2025,
+            2026
+          ]
+        },
+        {
+          "name": "Emcev Efim",
+          "club": null,
+          "gender": "M",
+          "participations": 4,
+          "years": [
+            2023,
+            2024,
+            2025,
+            2026
+          ]
+        },
+        {
+          "name": "Klepikov Dmitriy",
+          "club": null,
+          "gender": "M",
+          "participations": 4,
+          "years": [
+            2023,
+            2024,
+            2025,
+            2026
+          ]
+        },
+        {
+          "name": "Techinov Ursul",
+          "club": null,
+          "gender": "M",
+          "participations": 4,
+          "years": [
+            2023,
+            2024,
+            2025,
+            2026
+          ]
+        },
+        {
+          "name": "Grenfell-Shaw Luke",
+          "club": null,
+          "gender": "M",
+          "participations": 4,
+          "years": [
+            2024,
+            2024,
+            2025,
+            2025
+          ]
+        },
+        {
+          "name": "Seit Madiyar",
+          "club": null,
+          "gender": "M",
+          "participations": 4,
+          "years": [
+            2024,
+            2024,
+            2025,
+            2025
+          ]
+        },
+        {
+          "name": "Lashas Stanislavas",
+          "club": null,
+          "gender": "M",
+          "participations": 4,
+          "years": [
+            2024,
+            2025,
+            2025,
+            2026
+          ]
+        },
+        {
+          "name": "Yelkin Sergey",
+          "club": null,
+          "gender": "M",
+          "participations": 4,
+          "years": [
+            2025,
+            2025,
+            2026,
+            2026
+          ]
+        },
+        {
+          "name": "Zaikov Denis",
+          "club": "Авантуристы",
+          "gender": "M",
+          "participations": 4,
+          "years": [
+            2023,
+            2023,
+            2024,
+            2025
+          ]
+        },
+        {
+          "name": "Karpov Ilya",
+          "club": "Беговая Кузница",
+          "gender": "M",
+          "participations": 4,
+          "years": [
+            2023,
+            2024,
+            2025,
+            2026
+          ]
+        },
+        {
+          "name": "Chernov Vitalij",
+          "club": "Кант",
+          "gender": "M",
+          "participations": 4,
+          "years": [
+            2024,
+            2024,
+            2025,
+            2026
+          ]
+        },
+        {
+          "name": "Karabaev Erkebulan",
+          "club": "Пограничная Академия",
+          "gender": "M",
+          "participations": 4,
+          "years": [
+            2022,
+            2022,
+            2023,
+            2025
+          ]
+        },
+        {
+          "name": "Yakovenko Vadim",
+          "club": "САС Runners",
+          "gender": "M",
+          "participations": 4,
+          "years": [
+            2022,
+            2023,
+            2024,
+            2025
+          ]
+        },
+        {
+          "name": "Gritsay Viktor",
+          "club": "Школа скандинавской ходьбы Евразия",
+          "gender": "M",
+          "participations": 4,
+          "years": [
+            2022,
+            2023,
+            2024,
+            2026
+          ]
+        },
+        {
+          "name": "Danilenko Yelena",
+          "club": "Экстремальная Атлетика",
+          "gender": "F",
+          "participations": 4,
+          "years": [
+            2022,
+            2023,
+            2024,
+            2025
+          ]
+        },
+        {
+          "name": "Erbolatuly Aidos",
+          "club": "Экстремальная Атлетика",
+          "gender": "M",
+          "participations": 4,
+          "years": [
+            2024,
+            2025,
+            2025,
+            2026
+          ]
+        }
+      ],
+      "fourRacesCount": 80,
+      "fourPlusTotal": 105
+    }
+  },
+  "clubs": {
+    "clubs2026Count": 115,
+    "uniqueClubsTotal": 212,
+    "clubsDynamics": [
+      {
+        "year": 2022,
+        "clubsCount": 17
+      },
+      {
+        "year": 2023,
+        "clubsCount": 23
+      },
+      {
+        "year": 2024,
+        "clubsCount": 87
+      },
+      {
+        "year": 2025,
+        "clubsCount": 100
+      },
+      {
+        "year": 2026,
+        "clubsCount": 115
+      }
+    ],
+    "clubsGrowthYoY": [
+      {
+        "period": "2022-2023",
+        "growth": 6,
+        "growthPercent": 35
+      },
+      {
+        "period": "2023-2024",
+        "growth": 64,
+        "growthPercent": 278
+      },
+      {
+        "period": "2024-2025",
+        "growth": 13,
+        "growthPercent": 15
+      },
+      {
+        "period": "2025-2026",
+        "growth": 15,
+        "growthPercent": 15
+      }
+    ],
+    "top10ByYear": {
+      "2022": [
+        {
+          "club": "Skyrun noobs",
+          "total": 2,
+          "men": 0,
+          "women": 2,
+          "womenPercent": 100
+        },
+        {
+          "club": "Golden Snitch",
+          "total": 2,
+          "men": 1,
+          "women": 1,
+          "womenPercent": 50
+        },
+        {
+          "club": "Каскад",
+          "total": 2,
+          "men": 2,
+          "women": 0,
+          "womenPercent": 0
+        },
+        {
+          "club": "Alay",
+          "total": 2,
+          "men": 2,
+          "women": 0,
+          "womenPercent": 0
+        },
+        {
+          "club": "персики",
+          "total": 2,
+          "men": 0,
+          "women": 2,
+          "womenPercent": 100
+        },
+        {
+          "club": "Salomon Team",
+          "total": 2,
+          "men": 1,
+          "women": 1,
+          "womenPercent": 50
+        },
+        {
+          "club": "Dinastia",
+          "total": 2,
+          "men": 0,
+          "women": 2,
+          "womenPercent": 100
+        },
+        {
+          "club": "J-run",
+          "total": 2,
+          "men": 2,
+          "women": 0,
+          "womenPercent": 0
+        },
+        {
+          "club": "Capture RC",
+          "total": 2,
+          "men": 2,
+          "women": 0,
+          "womenPercent": 0
+        },
+        {
+          "club": "Levin",
+          "total": 2,
+          "men": 2,
+          "women": 0,
+          "womenPercent": 0
+        }
+      ],
+      "2023": [
+        {
+          "club": "36",
+          "total": 2,
+          "men": 1,
+          "women": 1,
+          "womenPercent": 50
+        },
+        {
+          "club": "Xyka PAH",
+          "total": 2,
+          "men": 1,
+          "women": 1,
+          "womenPercent": 50
+        },
+        {
+          "club": "Семен Семеныч",
+          "total": 2,
+          "men": 1,
+          "women": 1,
+          "womenPercent": 50
+        },
+        {
+          "club": "World Class",
+          "total": 2,
+          "men": 1,
+          "women": 1,
+          "womenPercent": 50
+        },
+        {
+          "club": "Brave",
+          "total": 2,
+          "men": 2,
+          "women": 0,
+          "womenPercent": 0
+        },
+        {
+          "club": "Отморозки",
+          "total": 2,
+          "men": 1,
+          "women": 1,
+          "womenPercent": 50
+        },
+        {
+          "club": "Восток-Трейл",
+          "total": 2,
+          "men": 1,
+          "women": 1,
+          "womenPercent": 50
+        },
+        {
+          "club": "Vostok-Trail",
+          "total": 2,
+          "men": 2,
+          "women": 0,
+          "womenPercent": 0
+        },
+        {
+          "club": "Авантуристы",
+          "total": 2,
+          "men": 1,
+          "women": 1,
+          "womenPercent": 50
+        },
+        {
+          "club": "UBT Almaty",
+          "total": 2,
+          "men": 2,
+          "women": 0,
+          "womenPercent": 0
+        }
+      ],
+      "2024": [
+        {
+          "club": "Alay.pro",
+          "total": 29,
+          "men": 17,
+          "women": 12,
+          "womenPercent": 41
+        },
+        {
+          "club": "HomeRun",
+          "total": 28,
+          "men": 19,
+          "women": 9,
+          "womenPercent": 32
+        },
+        {
+          "club": "SkyRunGroup",
+          "total": 27,
+          "men": 20,
+          "women": 7,
+          "womenPercent": 26
+        },
+        {
+          "club": "Nike Run Club",
+          "total": 10,
+          "men": 6,
+          "women": 4,
+          "womenPercent": 40
+        },
+        {
+          "club": "Barys KZ",
+          "total": 8,
+          "men": 6,
+          "women": 2,
+          "womenPercent": 25
+        },
+        {
+          "club": "BUDOKAN",
+          "total": 8,
+          "men": 7,
+          "women": 1,
+          "womenPercent": 13
+        },
+        {
+          "club": "Perfectum Team",
+          "total": 8,
+          "men": 5,
+          "women": 3,
+          "womenPercent": 38
+        },
+        {
+          "club": "I LOVERUNNING Almaty",
+          "total": 7,
+          "men": 3,
+          "women": 4,
+          "womenPercent": 57
+        },
+        {
+          "club": "Экстремальная Атлетика",
+          "total": 7,
+          "men": 4,
+          "women": 3,
+          "womenPercent": 43
+        },
+        {
+          "club": "Gussarov Track Club",
+          "total": 7,
+          "men": 4,
+          "women": 3,
+          "womenPercent": 43
+        }
+      ],
+      "2025": [
+        {
+          "club": "Бег с удовольствием",
+          "total": 30,
+          "men": 10,
+          "women": 20,
+          "womenPercent": 67
+        },
+        {
+          "club": "HomeRun",
+          "total": 29,
+          "men": 21,
+          "women": 8,
+          "womenPercent": 28
+        },
+        {
+          "club": "SkyRunGroup",
+          "total": 26,
+          "men": 14,
+          "women": 12,
+          "womenPercent": 46
+        },
+        {
+          "club": "Alay.pro",
+          "total": 16,
+          "men": 9,
+          "women": 7,
+          "womenPercent": 44
+        },
+        {
+          "club": "Боран",
+          "total": 15,
+          "men": 15,
+          "women": 0,
+          "womenPercent": 0
+        },
+        {
+          "club": "Экстремальная Атлетика",
+          "total": 13,
+          "men": 8,
+          "women": 5,
+          "womenPercent": 38
+        },
+        {
+          "club": "Krida",
+          "total": 12,
+          "men": 8,
+          "women": 4,
+          "womenPercent": 33
+        },
+        {
+          "club": "Barys KZ",
+          "total": 9,
+          "men": 7,
+          "women": 2,
+          "womenPercent": 22
+        },
+        {
+          "club": "IRBIS RUNNERS",
+          "total": 9,
+          "men": 2,
+          "women": 7,
+          "womenPercent": 78
+        },
+        {
+          "club": "Gussarov Track Club",
+          "total": 7,
+          "men": 3,
+          "women": 4,
+          "womenPercent": 57
+        }
+      ],
+      "2026": [
+        {
+          "club": "HomeRun",
+          "total": 43,
+          "men": 27,
+          "women": 16,
+          "womenPercent": 37
+        },
+        {
+          "club": "Бег с удовольствием",
+          "total": 34,
+          "men": 14,
+          "women": 20,
+          "womenPercent": 59
+        },
+        {
+          "club": "SkyRunGroup",
+          "total": 20,
+          "men": 12,
+          "women": 8,
+          "womenPercent": 40
+        },
+        {
+          "club": "Alay.pro",
+          "total": 15,
+          "men": 9,
+          "women": 6,
+          "womenPercent": 40
+        },
+        {
+          "club": "LIKE A PRO",
+          "total": 11,
+          "men": 2,
+          "women": 9,
+          "womenPercent": 82
+        },
+        {
+          "club": "KOBA TEAM",
+          "total": 11,
+          "men": 11,
+          "women": 0,
+          "womenPercent": 0
+        },
+        {
+          "club": "8848",
+          "total": 10,
+          "men": 9,
+          "women": 1,
+          "womenPercent": 10
+        },
+        {
+          "club": "Krida",
+          "total": 10,
+          "men": 9,
+          "women": 1,
+          "womenPercent": 10
+        },
+        {
+          "club": "TriClub Esentai",
+          "total": 10,
+          "men": 8,
+          "women": 2,
+          "womenPercent": 20
+        },
+        {
+          "club": "Fast Run Almaty",
+          "total": 9,
+          "men": 5,
+          "women": 4,
+          "womenPercent": 44
+        }
+      ]
+    },
+    "top10ClubsGrowth": [
+      {
+        "club": "HomeRun",
+        "history": [
+          {
+            "year": 2022,
+            "total": 0,
+            "men": 0,
+            "women": 0
+          },
+          {
+            "year": 2023,
+            "total": 0,
+            "men": 0,
+            "women": 0
+          },
+          {
+            "year": 2024,
+            "total": 28,
+            "men": 19,
+            "women": 9
+          },
+          {
+            "year": 2025,
+            "total": 29,
+            "men": 21,
+            "women": 8
+          },
+          {
+            "year": 2026,
+            "total": 43,
+            "men": 27,
+            "women": 16
+          }
+        ],
+        "firstYear": 2024,
+        "growth": 15,
+        "growthPercent": 54,
+        "total2026": 43
+      },
+      {
+        "club": "Бег с удовольствием",
+        "history": [
+          {
+            "year": 2022,
+            "total": 0,
+            "men": 0,
+            "women": 0
+          },
+          {
+            "year": 2023,
+            "total": 0,
+            "men": 0,
+            "women": 0
+          },
+          {
+            "year": 2024,
+            "total": 2,
+            "men": 0,
+            "women": 2
+          },
+          {
+            "year": 2025,
+            "total": 30,
+            "men": 10,
+            "women": 20
+          },
+          {
+            "year": 2026,
+            "total": 34,
+            "men": 14,
+            "women": 20
+          }
+        ],
+        "firstYear": 2024,
+        "growth": 32,
+        "growthPercent": 1600,
+        "total2026": 34
+      },
+      {
+        "club": "SkyRunGroup",
+        "history": [
+          {
+            "year": 2022,
+            "total": 0,
+            "men": 0,
+            "women": 0
+          },
+          {
+            "year": 2023,
+            "total": 0,
+            "men": 0,
+            "women": 0
+          },
+          {
+            "year": 2024,
+            "total": 27,
+            "men": 20,
+            "women": 7
+          },
+          {
+            "year": 2025,
+            "total": 26,
+            "men": 14,
+            "women": 12
+          },
+          {
+            "year": 2026,
+            "total": 20,
+            "men": 12,
+            "women": 8
+          }
+        ],
+        "firstYear": 2024,
+        "growth": -7,
+        "growthPercent": -26,
+        "total2026": 20
+      },
+      {
+        "club": "Alay.pro",
+        "history": [
+          {
+            "year": 2022,
+            "total": 0,
+            "men": 0,
+            "women": 0
+          },
+          {
+            "year": 2023,
+            "total": 0,
+            "men": 0,
+            "women": 0
+          },
+          {
+            "year": 2024,
+            "total": 29,
+            "men": 17,
+            "women": 12
+          },
+          {
+            "year": 2025,
+            "total": 16,
+            "men": 9,
+            "women": 7
+          },
+          {
+            "year": 2026,
+            "total": 15,
+            "men": 9,
+            "women": 6
+          }
+        ],
+        "firstYear": 2024,
+        "growth": -14,
+        "growthPercent": -48,
+        "total2026": 15
+      },
+      {
+        "club": "LIKE A PRO",
+        "history": [
+          {
+            "year": 2022,
+            "total": 0,
+            "men": 0,
+            "women": 0
+          },
+          {
+            "year": 2023,
+            "total": 0,
+            "men": 0,
+            "women": 0
+          },
+          {
+            "year": 2024,
+            "total": 1,
+            "men": 1,
+            "women": 0
+          },
+          {
+            "year": 2025,
+            "total": 1,
+            "men": 0,
+            "women": 1
+          },
+          {
+            "year": 2026,
+            "total": 11,
+            "men": 2,
+            "women": 9
+          }
+        ],
+        "firstYear": 2024,
+        "growth": 10,
+        "growthPercent": 1000,
+        "total2026": 11
+      },
+      {
+        "club": "KOBA TEAM",
+        "history": [
+          {
+            "year": 2022,
+            "total": 0,
+            "men": 0,
+            "women": 0
+          },
+          {
+            "year": 2023,
+            "total": 0,
+            "men": 0,
+            "women": 0
+          },
+          {
+            "year": 2024,
+            "total": 0,
+            "men": 0,
+            "women": 0
+          },
+          {
+            "year": 2025,
+            "total": 4,
+            "men": 4,
+            "women": 0
+          },
+          {
+            "year": 2026,
+            "total": 11,
+            "men": 11,
+            "women": 0
+          }
+        ],
+        "firstYear": 2025,
+        "growth": 7,
+        "growthPercent": 175,
+        "total2026": 11
+      },
+      {
+        "club": "8848",
+        "history": [
+          {
+            "year": 2022,
+            "total": 0,
+            "men": 0,
+            "women": 0
+          },
+          {
+            "year": 2023,
+            "total": 0,
+            "men": 0,
+            "women": 0
+          },
+          {
+            "year": 2024,
+            "total": 0,
+            "men": 0,
+            "women": 0
+          },
+          {
+            "year": 2025,
+            "total": 3,
+            "men": 3,
+            "women": 0
+          },
+          {
+            "year": 2026,
+            "total": 10,
+            "men": 9,
+            "women": 1
+          }
+        ],
+        "firstYear": 2025,
+        "growth": 7,
+        "growthPercent": 233,
+        "total2026": 10
+      },
+      {
+        "club": "Krida",
+        "history": [
+          {
+            "year": 2022,
+            "total": 0,
+            "men": 0,
+            "women": 0
+          },
+          {
+            "year": 2023,
+            "total": 0,
+            "men": 0,
+            "women": 0
+          },
+          {
+            "year": 2024,
+            "total": 0,
+            "men": 0,
+            "women": 0
+          },
+          {
+            "year": 2025,
+            "total": 12,
+            "men": 8,
+            "women": 4
+          },
+          {
+            "year": 2026,
+            "total": 10,
+            "men": 9,
+            "women": 1
+          }
+        ],
+        "firstYear": 2025,
+        "growth": -2,
+        "growthPercent": -17,
+        "total2026": 10
+      },
+      {
+        "club": "TriClub Esentai",
+        "history": [
+          {
+            "year": 2022,
+            "total": 0,
+            "men": 0,
+            "women": 0
+          },
+          {
+            "year": 2023,
+            "total": 0,
+            "men": 0,
+            "women": 0
+          },
+          {
+            "year": 2024,
+            "total": 5,
+            "men": 5,
+            "women": 0
+          },
+          {
+            "year": 2025,
+            "total": 6,
+            "men": 5,
+            "women": 1
+          },
+          {
+            "year": 2026,
+            "total": 10,
+            "men": 8,
+            "women": 2
+          }
+        ],
+        "firstYear": 2024,
+        "growth": 5,
+        "growthPercent": 100,
+        "total2026": 10
+      },
+      {
+        "club": "Fast Run Almaty",
+        "history": [
+          {
+            "year": 2022,
+            "total": 0,
+            "men": 0,
+            "women": 0
+          },
+          {
+            "year": 2023,
+            "total": 0,
+            "men": 0,
+            "women": 0
+          },
+          {
+            "year": 2024,
+            "total": 3,
+            "men": 1,
+            "women": 2
+          },
+          {
+            "year": 2025,
+            "total": 5,
+            "men": 2,
+            "women": 3
+          },
+          {
+            "year": 2026,
+            "total": 9,
+            "men": 5,
+            "women": 4
+          }
+        ],
+        "firstYear": 2024,
+        "growth": 6,
+        "growthPercent": 200,
+        "total2026": 9
+      }
+    ],
+    "top10ClubsWomenGrowth": [
+      {
+        "club": "HomeRun",
+        "history": [
+          {
+            "year": 2022,
+            "women": 0,
+            "total": 0,
+            "womenPercent": null
+          },
+          {
+            "year": 2023,
+            "women": 0,
+            "total": 0,
+            "womenPercent": null
+          },
+          {
+            "year": 2024,
+            "women": 9,
+            "total": 28,
+            "womenPercent": 32
+          },
+          {
+            "year": 2025,
+            "women": 8,
+            "total": 29,
+            "womenPercent": 28
+          },
+          {
+            "year": 2026,
+            "women": 16,
+            "total": 43,
+            "womenPercent": 37
+          }
+        ],
+        "womenShareGrowth": 5,
+        "women2026": 16,
+        "womenPercent2026": 37
+      },
+      {
+        "club": "Бег с удовольствием",
+        "history": [
+          {
+            "year": 2022,
+            "women": 0,
+            "total": 0,
+            "womenPercent": null
+          },
+          {
+            "year": 2023,
+            "women": 0,
+            "total": 0,
+            "womenPercent": null
+          },
+          {
+            "year": 2024,
+            "women": 2,
+            "total": 2,
+            "womenPercent": 100
+          },
+          {
+            "year": 2025,
+            "women": 20,
+            "total": 30,
+            "womenPercent": 67
+          },
+          {
+            "year": 2026,
+            "women": 20,
+            "total": 34,
+            "womenPercent": 59
+          }
+        ],
+        "womenShareGrowth": -41,
+        "women2026": 20,
+        "womenPercent2026": 59
+      },
+      {
+        "club": "SkyRunGroup",
+        "history": [
+          {
+            "year": 2022,
+            "women": 0,
+            "total": 0,
+            "womenPercent": null
+          },
+          {
+            "year": 2023,
+            "women": 0,
+            "total": 0,
+            "womenPercent": null
+          },
+          {
+            "year": 2024,
+            "women": 7,
+            "total": 27,
+            "womenPercent": 26
+          },
+          {
+            "year": 2025,
+            "women": 12,
+            "total": 26,
+            "womenPercent": 46
+          },
+          {
+            "year": 2026,
+            "women": 8,
+            "total": 20,
+            "womenPercent": 40
+          }
+        ],
+        "womenShareGrowth": 14,
+        "women2026": 8,
+        "womenPercent2026": 40
+      },
+      {
+        "club": "Alay.pro",
+        "history": [
+          {
+            "year": 2022,
+            "women": 0,
+            "total": 0,
+            "womenPercent": null
+          },
+          {
+            "year": 2023,
+            "women": 0,
+            "total": 0,
+            "womenPercent": null
+          },
+          {
+            "year": 2024,
+            "women": 12,
+            "total": 29,
+            "womenPercent": 41
+          },
+          {
+            "year": 2025,
+            "women": 7,
+            "total": 16,
+            "womenPercent": 44
+          },
+          {
+            "year": 2026,
+            "women": 6,
+            "total": 15,
+            "womenPercent": 40
+          }
+        ],
+        "womenShareGrowth": -1,
+        "women2026": 6,
+        "womenPercent2026": 40
+      },
+      {
+        "club": "LIKE A PRO",
+        "history": [
+          {
+            "year": 2022,
+            "women": 0,
+            "total": 0,
+            "womenPercent": null
+          },
+          {
+            "year": 2023,
+            "women": 0,
+            "total": 0,
+            "womenPercent": null
+          },
+          {
+            "year": 2024,
+            "women": 0,
+            "total": 1,
+            "womenPercent": 0
+          },
+          {
+            "year": 2025,
+            "women": 1,
+            "total": 1,
+            "womenPercent": 100
+          },
+          {
+            "year": 2026,
+            "women": 9,
+            "total": 11,
+            "womenPercent": 82
+          }
+        ],
+        "womenShareGrowth": 82,
+        "women2026": 9,
+        "womenPercent2026": 82
+      },
+      {
+        "club": "KOBA TEAM",
+        "history": [
+          {
+            "year": 2022,
+            "women": 0,
+            "total": 0,
+            "womenPercent": null
+          },
+          {
+            "year": 2023,
+            "women": 0,
+            "total": 0,
+            "womenPercent": null
+          },
+          {
+            "year": 2024,
+            "women": 0,
+            "total": 0,
+            "womenPercent": null
+          },
+          {
+            "year": 2025,
+            "women": 0,
+            "total": 4,
+            "womenPercent": 0
+          },
+          {
+            "year": 2026,
+            "women": 0,
+            "total": 11,
+            "womenPercent": 0
+          }
+        ],
+        "womenShareGrowth": 0,
+        "women2026": 0,
+        "womenPercent2026": 0
+      },
+      {
+        "club": "8848",
+        "history": [
+          {
+            "year": 2022,
+            "women": 0,
+            "total": 0,
+            "womenPercent": null
+          },
+          {
+            "year": 2023,
+            "women": 0,
+            "total": 0,
+            "womenPercent": null
+          },
+          {
+            "year": 2024,
+            "women": 0,
+            "total": 0,
+            "womenPercent": null
+          },
+          {
+            "year": 2025,
+            "women": 0,
+            "total": 3,
+            "womenPercent": 0
+          },
+          {
+            "year": 2026,
+            "women": 1,
+            "total": 10,
+            "womenPercent": 10
+          }
+        ],
+        "womenShareGrowth": 10,
+        "women2026": 1,
+        "womenPercent2026": 10
+      },
+      {
+        "club": "Krida",
+        "history": [
+          {
+            "year": 2022,
+            "women": 0,
+            "total": 0,
+            "womenPercent": null
+          },
+          {
+            "year": 2023,
+            "women": 0,
+            "total": 0,
+            "womenPercent": null
+          },
+          {
+            "year": 2024,
+            "women": 0,
+            "total": 0,
+            "womenPercent": null
+          },
+          {
+            "year": 2025,
+            "women": 4,
+            "total": 12,
+            "womenPercent": 33
+          },
+          {
+            "year": 2026,
+            "women": 1,
+            "total": 10,
+            "womenPercent": 10
+          }
+        ],
+        "womenShareGrowth": -23,
+        "women2026": 1,
+        "womenPercent2026": 10
+      },
+      {
+        "club": "TriClub Esentai",
+        "history": [
+          {
+            "year": 2022,
+            "women": 0,
+            "total": 0,
+            "womenPercent": null
+          },
+          {
+            "year": 2023,
+            "women": 0,
+            "total": 0,
+            "womenPercent": null
+          },
+          {
+            "year": 2024,
+            "women": 0,
+            "total": 5,
+            "womenPercent": 0
+          },
+          {
+            "year": 2025,
+            "women": 1,
+            "total": 6,
+            "womenPercent": 17
+          },
+          {
+            "year": 2026,
+            "women": 2,
+            "total": 10,
+            "womenPercent": 20
+          }
+        ],
+        "womenShareGrowth": 20,
+        "women2026": 2,
+        "womenPercent2026": 20
+      },
+      {
+        "club": "Fast Run Almaty",
+        "history": [
+          {
+            "year": 2022,
+            "women": 0,
+            "total": 0,
+            "womenPercent": null
+          },
+          {
+            "year": 2023,
+            "women": 0,
+            "total": 0,
+            "womenPercent": null
+          },
+          {
+            "year": 2024,
+            "women": 2,
+            "total": 3,
+            "womenPercent": 67
+          },
+          {
+            "year": 2025,
+            "women": 3,
+            "total": 5,
+            "womenPercent": 60
+          },
+          {
+            "year": 2026,
+            "women": 4,
+            "total": 9,
+            "womenPercent": 44
+          }
+        ],
+        "womenShareGrowth": -23,
+        "women2026": 4,
+        "womenPercent2026": 44
+      }
+    ]
+  },
+  "distances": {
+    "distancesByYear": [
+      {
+        "year": 2022,
+        "distances": [
+          {
+            "distance": "VK 1000",
+            "total": 214,
+            "men": 160,
+            "women": 54,
+            "womenPercent": 25,
+            "clubsCount": 15
+          },
+          {
+            "distance": "SS 600",
+            "total": 126,
+            "men": 60,
+            "women": 66,
+            "womenPercent": 52,
+            "clubsCount": 16
+          },
+          {
+            "distance": "SR 1500",
+            "total": 115,
+            "men": 97,
+            "women": 18,
+            "womenPercent": 16,
+            "clubsCount": 1
+          }
+        ]
+      },
+      {
+        "year": 2023,
+        "distances": [
+          {
+            "distance": "VK 1000",
+            "total": 343,
+            "men": 256,
+            "women": 87,
+            "womenPercent": 25,
+            "clubsCount": 23
+          },
+          {
+            "distance": "SS 600",
+            "total": 172,
+            "men": 92,
+            "women": 80,
+            "womenPercent": 47,
+            "clubsCount": 22
+          },
+          {
+            "distance": "SR 1500",
+            "total": 58,
+            "men": 50,
+            "women": 8,
+            "womenPercent": 14,
+            "clubsCount": 0
+          },
+          {
+            "distance": "SR 1400",
+            "total": 53,
+            "men": 44,
+            "women": 9,
+            "womenPercent": 17,
+            "clubsCount": 0
+          }
+        ]
+      },
+      {
+        "year": 2024,
+        "distances": [
+          {
+            "distance": "VK 1000",
+            "total": 382,
+            "men": 276,
+            "women": 106,
+            "womenPercent": 28,
+            "clubsCount": 65
+          },
+          {
+            "distance": "SS 600",
+            "total": 157,
+            "men": 91,
+            "women": 66,
+            "womenPercent": 42,
+            "clubsCount": 39
+          },
+          {
+            "distance": "SR 1500",
+            "total": 66,
+            "men": 56,
+            "women": 10,
+            "womenPercent": 15,
+            "clubsCount": 19
+          },
+          {
+            "distance": "SR 1400",
+            "total": 48,
+            "men": 32,
+            "women": 16,
+            "womenPercent": 33,
+            "clubsCount": 15
+          }
+        ]
+      },
+      {
+        "year": 2025,
+        "distances": [
+          {
+            "distance": "VK 1000",
+            "total": 417,
+            "men": 288,
+            "women": 129,
+            "womenPercent": 31,
+            "clubsCount": 71
+          },
+          {
+            "distance": "SS 600",
+            "total": 160,
+            "men": 87,
+            "women": 73,
+            "womenPercent": 46,
+            "clubsCount": 39
+          },
+          {
+            "distance": "SR 1500",
+            "total": 87,
+            "men": 74,
+            "women": 13,
+            "womenPercent": 15,
+            "clubsCount": 28
+          },
+          {
+            "distance": "SR 1400",
+            "total": 50,
+            "men": 42,
+            "women": 8,
+            "womenPercent": 16,
+            "clubsCount": 19
+          }
+        ]
+      },
+      {
+        "year": 2026,
+        "distances": [
+          {
+            "distance": "VK 1000",
+            "total": 469,
+            "men": 292,
+            "women": 177,
+            "womenPercent": 38,
+            "clubsCount": 86
+          },
+          {
+            "distance": "SS 600",
+            "total": 172,
+            "men": 88,
+            "women": 84,
+            "womenPercent": 49,
+            "clubsCount": 49
+          },
+          {
+            "distance": "SR 1400",
+            "total": 79,
+            "men": 62,
+            "women": 17,
+            "womenPercent": 22,
+            "clubsCount": 21
+          },
+          {
+            "distance": "SR 1500",
+            "total": 27,
+            "men": 21,
+            "women": 6,
+            "womenPercent": 22,
+            "clubsCount": 11
+          }
+        ]
+      }
+    ],
+    "distanceGrowth": {
+      "SR 1500": {
+        "history": [
+          {
+            "year": 2022,
+            "total": 115,
+            "men": 97,
+            "women": 18,
+            "clubsCount": 1
+          },
+          {
+            "year": 2023,
+            "total": 58,
+            "men": 50,
+            "women": 8,
+            "clubsCount": 0
+          },
+          {
+            "year": 2024,
+            "total": 66,
+            "men": 56,
+            "women": 10,
+            "clubsCount": 19
+          },
+          {
+            "year": 2025,
+            "total": 87,
+            "men": 74,
+            "women": 13,
+            "clubsCount": 28
+          },
+          {
+            "year": 2026,
+            "total": 27,
+            "men": 21,
+            "women": 6,
+            "clubsCount": 11
+          }
+        ],
+        "growthPercent": -77
+      },
+      "VK 1000": {
+        "history": [
+          {
+            "year": 2022,
+            "total": 214,
+            "men": 160,
+            "women": 54,
+            "clubsCount": 15
+          },
+          {
+            "year": 2023,
+            "total": 343,
+            "men": 256,
+            "women": 87,
+            "clubsCount": 23
+          },
+          {
+            "year": 2024,
+            "total": 382,
+            "men": 276,
+            "women": 106,
+            "clubsCount": 65
+          },
+          {
+            "year": 2025,
+            "total": 417,
+            "men": 288,
+            "women": 129,
+            "clubsCount": 71
+          },
+          {
+            "year": 2026,
+            "total": 469,
+            "men": 292,
+            "women": 177,
+            "clubsCount": 86
+          }
+        ],
+        "growthPercent": 119
+      },
+      "SS 600": {
+        "history": [
+          {
+            "year": 2022,
+            "total": 126,
+            "men": 60,
+            "women": 66,
+            "clubsCount": 16
+          },
+          {
+            "year": 2023,
+            "total": 172,
+            "men": 92,
+            "women": 80,
+            "clubsCount": 22
+          },
+          {
+            "year": 2024,
+            "total": 157,
+            "men": 91,
+            "women": 66,
+            "clubsCount": 39
+          },
+          {
+            "year": 2025,
+            "total": 160,
+            "men": 87,
+            "women": 73,
+            "clubsCount": 39
+          },
+          {
+            "year": 2026,
+            "total": 172,
+            "men": 88,
+            "women": 84,
+            "clubsCount": 49
+          }
+        ],
+        "growthPercent": 37
+      },
+      "SR 1400": {
+        "history": [
+          {
+            "year": 2022,
+            "total": 0,
+            "men": 0,
+            "women": 0,
+            "clubsCount": 0
+          },
+          {
+            "year": 2023,
+            "total": 53,
+            "men": 44,
+            "women": 9,
+            "clubsCount": 0
+          },
+          {
+            "year": 2024,
+            "total": 48,
+            "men": 32,
+            "women": 16,
+            "clubsCount": 15
+          },
+          {
+            "year": 2025,
+            "total": 50,
+            "men": 42,
+            "women": 8,
+            "clubsCount": 19
+          },
+          {
+            "year": 2026,
+            "total": 79,
+            "men": 62,
+            "women": 17,
+            "clubsCount": 21
+          }
+        ],
+        "growthPercent": 49
+      }
+    },
+    "allDistances": [
+      "SR 1400",
+      "SR 1500",
+      "SS 600",
+      "VK 1000"
+    ]
+  }
+}

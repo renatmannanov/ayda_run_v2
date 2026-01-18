@@ -1,0 +1,1037 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ayda — Race Result Card</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --white: #FFFFFF;
+            --off-white: #FAFAFA;
+            --gray-50: #F9FAFB;
+            --gray-100: #F3F4F6;
+            --gray-200: #E5E7EB;
+            --gray-400: #9CA3AF;
+            --gray-500: #6B7280;
+            --gray-600: #4B5563;
+            --gray-800: #1F2937;
+            --gray-900: #111827;
+            
+            --accent: #C85A3B;
+            --accent-light: #E8DDD8;
+            --accent-bg: rgba(200, 90, 59, 0.08);
+            
+            --gold: #D4A853;
+            --silver: #8B95A1;
+            --bronze: #A67C52;
+        }
+
+        body {
+            font-family: 'Manrope', -apple-system, sans-serif;
+            background: var(--gray-100);
+            min-height: 100vh;
+            padding: 40px;
+        }
+
+        h1 {
+            color: var(--gray-800);
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .section-title {
+            color: var(--gray-600);
+            font-size: 14px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin: 40px 0 20px;
+            text-align: center;
+        }
+
+        .export-panel {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            margin: 20px 0 40px;
+        }
+
+        .export-btn {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+
+        .export-btn:hover { transform: scale(1.02); }
+        .export-btn:active { transform: scale(0.98); }
+
+        .cards-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 30px;
+            justify-content: center;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .card-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .card-label {
+            color: var(--gray-500);
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        /* ==================== BASE CARD ==================== */
+        .card {
+            background: var(--white);
+            position: relative;
+            overflow: hidden;
+            border-radius: 4px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        }
+
+        .card-post {
+            width: 405px;
+            height: 506px; /* 4:5 ratio */
+        }
+
+        .card-story {
+            width: 324px;
+            height: 576px; /* 9:16 ratio */
+        }
+
+        .logo-mark {
+            position: absolute;
+            bottom: 16px;
+            right: 16px;
+            font-size: 14px;
+            font-weight: 800;
+            color: var(--gray-200);
+            letter-spacing: -0.5px;
+        }
+
+        /* ==================== FORMAT A: SINGLE CARD ==================== */
+        .format-a {
+            display: flex;
+            flex-direction: column;
+            padding: 0;
+        }
+
+        /* Race name - below time */
+        .race-name {
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--accent);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-top: 10px;
+        }
+
+        .hero-time-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--gray-500);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 6px;
+        }
+
+        /* Hero Block */
+        .hero-block {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            text-align: center;
+        }
+
+        .participant-name {
+            font-size: 24px;
+            font-weight: 800;
+            color: var(--gray-900);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .participant-club {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--accent);
+            margin-top: 4px;
+        }
+
+        .time-block {
+            margin: 20px 0;
+            padding: 20px 40px;
+            background: var(--gray-50);
+            border-radius: 16px;
+        }
+
+        .hero-time {
+            font-size: 56px;
+            font-weight: 800;
+            color: var(--gray-900);
+            letter-spacing: -2px;
+            line-height: 1;
+        }
+
+        /* Metrics Grid */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            padding: 0 20px 16px;
+        }
+
+        .metric-card {
+            background: var(--gray-50);
+            border-radius: 10px;
+            padding: 12px 8px;
+            text-align: center;
+        }
+
+        .metric-value {
+            font-size: 22px;
+            font-weight: 800;
+            color: var(--gray-900);
+        }
+
+        .metric-label {
+            font-size: 10px;
+            font-weight: 600;
+            color: var(--gray-500);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-top: 2px;
+        }
+
+        .metric-card.accent {
+            background: var(--accent-bg);
+            border: 1px solid rgba(200, 90, 59, 0.15);
+        }
+
+        .metric-card.accent .metric-value {
+            color: var(--accent);
+        }
+
+        /* Medal styles */
+        .metric-card.gold { background: linear-gradient(135deg, #FEF9E7 0%, #FCF3CF 100%); border: 1px solid rgba(212, 168, 83, 0.3); }
+        .metric-card.gold .metric-value { color: var(--gold); }
+        
+        .metric-card.silver { background: linear-gradient(135deg, #F8F9FA 0%, #E9ECEF 100%); border: 1px solid rgba(139, 149, 161, 0.3); }
+        .metric-card.silver .metric-value { color: var(--silver); }
+        
+        .metric-card.bronze { background: linear-gradient(135deg, #FDF2E9 0%, #FAE5D3 100%); border: 1px solid rgba(166, 124, 82, 0.3); }
+        .metric-card.bronze .metric-value { color: var(--bronze); }
+
+        .medal-icon {
+            font-size: 16px;
+            margin-right: 4px;
+        }
+
+        /* Elevation Profile */
+        .elevation-section {
+            padding: 12px 20px 16px;
+        }
+
+        .elevation-title {
+            font-size: 10px;
+            font-weight: 700;
+            color: var(--gray-400);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+        }
+
+        .elevation-chart {
+            width: 100%;
+            height: 60px;
+            position: relative;
+        }
+
+        .elevation-svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        .elevation-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 9px;
+            color: var(--gray-400);
+            margin-top: 4px;
+        }
+
+        /* Footer */
+        .card-footer {
+            padding: 14px 24px;
+            border-top: 1px solid var(--gray-100);
+        }
+
+        .footer-credits {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            font-size: 10px;
+            color: var(--gray-400);
+        }
+
+        .footer-credits span {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .footer-credits .label {
+            color: var(--gray-400);
+        }
+
+        .footer-credits .value {
+            color: var(--gray-600);
+            font-weight: 600;
+        }
+
+        .footer-credits .ayda-val {
+            font-weight: 800;
+            color: var(--gray-700);
+        }
+
+        .footer-credits .beta {
+            font-size: 7px;
+            color: var(--accent);
+            vertical-align: super;
+        }
+
+        /* ==================== FORMAT B: CAROUSEL ==================== */
+        .carousel-slide {
+            width: 405px;
+            height: 506px;
+            background: var(--white);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            border-radius: 4px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        }
+
+        /* Slide 1: Main Result */
+        .slide-main {
+            padding: 32px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+
+        .slide-main .participant-name {
+            font-size: 28px;
+        }
+
+        .slide-main .time-block {
+            margin: 24px 0;
+        }
+
+        .slide-main .hero-time {
+            font-size: 64px;
+        }
+
+        .quick-stats {
+            display: flex;
+            gap: 16px;
+            margin-top: 20px;
+        }
+
+        .quick-stat {
+            background: var(--gray-50);
+            padding: 12px 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .quick-stat .value {
+            font-size: 20px;
+            font-weight: 800;
+            color: var(--gray-900);
+        }
+
+        .quick-stat .label {
+            font-size: 10px;
+            font-weight: 600;
+            color: var(--gray-500);
+            text-transform: uppercase;
+            margin-top: 2px;
+        }
+
+        .swipe-hint {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--gray-400);
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        /* Slide 2: Details */
+        .slide-details {
+            padding: 28px;
+        }
+
+        .slide-header {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--gray-900);
+            margin-bottom: 20px;
+        }
+
+        .details-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .race-description {
+            background: var(--gray-50);
+            border-radius: 12px;
+            padding: 16px;
+            margin-top: auto;
+        }
+
+        .race-desc-title {
+            font-size: 10px;
+            font-weight: 700;
+            color: var(--gray-400);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+
+        .race-desc-text {
+            font-size: 13px;
+            color: var(--gray-600);
+            line-height: 1.5;
+        }
+
+        /* Toggle buttons */
+        .slide-toggle {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+
+        .toggle-btn {
+            padding: 6px 12px;
+            border: 1px solid var(--gray-200);
+            background: white;
+            border-radius: 6px;
+            font-family: inherit;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--gray-500);
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .toggle-btn:hover {
+            border-color: var(--gray-300);
+        }
+
+        .toggle-btn.active {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: white;
+        }
+
+        /* Elevation container for slide 2 variant */
+        .elevation-container {
+            background: var(--gray-50);
+            border-radius: 12px;
+            padding: 16px;
+            margin-top: auto;
+        }
+
+        .elevation-container .elevation-title {
+            font-size: 10px;
+            font-weight: 700;
+            color: var(--gray-400);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 12px;
+        }
+
+        .elevation-container .elevation-chart {
+            height: 80px;
+        }
+
+        .elevation-container .elevation-svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        .elevation-container .elevation-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 10px;
+            color: var(--gray-500);
+            margin-top: 8px;
+        }
+
+        /* Slide 3: Splits */
+        .slide-splits {
+            padding: 28px;
+        }
+
+        .splits-table {
+            width: 100%;
+            background: var(--gray-50);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .split-row {
+            display: grid;
+            grid-template-columns: 1.2fr 1fr 1fr;
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--gray-100);
+            align-items: center;
+        }
+
+        .split-row:last-child {
+            border-bottom: none;
+        }
+
+        .split-row.header {
+            background: var(--gray-100);
+        }
+
+        .split-row.header span {
+            font-size: 10px;
+            font-weight: 700;
+            color: var(--gray-500);
+            text-transform: uppercase;
+        }
+
+        .split-name {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--gray-800);
+        }
+
+        .split-time {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--gray-900);
+            text-align: center;
+        }
+
+        .split-pace {
+            font-size: 12px;
+            color: var(--gray-500);
+            text-align: right;
+        }
+
+        .split-row.finish {
+            background: var(--accent-bg);
+        }
+
+        .split-row.finish .split-name {
+            color: var(--accent);
+        }
+
+        .split-row.finish .split-time {
+            color: var(--accent);
+        }
+
+        .credits-section {
+            margin-top: auto;
+            padding-top: 16px;
+        }
+
+        .credits-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 10px;
+        }
+
+        .credit-item {
+            background: var(--gray-50);
+            padding: 12px 10px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .credit-label {
+            font-size: 8px;
+            font-weight: 700;
+            color: var(--gray-400);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 6px;
+        }
+
+        .credit-value {
+            font-size: 12px;
+            font-weight: 800;
+            color: var(--gray-800);
+        }
+
+        .credit-link {
+            font-size: 9px;
+            color: var(--gray-500);
+            margin-top: 2px;
+        }
+
+        .credit-link a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+
+        /* Ayda credit item */
+        .credit-item.ayda {
+            background: var(--accent-bg);
+        }
+
+        .credit-item.ayda .credit-value {
+            color: var(--gray-900);
+        }
+
+        .ayda-logo-small {
+            font-size: 14px;
+            font-weight: 800;
+            color: var(--gray-800);
+        }
+
+        .ayda-logo-small .beta {
+            font-size: 7px;
+            font-weight: 700;
+            color: var(--accent);
+            background: white;
+            padding: 1px 4px;
+            border-radius: 3px;
+            margin-left: 4px;
+            vertical-align: super;
+        }
+    </style>
+</head>
+<body>
+    <h1>Карточка результатов гонки</h1>
+    <p style="text-align: center; color: var(--gray-500); margin-bottom: 10px;">Дизайн для соцсетей участника Amangeldy Race 2026</p>
+
+    <div class="export-panel">
+        <button class="export-btn" onclick="exportAll()">📥 Экспорт всех карточек в PNG</button>
+    </div>
+
+    <!-- ==================== FORMAT A: SINGLE POST ==================== -->
+    <div class="section-title">Формат A: Один пост (1080×1350)</div>
+    
+    <div class="cards-container">
+        <div class="card-wrapper">
+            <span class="card-label">Топ-3 результат</span>
+            <div class="card card-post format-a" id="card-a-top">
+                <div class="hero-block">
+                    <div class="participant-name">Иван Шилов</div>
+                    <div class="participant-club">SkyRunGroup</div>
+                    
+                    <div class="time-block">
+                        <div class="hero-time-label">финишное время</div>
+                        <div class="hero-time">01:58:24</div>
+                        <div class="race-name">Amangeldy Race 2026</div>
+                    </div>
+                </div>
+
+                <div class="metrics-grid">
+                    <div class="metric-card bronze">
+                        <div class="metric-value"><span class="medal-icon">🥉</span>3</div>
+                        <div class="metric-label">место</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">1/89</div>
+                        <div class="metric-label">в категории</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">8:28</div>
+                        <div class="metric-label">мин/км</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">M30-39</div>
+                        <div class="metric-label">категория</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">14 км</div>
+                        <div class="metric-label">дистанция</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">5°</div>
+                        <div class="metric-label">абсолют муж.</div>
+                    </div>
+                </div>
+
+                <div class="card-footer">
+                    <div class="footer-credits">
+                        <span><span class="label">Организатор</span> <span class="value">AthleteX</span></span>
+                        <span><span class="label">Хронометраж</span> <span class="value">MyRace</span></span>
+                        <span><span class="label">Сгенерировано</span> <span class="ayda-val">ayda<span class="beta">β</span></span></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card-wrapper">
+            <span class="card-label">Обычный результат</span>
+            <div class="card card-post format-a" id="card-a-regular">
+                <div class="hero-block">
+                    <div class="participant-name">Мария Козлова</div>
+                    <div class="participant-club">Бег с удовольствием</div>
+                    
+                    <div class="time-block">
+                        <div class="hero-time-label">финишное время</div>
+                        <div class="hero-time">03:12:45</div>
+                        <div class="race-name">Amangeldy Race 2026</div>
+                    </div>
+                </div>
+
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <div class="metric-value">156</div>
+                        <div class="metric-label">место</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">23/45</div>
+                        <div class="metric-label">в категории</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">13:46</div>
+                        <div class="metric-label">мин/км</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">F30-39</div>
+                        <div class="metric-label">категория</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">14 км</div>
+                        <div class="metric-label">дистанция</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">64°</div>
+                        <div class="metric-label">абсолют жен.</div>
+                    </div>
+                </div>
+
+                <div class="card-footer">
+                    <div class="footer-credits">
+                        <span><span class="label">Организатор</span> <span class="value">AthleteX</span></span>
+                        <span><span class="label">Хронометраж</span> <span class="value">MyRace</span></span>
+                        <span><span class="label">Сгенерировано</span> <span class="ayda-val">ayda<span class="beta">β</span></span></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== FORMAT B: CAROUSEL ==================== -->
+    <div class="section-title">Формат B: Мини-карусель (3 слайда)</div>
+
+    <div class="cards-container">
+        <!-- Slide 1: Main Result -->
+        <div class="card-wrapper">
+            <span class="card-label">Слайд 1: Главный результат</span>
+            <div class="carousel-slide slide-main" id="slide-1">
+                <div class="participant-name">Иван Шилов</div>
+                <div class="participant-club">SkyRunGroup</div>
+                
+                <div class="time-block">
+                    <div class="hero-time-label">финишное время</div>
+                    <div class="hero-time">01:58:24</div>
+                    <div class="race-name">Amangeldy Race 2026</div>
+                </div>
+
+                <div class="quick-stats">
+                    <div class="quick-stat">
+                        <div class="value">🥉 3</div>
+                        <div class="label">место</div>
+                    </div>
+                    <div class="quick-stat">
+                        <div class="value">14 км</div>
+                        <div class="label">дистанция</div>
+                    </div>
+                </div>
+
+                <div class="swipe-hint">листай →</div>
+                <div class="logo-mark">ayda</div>
+            </div>
+        </div>
+
+        <!-- Slide 2: Details -->
+        <div class="card-wrapper">
+            <span class="card-label">Слайд 2: Детали</span>
+            <div class="slide-toggle">
+                <button class="toggle-btn active" onclick="showSlideVariant('basic')">Базовый</button>
+                <button class="toggle-btn" onclick="showSlideVariant('elevation')">С высотой</button>
+            </div>
+            
+            <!-- Вариант A: Базовый (без данных о высоте) -->
+            <div class="carousel-slide slide-details" id="slide-2" data-variant="basic">
+                <div class="slide-header">Детали забега</div>
+
+                <div class="details-grid">
+                    <div class="metric-card bronze">
+                        <div class="metric-value">🥉 3</div>
+                        <div class="metric-label">место</div>
+                    </div>
+                    <div class="metric-card gold">
+                        <div class="metric-value">🥇 1/89</div>
+                        <div class="metric-label">в категории</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">5°</div>
+                        <div class="metric-label">абсолют муж.</div>
+                    </div>
+                    <div class="metric-card accent">
+                        <div class="metric-value">VK 1000</div>
+                        <div class="metric-label">гонка</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">5 км</div>
+                        <div class="metric-label">дистанция</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">+1000м</div>
+                        <div class="metric-label">набор</div>
+                    </div>
+                </div>
+
+                <div class="race-description">
+                    <div class="race-desc-title">О гонке</div>
+                    <div class="race-desc-text">
+                        Вертикальный километр — забег с набором высоты 1000+ метров. 
+                        Финиш у подножия пика Амангельды.
+                    </div>
+                </div>
+
+                <div class="swipe-hint">листай →</div>
+                <div class="logo-mark">ayda</div>
+            </div>
+            
+            <!-- Вариант B: С профилем высоты (если есть данные) -->
+            <div class="carousel-slide slide-details" id="slide-2-elevation" data-variant="elevation" style="display: none;">
+                <div class="slide-header">Детали забега</div>
+
+                <div class="details-grid">
+                    <div class="metric-card bronze">
+                        <div class="metric-value">🥉 3</div>
+                        <div class="metric-label">место</div>
+                    </div>
+                    <div class="metric-card gold">
+                        <div class="metric-value">🥇 1/89</div>
+                        <div class="metric-label">в категории</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">5°</div>
+                        <div class="metric-label">абсолют муж.</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">2850м</div>
+                        <div class="metric-label">старт</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">+1000м</div>
+                        <div class="metric-label">набор</div>
+                    </div>
+                    <div class="metric-card accent">
+                        <div class="metric-value">3850м</div>
+                        <div class="metric-label">финиш</div>
+                    </div>
+                </div>
+
+                <div class="elevation-container">
+                    <div class="elevation-title">Профиль высоты</div>
+                    <div class="elevation-chart">
+                        <svg class="elevation-svg" viewBox="0 0 340 80" preserveAspectRatio="none">
+                            <defs>
+                                <linearGradient id="elevGrad3" x1="0%" y1="0%" x2="0%" y2="100%">
+                                    <stop offset="0%" style="stop-color:#C85A3B;stop-opacity:0.25" />
+                                    <stop offset="100%" style="stop-color:#C85A3B;stop-opacity:0.02" />
+                                </linearGradient>
+                            </defs>
+                            <path d="M0,72 C40,68 80,60 120,50 C160,40 200,28 240,18 C280,10 320,4 340,0 L340,80 L0,80 Z" fill="url(#elevGrad3)" />
+                            <path d="M0,72 C40,68 80,60 120,50 C160,40 200,28 240,18 C280,10 320,4 340,0" stroke="#C85A3B" stroke-width="3" fill="none" stroke-linecap="round" />
+                            <circle cx="0" cy="72" r="5" fill="#9CA3AF" />
+                            <circle cx="340" cy="0" r="6" fill="#C85A3B" />
+                        </svg>
+                    </div>
+                    <div class="elevation-labels">
+                        <span>Старт 2850м</span>
+                        <span>Финиш 3850м</span>
+                    </div>
+                </div>
+
+                <div class="swipe-hint">листай →</div>
+                <div class="logo-mark">ayda</div>
+            </div>
+        </div>
+
+        <!-- Slide 3: Splits -->
+        <div class="card-wrapper">
+            <span class="card-label">Слайд 3: Сплиты</span>
+            <div class="carousel-slide slide-splits" id="slide-3">
+                <div class="slide-header">Сплиты по точкам</div>
+
+                <div class="splits-table">
+                    <div class="split-row header">
+                        <span>Точка</span>
+                        <span>Время</span>
+                        <span>Темп</span>
+                    </div>
+                    <div class="split-row">
+                        <span class="split-name">CP1 (5 км)</span>
+                        <span class="split-time">00:38:12</span>
+                        <span class="split-pace">7:38 /км</span>
+                    </div>
+                    <div class="split-row">
+                        <span class="split-name">CP2 (9 км)</span>
+                        <span class="split-time">01:12:45</span>
+                        <span class="split-pace">8:38 /км</span>
+                    </div>
+                    <div class="split-row">
+                        <span class="split-name">CP3 (12 км)</span>
+                        <span class="split-time">01:35:30</span>
+                        <span class="split-pace">7:35 /км</span>
+                    </div>
+                    <div class="split-row finish">
+                        <span class="split-name">Финиш (14 км)</span>
+                        <span class="split-time">01:58:24</span>
+                        <span class="split-pace">11:27 /км</span>
+                    </div>
+                </div>
+
+                <div class="credits-section">
+                    <div class="credits-grid">
+                        <div class="credit-item">
+                            <div class="credit-label">Организатор</div>
+                            <div class="credit-value">AthleteX</div>
+                            <div class="credit-link"><a href="https://athletex.kz">athletex.kz</a></div>
+                        </div>
+                        <div class="credit-item">
+                            <div class="credit-label">Хронометраж</div>
+                            <div class="credit-value">MyRace</div>
+                            <div class="credit-link"><a href="https://live.myrace.info">myrace.info</a></div>
+                        </div>
+                        <div class="credit-item ayda">
+                            <div class="credit-label">Сгенерировано</div>
+                            <div class="ayda-logo-small">ayda<span class="beta">β</span></div>
+                            <div class="credit-link"><a href="https://t.me/ayda_almaty">@ayda_almaty</a></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="logo-mark">ayda</div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script>
+        // Toggle slide variants
+        function showSlideVariant(variant) {
+            const basicSlide = document.getElementById('slide-2');
+            const elevationSlide = document.getElementById('slide-2-elevation');
+            const buttons = document.querySelectorAll('.toggle-btn');
+            
+            if (variant === 'basic') {
+                basicSlide.style.display = 'flex';
+                elevationSlide.style.display = 'none';
+            } else {
+                basicSlide.style.display = 'none';
+                elevationSlide.style.display = 'flex';
+            }
+            
+            buttons.forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.textContent.includes(variant === 'basic' ? 'Базовый' : 'высотой')) {
+                    btn.classList.add('active');
+                }
+            });
+        }
+
+        async function exportAll() {
+            const elements = [
+                { el: document.getElementById('card-a-top'), name: 'race-result-top3' },
+                { el: document.getElementById('card-a-regular'), name: 'race-result-regular' },
+                { el: document.getElementById('slide-1'), name: 'carousel-slide-1' },
+                { el: document.getElementById('slide-2'), name: 'carousel-slide-2' },
+                { el: document.getElementById('slide-3'), name: 'carousel-slide-3' },
+            ];
+
+            const btn = document.querySelector('.export-btn');
+            const originalText = btn.textContent;
+            btn.disabled = true;
+
+            for (let i = 0; i < elements.length; i++) {
+                const { el, name } = elements[i];
+                btn.textContent = `⏳ ${i + 1}/${elements.length}...`;
+
+                const targetWidth = 1080;
+                const scale = targetWidth / el.offsetWidth;
+
+                try {
+                    const canvas = await html2canvas(el, {
+                        scale: scale,
+                        backgroundColor: '#FFFFFF',
+                        useCORS: true,
+                        logging: false
+                    });
+
+                    const link = document.createElement('a');
+                    link.download = `ayda-${name}.png`;
+                    link.href = canvas.toDataURL('image/png');
+                    link.click();
+
+                    await new Promise(r => setTimeout(r, 400));
+                } catch (err) {
+                    console.error(`Error exporting ${name}:`, err);
+                }
+            }
+
+            btn.textContent = '✅ Готово!';
+            setTimeout(() => {
+                btn.textContent = originalText;
+                btn.disabled = false;
+            }, 2000);
+        }
+    </script>
+</body>
+</html>

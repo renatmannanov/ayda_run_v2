@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="carousel-slide slide-splits">
+    <div class="slide-header">{% if participant.has_checkpoints %}Сплиты по точкам{% else %}Итоговый результат{% endif %}</div>
+
+    {% if participant.has_checkpoints %}
+    <div class="splits-table">
+        <div class="split-row header">
+            <span>Точка</span>
+            <span>Время</span>
+            <span>Темп</span>
+        </div>
+        {% for cp in participant.checkpoints %}
+        <div class="split-row {% if loop.last %}finish{% endif %}">
+            <span class="split-name">{{ cp.name }}{% if cp.distance_km %} ({{ cp.distance_km|int }} км){% endif %}</span>
+            <span class="split-time">{{ cp.time }}</span>
+            <span class="split-pace">{{ cp.pace if cp.pace else '—' }}</span>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    {# No checkpoints - show summary metrics #}
+    <div class="splits-table">
+        <div class="split-row header">
+            <span>Показатель</span>
+            <span colspan="2">Значение</span>
+        </div>
+        <div class="split-row">
+            <span class="split-name">Финишное время</span>
+            <span class="split-time">{{ participant.time }}</span>
+            <span class="split-pace"></span>
+        </div>
+        <div class="split-row">
+            <span class="split-name">Общее место</span>
+            <span class="split-time">{{ participant.place }}</span>
+            <span class="split-pace"></span>
+        </div>
+        {% if participant.place_category %}
+        <div class="split-row">
+            <span class="split-name">В категории</span>
+            <span class="split-time">{{ participant.place_category }}</span>
+            <span class="split-pace"></span>
+        </div>
+        {% endif %}
+        {% if participant.pace %}
+        <div class="split-row finish">
+            <span class="split-name">Средний темп</span>
+            <span class="split-time">{{ participant.pace }}</span>
+            <span class="split-pace">мин/км</span>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <div class="credits-section">
+        <div class="credits-grid">
+            <div class="credit-item">
+                <div class="credit-label">Организатор</div>
+                <div class="credit-value">{{ event.organizer }}</div>
+            </div>
+            <div class="credit-item">
+                <div class="credit-label">Хронометраж</div>
+                <div class="credit-value">{{ event.timing_provider }}</div>
+            </div>
+            <div class="credit-item ayda">
+                <div class="credit-label">Сгенерировано</div>
+                <div class="ayda-logo-small">ayda<span class="beta">β</span></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="logo-mark">ayda</div>
+</div>
+{% endblock %}
