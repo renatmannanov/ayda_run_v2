@@ -2,7 +2,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, field_serial
 from datetime import datetime
 from typing import Optional, List
 from .common import SportType, Difficulty, BaseResponse, ActivityVisibility, ActivityStatus, ParticipationStatus, serialize_datetime_utc
-from app.core.timezone import ensure_utc, is_future
+from app.core.timezone import ensure_utc, utc_now
 
 class ActivityCreate(BaseModel):
     """Schema for creating activity"""
@@ -43,7 +43,7 @@ class ActivityCreate(BaseModel):
     def date_must_be_future(cls, v: datetime) -> datetime:
         """Activity date must be in the future. Converts to UTC."""
         v_utc = ensure_utc(v)
-        if not is_future(v_utc):
+        if v_utc <= utc_now():
             raise ValueError('Activity date must be in the future')
         return v_utc
 
@@ -88,7 +88,7 @@ class ActivityUpdate(BaseModel):
         if v is None:
             return None
         v_utc = ensure_utc(v)
-        if not is_future(v_utc):
+        if v_utc <= utc_now():
             raise ValueError('Activity date must be in the future')
         return v_utc
 

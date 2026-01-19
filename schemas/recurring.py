@@ -6,7 +6,7 @@ from datetime import datetime
 from typing import Optional, List
 from enum import Enum
 from .common import SportType, Difficulty, BaseResponse
-from app.core.timezone import ensure_utc, is_future
+from app.core.timezone import ensure_utc, utc_now
 
 
 class RecurringUpdateScope(str, Enum):
@@ -50,7 +50,7 @@ class RecurringTemplateCreate(BaseModel):
     def date_must_be_future(cls, v: datetime) -> datetime:
         """Start date must be in the future. Converts to UTC."""
         v_utc = ensure_utc(v)
-        if not is_future(v_utc):
+        if v_utc <= utc_now():
             raise ValueError('Start date must be in the future')
         return v_utc
 

@@ -152,6 +152,9 @@ def ensure_utc(dt: Optional[datetime]) -> Optional[datetime]:
 
     This handles the case where frontend sends naive datetimes
     that are actually in user's local time.
+
+    WARNING: Do NOT use this for datetimes from database!
+    Database stores naive UTC datetimes - use ensure_utc_from_db() instead.
     """
     if dt is None:
         return None
@@ -162,6 +165,27 @@ def ensure_utc(dt: Optional[datetime]) -> Optional[datetime]:
         dt = dt.replace(tzinfo=local_tz)
 
     # Convert to UTC
+    return dt.astimezone(timezone.utc)
+
+
+def ensure_utc_from_db(dt: Optional[datetime]) -> Optional[datetime]:
+    """
+    Ensure a datetime from database is UTC-aware.
+
+    - If None, returns None
+    - If naive (no timezone), assumes it's already UTC (as stored in DB)
+    - If already has timezone, converts to UTC
+
+    Use this for datetimes read from database, which are stored as naive UTC.
+    """
+    if dt is None:
+        return None
+
+    if dt.tzinfo is None:
+        # Naive datetime from DB - it's already UTC, just add tzinfo
+        return dt.replace(tzinfo=timezone.utc)
+
+    # Already has timezone, convert to UTC
     return dt.astimezone(timezone.utc)
 
 
@@ -240,9 +264,10 @@ def is_past(dt: datetime) -> bool:
     """
     Check if a datetime is in the past.
 
-    Handles both naive and aware datetimes.
+    Assumes naive datetime is UTC (as stored in database).
+    Use this for Activity.date and other DB datetimes.
     """
-    dt_utc = ensure_utc(dt)
+    dt_utc = ensure_utc_from_db(dt)
     return dt_utc < utc_now()
 
 
@@ -250,9 +275,10 @@ def is_future(dt: datetime) -> bool:
     """
     Check if a datetime is in the future.
 
-    Handles both naive and aware datetimes.
+    Assumes naive datetime is UTC (as stored in database).
+    Use this for Activity.date and other DB datetimes.
     """
-    dt_utc = ensure_utc(dt)
+    dt_utc = ensure_utc_from_db(dt)
     return dt_utc > utc_now()
 
 
