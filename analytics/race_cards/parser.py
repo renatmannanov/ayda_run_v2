@@ -25,7 +25,7 @@ class MyRaceParser:
     Uses Playwright to handle JavaScript-rendered content.
     """
 
-    TIMEOUT_MS = 30000  # 30 seconds
+    TIMEOUT_MS = 60000  # 60 seconds
     VALID_DOMAINS = ["live.myrace.info", "myrace.info"]
 
     def __init__(self):
@@ -121,21 +121,25 @@ class MyRaceParser:
         try:
             logger.info(f"Loading MyRace page: {url}")
 
-            # Navigate to page
-            await page.goto(url, wait_until="networkidle", timeout=self.TIMEOUT_MS)
+            # Navigate to page - use 'load' instead of 'networkidle' because
+            # MyRace does continuous polling which never becomes idle
+            await page.goto(url, wait_until="load", timeout=self.TIMEOUT_MS)
+
+            # Give page time to execute JS and load data
+            await page.wait_for_timeout(5000)
 
             # Wait for results to load - the page uses dynamic JS rendering
             # Try multiple selectors that might indicate data is loaded
             try:
                 await page.wait_for_selector(
-                    '#results, .results, [class*="result"], table, .content',
-                    timeout=self.TIMEOUT_MS
+                    'table, .content, body',
+                    timeout=10000
                 )
             except Exception:
                 logger.warning("Could not find results selector, continuing anyway")
 
-            # Give page time to fully render JS content
-            await page.wait_for_timeout(2000)
+            # Additional time for JS rendering
+            await page.wait_for_timeout(3000)
 
             # Extract data using JavaScript evaluation
             # MyRace uses a complex JS structure, we need to extract from rendered content

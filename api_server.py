@@ -114,15 +114,17 @@ async def lifespan(app: FastAPI):
     bot_app.add_handler(get_admin_stats_handler())
     logger.info("[SUCCESS] Admin stats handler registered")
 
-    # Phase 9: Feedback handler (text messages in private chat)
-    from bot.feedback_handler import get_feedback_handler
-    bot_app.add_handler(get_feedback_handler())
-    logger.info("[SUCCESS] Feedback handler registered")
-
     # Phase 10: Race card generator handler (/racecard command)
+    # IMPORTANT: Must be registered BEFORE feedback handler (which catches all text)
     from bot.race_card_handler import get_racecard_handler
     bot_app.add_handler(get_racecard_handler())
     logger.info("[SUCCESS] Race card handler registered")
+
+    # Phase 9: Feedback handler (text messages in private chat)
+    # IMPORTANT: This must be LAST as it catches all unhandled text messages
+    from bot.feedback_handler import get_feedback_handler
+    bot_app.add_handler(get_feedback_handler())
+    logger.info("[SUCCESS] Feedback handler registered")
 
     # Initialize bot (but don't start polling - we use webhook)
     await bot_app.initialize()

@@ -25,6 +25,10 @@ class Settings(BaseSettings):
         default="sqlite:///./app.db",
         description="Database connection URL"
     )
+    prod_database_url: Optional[str] = Field(
+        None,
+        description="Production database URL (Railway/Render)"
+    )
     
     # === Optional Integrations ===
     google_sheets_credentials: Optional[str] = Field(
