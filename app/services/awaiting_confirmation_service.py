@@ -2,11 +2,12 @@
 Awaiting Confirmation Service
 
 Background service that automatically transitions participations to 'awaiting' status
-after activity start time has passed.
+after activity END time has passed (start time + duration).
 
 Runs every 5 minutes to check for:
 1. Participations with status 'registered' or 'confirmed'
-2. Where activity.date < now()
+2. Where activity end time < now (activity.date + duration < now)
+3. If duration is not set, defaults to 60 minutes
 
 For each found participation:
 1. Update status to 'awaiting'
@@ -15,7 +16,7 @@ For each found participation:
 
 import logging
 import asyncio
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import List, Tuple
 
 from telegram import Bot
@@ -23,7 +24,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import and_
 
 from storage.db import SessionLocal, Participation, Activity, User, ParticipationStatus
-from app.core.timezone import utc_now
+from app.core.timezone import utc_now, ensure_utc_from_db
 from bot.activity_notifications import send_awaiting_confirmation_notification, send_organizer_checkin_notification
 from config import settings
 
@@ -91,14 +92,17 @@ class AwaitingConfirmationService:
         """Check for participations to transition and send notifications"""
         session = SessionLocal()
 
+        # Default duration if not specified (in minutes)
+        DEFAULT_DURATION_MINUTES = 60
+
         try:
             now = utc_now()  # Use UTC time for consistent comparison
 
             # Find all participations where:
             # - status is REGISTERED or CONFIRMED
-            # - activity.date < now (activity has started/passed)
             # - activity is not demo data
-            participations_to_update = session.query(Participation).join(
+            # We'll filter by end time in Python for cross-database compatibility
+            candidate_participations = session.query(Participation).join(
                 Activity, Participation.activity_id == Activity.id
             ).filter(
                 and_(
@@ -106,10 +110,29 @@ class AwaitingConfirmationService:
                         ParticipationStatus.REGISTERED,
                         ParticipationStatus.CONFIRMED
                     ]),
-                    Activity.date < now,
                     Activity.is_demo == False
                 )
             ).all()
+
+            # Filter participations where activity has ENDED (start + duration < now)
+            participations_to_update = []
+            for participation in candidate_participations:
+                activity = session.query(Activity).filter(
+                    Activity.id == participation.activity_id
+                ).first()
+
+                if not activity:
+                    continue
+
+                # Calculate end time: start + duration (or default 60 min)
+                # Use ensure_utc_from_db to handle naive datetime from database
+                duration_minutes = activity.duration if activity.duration else DEFAULT_DURATION_MINUTES
+                activity_start_utc = ensure_utc_from_db(activity.date)
+                activity_end_time = activity_start_utc + timedelta(minutes=duration_minutes)
+
+                # Only include if activity has ended
+                if activity_end_time < now:
+                    participations_to_update.append(participation)
 
             if not participations_to_update:
                 logger.debug("No participations to transition to awaiting")
