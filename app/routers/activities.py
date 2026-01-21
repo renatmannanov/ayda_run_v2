@@ -1159,11 +1159,17 @@ async def download_gpx(
             )
 
         # Return file as streaming response
+        # Use RFC 5987 encoding for non-ASCII filenames
+        filename = activity.gpx_filename or "route.gpx"
+        # URL-encode the filename for UTF-8 support in Content-Disposition
+        from urllib.parse import quote
+        encoded_filename = quote(filename)
+
         return StreamingResponse(
             iter([response.content]),
             media_type="application/gpx+xml",
             headers={
-                "Content-Disposition": f'attachment; filename="{activity.gpx_filename or "route.gpx"}"'
+                "Content-Disposition": f"attachment; filename=\"route.gpx\"; filename*=UTF-8''{encoded_filename}"
             }
         )
 
