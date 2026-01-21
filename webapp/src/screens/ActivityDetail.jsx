@@ -35,7 +35,7 @@ export default function ActivityDetail() {
     // Fetch participants
     const {
         data: participantsData,
-        isLoading: participantsLoading,
+        loading: participantsLoading,
         refetch: refetchParticipants
     } = useActivityParticipants(id)
 
@@ -163,6 +163,12 @@ export default function ActivityDetail() {
     const handleDelete = () => {
         if (isPast) {
             showToast('Нельзя удалить прошедшую тренировку', 'error')
+            return
+        }
+
+        // Wait for participants to load before allowing delete
+        if (participantsLoading) {
+            showToast('Подождите, загружаем участников...', 'error')
             return
         }
 
