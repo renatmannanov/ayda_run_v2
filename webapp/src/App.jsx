@@ -35,7 +35,11 @@ function App() {
             }
 
             // Handle deep link from start_param (e.g., ?startapp=activity_123)
-            const startParam = window.Telegram.WebApp.initDataUnsafe?.start_param
+            // This is a fallback for old-style links - new links use direct paths
+            const urlParams = new URLSearchParams(window.location.search)
+            const startappFromUrl = urlParams.get('startapp')
+            const startParam = window.Telegram.WebApp.initDataUnsafe?.start_param || startappFromUrl
+
             if (startParam) {
                 if (startParam.startsWith('activity_')) {
                     const activityId = startParam.replace('activity_', '')

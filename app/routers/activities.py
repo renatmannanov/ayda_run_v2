@@ -1341,7 +1341,7 @@ async def _send_new_activity_notifications(
             member_names = [m.first_name for m in members if m.first_name]
 
             # Build webapp link (Telegram deep link)
-            webapp_link = f"https://t.me/{settings.bot_username}?start=activity_{activity_id}"
+            webapp_link = f"{settings.app_url}activity/{activity_id}"
 
             # Initialize bot
             bot = Bot(token=settings.bot_token)
@@ -1460,7 +1460,7 @@ async def _send_activity_updated_notifications(
             participants = [(p, u) for p, u in participations if u.telegram_id]
 
             # Build webapp link
-            webapp_link = f"https://t.me/{settings.bot_username}?start=activity_{activity_id}"
+            webapp_link = f"{settings.app_url}activity/{activity_id}"
 
             bot = Bot(token=settings.bot_token)
 

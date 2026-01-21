@@ -111,8 +111,8 @@ export default function CreateClub() {
                 navigate(-1)
             } else {
                 const result = await createClub(payload)
-                const botUsername = await configApi.getBotUsername()
-                setShareLink(`https://t.me/${botUsername}?start=club_${result.id}`)
+                // Use direct webapp URL for sharing - works in Telegram Mini App
+                setShareLink(`${window.location.origin}/club/${result.id}`)
                 setCreatedId(result.id)
                 setShowSuccess(true)
             }

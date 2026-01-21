@@ -129,8 +129,8 @@ export default function CreateGroup() {
                 navigate(-1)
             } else {
                 const result = await createGroup(payload)
-                const botUsername = await configApi.getBotUsername()
-                setShareLink(`https://t.me/${botUsername}?start=group_${result.id}`)
+                // Use direct webapp URL for sharing - works in Telegram Mini App
+                setShareLink(`${window.location.origin}/group/${result.id}`)
                 setCreatedId(result.id)
                 setShowSuccess(true)
             }

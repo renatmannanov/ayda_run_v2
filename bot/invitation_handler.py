@@ -87,7 +87,7 @@ async def handle_join_club(update: Update, context: ContextTypes.DEFAULT_TYPE) -
             )
 
             # WebApp button with deep link to club
-            webapp_url = f"{settings.app_url}?startapp=club_{club_id}"
+            webapp_url = f"{settings.app_url}club/{club_id}"
             await query.message.reply_text(
                 "Открой приложение:",
                 reply_markup=get_webapp_button(webapp_url, f"🚀 Открыть {club_data['name']}")
@@ -150,7 +150,7 @@ async def handle_join_group(update: Update, context: ContextTypes.DEFAULT_TYPE) 
             )
 
             # WebApp button with deep link to group
-            webapp_url = f"{settings.app_url}?startapp=group_{group_id}"
+            webapp_url = f"{settings.app_url}group/{group_id}"
             await query.message.reply_text(
                 "Открой приложение:",
                 reply_markup=get_webapp_button(webapp_url, f"🚀 Открыть {group_data['name']}")
