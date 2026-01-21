@@ -357,8 +357,8 @@ export default function ActivityCreate() {
                     }
 
                     setCreatedActivityId(result.first_activity_id)
-                    const botUsername = await configApi.getBotUsername()
-                    setShareLink(`https://t.me/${botUsername}?start=activity_${result.first_activity_id}`)
+                    // Use direct webapp URL for sharing - works in Telegram Mini App
+                    setShareLink(`${window.location.origin}/activity/${result.first_activity_id}`)
                     setFlowStep('success') // Skip GPX for recurring
                 } else {
                     // Create single activity
@@ -382,8 +382,8 @@ export default function ActivityCreate() {
                     }
 
                     setCreatedActivityId(result.id)
-                    const botUsername = await configApi.getBotUsername()
-                    setShareLink(`https://t.me/${botUsername}?start=activity_${result.id}`)
+                    // Use direct webapp URL for sharing - works in Telegram Mini App
+                    setShareLink(`${window.location.origin}/activity/${result.id}`)
                     // Skip GPX step for yoga and workout
                     if (['yoga', 'workout'].includes(sportType)) {
                         setFlowStep('success')

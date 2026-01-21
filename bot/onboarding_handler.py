@@ -99,7 +99,7 @@ async def handle_join_from_group(update: Update, context: ContextTypes.DEFAULT_T
                     f"👋 Ты уже участник клуба «{club.name}»!\n\n"
                     "Открой приложение, чтобы посмотреть расписание."
                 )
-                webapp_url = f"{settings.app_url}?startapp=club_{club.id}"
+                webapp_url = f"{settings.app_url}club/{club.id}"
                 await update.message.reply_text(
                     "Открой приложение:",
                     reply_markup=get_webapp_button(webapp_url, f"🚀 Открыть {club.name}")
@@ -136,7 +136,7 @@ async def handle_join_from_group(update: Update, context: ContextTypes.DEFAULT_T
         f"▪️ Общаться с участниками"
     )
 
-    webapp_url = f"{settings.app_url}?startapp=club_{club.id}"
+    webapp_url = f"{settings.app_url}club/{club.id}"
     await update.message.reply_text(
         "Открой приложение:",
         reply_markup=get_webapp_button(webapp_url, f"🚀 Открыть {club.name}")
@@ -160,7 +160,7 @@ async def handle_existing_user_invitation(update: Update, context: ContextTypes.
 
         # Handle "activity" deep link - just open webapp with activity
         if invitation_type == "activity":
-            webapp_url = f"{settings.app_url}?startapp=activity_{invitation_id}"
+            webapp_url = f"{settings.app_url}activity/{invitation_id}"
             await update.message.reply_text(
                 "📋 Открываю тренировку...",
                 reply_markup=get_webapp_button(webapp_url, "🚀 Открыть тренировку")
@@ -182,7 +182,7 @@ async def handle_existing_user_invitation(update: Update, context: ContextTypes.
                             f"👋 Ты уже участник клуба {club_data['name']}!\n\n"
                             "Открой приложение, чтобы посмотреть расписание тренировок."
                         )
-                        webapp_url = f"{settings.app_url}?startapp=club_{invitation_id}"
+                        webapp_url = f"{settings.app_url}club/{invitation_id}"
                         await update.message.reply_text(
                             "Открой приложение:",
                             reply_markup=get_webapp_button(webapp_url, f"🚀 Открыть {club_data['name']}")
@@ -211,7 +211,7 @@ async def handle_existing_user_invitation(update: Update, context: ContextTypes.
                             f"👋 Ты уже участник группы {group_data['name']}!\n\n"
                             "Открой приложение, чтобы посмотреть расписание тренировок."
                         )
-                        webapp_url = f"{settings.app_url}?startapp=group_{invitation_id}"
+                        webapp_url = f"{settings.app_url}group/{invitation_id}"
                         await update.message.reply_text(
                             "Открой приложение:",
                             reply_markup=get_webapp_button(webapp_url, f"🚀 Открыть {group_data['name']}")
@@ -734,7 +734,7 @@ async def complete_onboarding(update: Update, context: ContextTypes.DEFAULT_TYPE
                         with ClubStorage() as club_storage:
                             entity_data = club_storage.get_club_preview(invitation_id)
                             entity_name = entity_data['name'] if entity_data else "клуб"
-                            webapp_url = f"{settings.app_url}?startapp=club_{invitation_id}"
+                            webapp_url = f"{settings.app_url}club/{invitation_id}"
                     else:  # group
                         membership_storage.add_member_to_group(user.id, invitation_id)
                         logger.info(f"Auto-joined user {user.id} to group {invitation_id}")
@@ -742,7 +742,7 @@ async def complete_onboarding(update: Update, context: ContextTypes.DEFAULT_TYPE
                         with GroupStorage() as group_storage:
                             entity_data = group_storage.get_group_preview(invitation_id)
                             entity_name = entity_data['name'] if entity_data else "группу"
-                            webapp_url = f"{settings.app_url}?startapp=group_{invitation_id}"
+                            webapp_url = f"{settings.app_url}group/{invitation_id}"
 
                 # Success message for invitation
                 await query.edit_message_text(

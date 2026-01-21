@@ -136,7 +136,7 @@ async def create_club_from_group(update: Update, context: ContextTypes.DEFAULT_T
             # Check if linked to a club
             existing_club = club_storage.get_club_by_telegram_chat_id(chat.id)
             if existing_club:
-                club_link = f"https://t.me/{settings.bot_username}?start=club_{existing_club.id}"
+                club_link = f"{settings.app_url}club/{existing_club.id}"
                 await message.reply_text(
                     f"✅ Группа уже связана с клубом \"{existing_club.name}\"\n\n"
                     f"🔗 Перейти в клуб: {club_link}"
@@ -146,7 +146,7 @@ async def create_club_from_group(update: Update, context: ContextTypes.DEFAULT_T
             # Check if linked to a group
             existing_group = club_storage.get_group_by_telegram_chat_id(chat.id)
             if existing_group:
-                group_link = f"https://t.me/{settings.bot_username}?start=group_{existing_group.id}"
+                group_link = f"{settings.app_url}group/{existing_group.id}"
                 await message.reply_text(
                     f"✅ Группа уже связана с \"{existing_group.name}\"\n\n"
                     f"🔗 Перейти: {group_link}"
@@ -358,7 +358,7 @@ async def link_telegram_to_entity(
                         logger.error(f"Error importing admins: {e}")
 
                     # Notify organizer
-                    webapp_url = f"{settings.app_url}?startapp=club_{entity_id}"
+                    webapp_url = f"{settings.app_url}club/{entity_id}"
                     await query.edit_message_text(
                         f"✅ Telegram группа связана с клубом \"{club_name}\"!\n\n"
                         f"Теперь участники группы могут регистрироваться через кнопку.\n"
@@ -668,7 +668,7 @@ async def send_club_created_notifications(
 
     # Уведомление в группу с кнопкой регистрации
     join_link = f"https://t.me/{settings.bot_username}?start=join_{group_chat_id}"
-    webapp_url = f"{settings.app_url}?startapp=club_{club.id}"
+    webapp_url = f"{settings.app_url}club/{club.id}"
 
     remaining = max(0, member_count - imported_count)
 

@@ -395,6 +395,23 @@ import os
 if os.path.exists("webapp/dist"):
     app.mount("/assets", StaticFiles(directory="webapp/dist/assets"), name="assets")
 
+# SPA fallback - serve index.html for all non-API routes (must be after all API routes)
+@app.get("/{full_path:path}")
+async def spa_fallback(full_path: str):
+    """
+    Catch-all route for SPA.
+    Serves index.html for any path that doesn't match API routes.
+    This allows React Router to handle client-side routing.
+    """
+    # Skip API routes and webhook
+    if full_path.startswith("api/") or full_path.startswith("webhook/"):
+        return {"detail": "Not Found"}
+
+    if os.path.exists("webapp/dist/index.html"):
+        return FileResponse("webapp/dist/index.html")
+    else:
+        return {"detail": "Frontend not built"}
+
 # ============================================================================
 # Health Check
 # ============================================================================

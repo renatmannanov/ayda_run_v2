@@ -131,8 +131,8 @@ export default function ActivityDetail() {
     }
 
     const handleShare = async () => {
-        const botUsername = await configApi.getBotUsername()
-        const shareUrl = `https://t.me/${botUsername}?start=activity_${activity.id}`
+        // Use direct webapp URL for sharing - works in Telegram Mini App
+        const shareUrl = `${window.location.origin}/activity/${activity.id}`
         navigator.clipboard.writeText(shareUrl)
         showToast('Ссылка скопирована', 'info')
     }

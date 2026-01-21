@@ -223,7 +223,7 @@ class AwaitingConfirmationService:
         ).count()
 
         # Build webapp link
-        webapp_link = f"https://t.me/{settings.bot_username}?start=activity_{activity.id}"
+        webapp_link = f"{settings.app_url}activity/{activity.id}"
 
         try:
             await send_organizer_checkin_notification(
