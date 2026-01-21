@@ -423,6 +423,7 @@ class Activity(Base):
     creator = relationship("User", back_populates="created_activities", foreign_keys=[creator_id])
     recurring_template = relationship("RecurringTemplate", back_populates="activities")
     participations = relationship("Participation", back_populates="activity", cascade="all, delete-orphan")
+    join_requests = relationship("JoinRequest", back_populates="activity", cascade="all, delete-orphan")
 
     def __repr__(self):
         return f"<Activity(title={self.title}, city={self.city}, date={self.date})>"
@@ -557,7 +558,7 @@ class JoinRequest(Base):
     user = relationship("User", foreign_keys=[user_id])
     club = relationship("Club", foreign_keys=[club_id])
     group = relationship("Group", foreign_keys=[group_id])
-    activity = relationship("Activity", foreign_keys=[activity_id])
+    activity = relationship("Activity", back_populates="join_requests", foreign_keys=[activity_id])
 
     def __repr__(self):
         entity = "club" if self.club_id else "group" if self.group_id else "activity"
