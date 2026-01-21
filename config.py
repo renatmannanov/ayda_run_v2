@@ -115,15 +115,18 @@ class Settings(BaseSettings):
     
     @field_validator('app_url')
     @classmethod
-    def ensure_https(cls, v: Optional[str]) -> Optional[str]:
-        """Ensure app_url has https:// prefix (Telegram requires https)"""
+    def ensure_https_and_trailing_slash(cls, v: Optional[str]) -> Optional[str]:
+        """Ensure app_url has https:// prefix and trailing slash"""
         if v is None:
             return None
         v = v.strip()
         if v.startswith('http://'):
-            return v.replace('http://', 'https://', 1)
-        if not v.startswith('https://'):
-            return f'https://{v}'
+            v = v.replace('http://', 'https://', 1)
+        elif not v.startswith('https://'):
+            v = f'https://{v}'
+        # Ensure trailing slash for proper URL concatenation
+        if not v.endswith('/'):
+            v = f'{v}/'
         return v
 
     @field_validator('database_url')
