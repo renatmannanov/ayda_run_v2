@@ -10,7 +10,7 @@ Handles sending notifications for activity events:
 import logging
 from typing import Optional, List
 from datetime import datetime
-from telegram import Bot, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import Bot, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
 from telegram.error import TelegramError
 from app.core.timezone import format_datetime_local, get_weekday_accusative
 
@@ -299,7 +299,7 @@ async def send_new_activity_notification_to_user(
 
         # Button text depends on participants
         button_text = "Присоединиться" if participant_names else "Записаться"
-        keyboard = [[InlineKeyboardButton(button_text, url=webapp_link)]]
+        keyboard = [[InlineKeyboardButton(button_text, web_app=WebAppInfo(url=webapp_link))]]
         reply_markup = InlineKeyboardMarkup(keyboard)
 
         await bot.send_message(
@@ -363,7 +363,7 @@ async def send_new_activity_notification_to_group(
 
         # Button text depends on participants
         button_text = "Присоединиться" if participant_names else "Записаться"
-        keyboard = [[InlineKeyboardButton(button_text, url=webapp_link)]]
+        keyboard = [[InlineKeyboardButton(button_text, web_app=WebAppInfo(url=webapp_link))]]
         reply_markup = InlineKeyboardMarkup(keyboard)
 
         await bot.send_message(
@@ -423,7 +423,7 @@ async def send_activity_reminder_to_user(
         )
 
         # Button to view details and track
-        keyboard = [[InlineKeyboardButton("Посмотреть детали и трек", url=webapp_link)]]
+        keyboard = [[InlineKeyboardButton("Посмотреть детали и трек", web_app=WebAppInfo(url=webapp_link))]]
         reply_markup = InlineKeyboardMarkup(keyboard)
 
         await bot.send_message(
@@ -483,7 +483,7 @@ async def send_activity_reminder_to_group(
         )
 
         # Button to join
-        keyboard = [[InlineKeyboardButton("Присоединиться", url=webapp_link)]]
+        keyboard = [[InlineKeyboardButton("Присоединиться", web_app=WebAppInfo(url=webapp_link))]]
         reply_markup = InlineKeyboardMarkup(keyboard)
 
         await bot.send_message(
@@ -828,7 +828,7 @@ async def send_organizer_checkin_notification(
 
         # Create inline button to open webapp
         keyboard = [[
-            InlineKeyboardButton("Отметить посещение 📋", url=webapp_link)
+            InlineKeyboardButton("Отметить посещение 📋", web_app=WebAppInfo(url=webapp_link))
         ]]
         reply_markup = InlineKeyboardMarkup(keyboard)
 
