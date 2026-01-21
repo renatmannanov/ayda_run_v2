@@ -10,21 +10,58 @@ Handles sending notifications for activity events:
 import logging
 from typing import Optional, List
 from datetime import datetime
-from telegram import Bot
+from telegram import Bot, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.error import TelegramError
-from app.core.timezone import format_datetime_local
+from app.core.timezone import format_datetime_local, get_weekday_accusative
 
 logger = logging.getLogger(__name__)
+
+# Sport type icons
+SPORT_ICONS = {
+    'running': '🏃',
+    'trail': '⛰️',
+    'cycling': '🚴',
+    'swimming': '🏊',
+    'hiking': '🥾',
+    'skiing': '⛷️',
+    'other': '🏅',
+}
+
+
+def get_sport_icon(sport_type: str) -> str:
+    """Get emoji icon for sport type."""
+    if not sport_type:
+        return '🏅'
+    return SPORT_ICONS.get(sport_type.lower(), '🏅')
+
+
+def format_participants_line(names: List[str]) -> str:
+    """
+    Format participants line: 'Идут: Алексей, Мария и ещё 3'
+
+    Args:
+        names: List of participant first names
+
+    Returns:
+        Formatted string or empty string if no participants
+    """
+    if not names:
+        return ""
+    if len(names) == 1:
+        return f"Идут: {names[0]}"
+    if len(names) <= 3:
+        return f"Идут: {', '.join(names)}"
+    else:
+        return f"Идут: {', '.join(names[:2])} и ещё {len(names) - 2}"
 
 
 def format_new_activity_notification(
     activity_title: str,
     activity_date: datetime,
     location: str,
-    participants_count: int,
-    max_participants: Optional[int],
     entity_name: str,
-    webapp_link: str,
+    sport_type: str = None,
+    participant_names: List[str] = None,
     country: str = None,
     city: str = None
 ) -> str:
@@ -35,42 +72,49 @@ def format_new_activity_notification(
         activity_title: Activity title
         activity_date: Activity date and time (UTC)
         location: Activity location
-        participants_count: Current number of participants
-        max_participants: Maximum participants (None if unlimited)
         entity_name: Club/Group name
-        webapp_link: Link to activity in webapp
+        sport_type: Sport type for icon (running, trail, etc.)
+        participant_names: List of participant first names
         country: Country for timezone conversion
         city: City for timezone conversion
 
     Returns:
         Formatted message text
     """
-    # Format date in local timezone
-    date_str = format_datetime_local(activity_date, country, city, "%d %B в %H:%M")
+    # Get weekday for header ("в субботу", "в среду")
+    weekday_str = get_weekday_accusative(activity_date, country, city)
 
-    # Format participants
-    if max_participants:
-        participants_str = f"{participants_count}/{max_participants} участников"
-    else:
-        participants_str = f"{participants_count} участников"
+    # Format date: "Сб, 25 января · 07:30"
+    date_str = format_datetime_local(activity_date, country, city, "%a, %d %B · %H:%M")
 
-    message = (
-        f"🏃 Новая активность в \"{entity_name}\"!\n\n"
-        f"⛰️ {activity_title}\n"
-        f"📅 {date_str}\n"
-        f"📍 {location}\n"
-        f"👥 {participants_str}\n\n"
-        f"[Открыть в приложении 🔗]({webapp_link})"
-    )
+    # Get sport icon
+    sport_icon = get_sport_icon(sport_type)
 
-    return message
+    # Build message
+    lines = [
+        f"{entity_name} · Тренировка {weekday_str}",
+        "",
+        f"{sport_icon} {activity_title}",
+        date_str,
+        f"📍 {location}",
+    ]
+
+    # Add participants if any
+    participants_line = format_participants_line(participant_names or [])
+    if participants_line:
+        lines.append("")
+        lines.append(participants_line)
+
+    return "\n".join(lines)
 
 
 def format_new_activity_group_notification(
     activity_title: str,
     activity_date: datetime,
     location: str,
-    webapp_link: str,
+    entity_name: str,
+    sport_type: str = None,
+    participant_names: List[str] = None,
     country: str = None,
     city: str = None
 ) -> str:
@@ -81,31 +125,47 @@ def format_new_activity_group_notification(
         activity_title: Activity title
         activity_date: Activity date and time (UTC)
         location: Activity location
-        webapp_link: Link to activity in webapp
+        entity_name: Club/Group name
+        sport_type: Sport type for icon (running, trail, etc.)
+        participant_names: List of participant first names
         country: Country for timezone conversion
         city: City for timezone conversion
 
     Returns:
         Formatted message text for group
     """
-    # Format date in local timezone
-    date_str = format_datetime_local(activity_date, country, city, "%d %B в %H:%M")
+    # Get weekday for header ("в субботу", "в среду")
+    weekday_str = get_weekday_accusative(activity_date, country, city)
 
-    message = (
-        f"@channel Новая активность!\n\n"
-        f"⛰️ {activity_title}\n"
-        f"📅 {date_str}\n"
-        f"📍 {location}\n\n"
-        f"Записаться: {webapp_link}"
-    )
+    # Format date: "Сб, 25 января · 07:30"
+    date_str = format_datetime_local(activity_date, country, city, "%a, %d %B · %H:%M")
 
-    return message
+    # Get sport icon
+    sport_icon = get_sport_icon(sport_type)
+
+    # Build message (same format as DM, with club name)
+    lines = [
+        f"{entity_name} · Тренировка {weekday_str}",
+        "",
+        f"{sport_icon} {activity_title}",
+        date_str,
+        f"📍 {location}",
+    ]
+
+    # Add participants if any
+    participants_line = format_participants_line(participant_names or [])
+    if participants_line:
+        lines.append("")
+        lines.append(participants_line)
+
+    return "\n".join(lines)
 
 
 def format_activity_reminder_notification(
     activity_title: str,
     activity_date: datetime,
     location: str,
+    sport_type: str = None,
     is_registered: bool = True,
     country: str = None,
     city: str = None
@@ -117,6 +177,7 @@ def format_activity_reminder_notification(
         activity_title: Activity title
         activity_date: Activity date and time (UTC)
         location: Activity location
+        sport_type: Sport type for icon
         is_registered: Whether user is registered for activity
         country: Country for timezone conversion
         city: City for timezone conversion
@@ -124,28 +185,33 @@ def format_activity_reminder_notification(
     Returns:
         Formatted message text
     """
-    # Format date in local timezone
-    date_str = format_datetime_local(activity_date, country, city, "%d %B в %H:%M")
+    # Format date: "Вт, 21 января · 06:45"
+    date_str = format_datetime_local(activity_date, country, city, "%a, %d %B · %H:%M")
 
-    message = (
-        f"⏰ Напоминание!\n\n"
-        f"Через 2 дня:\n"
-        f"🏃 {activity_title}\n"
-        f"📅 {date_str}\n"
-        f"📍 {location}\n"
-    )
+    # Get sport icon
+    sport_icon = get_sport_icon(sport_type)
+
+    lines = [
+        "Напоминание",
+        "",
+        f"{sport_icon} {activity_title}",
+        date_str,
+        f"📍 {location}",
+    ]
 
     if is_registered:
-        message += "\nВы записаны! ✅"
+        lines.append("")
+        lines.append("Ждём на тренировке ✓")
 
-    return message
+    return "\n".join(lines)
 
 
 def format_activity_reminder_group_notification(
     activity_title: str,
     activity_date: datetime,
-    participants_count: int,
-    max_participants: Optional[int],
+    location: str,
+    sport_type: str = None,
+    participant_names: List[str] = None,
     country: str = None,
     city: str = None
 ) -> str:
@@ -155,31 +221,36 @@ def format_activity_reminder_group_notification(
     Args:
         activity_title: Activity title
         activity_date: Activity date and time (UTC)
-        participants_count: Current number of participants
-        max_participants: Maximum participants (None if unlimited)
+        location: Activity location
+        sport_type: Sport type for icon
+        participant_names: List of participant first names
         country: Country for timezone conversion
         city: City for timezone conversion
 
     Returns:
         Formatted message text for group
     """
-    # Format date in local timezone
-    date_str = format_datetime_local(activity_date, country, city, "%d %B в %H:%M")
+    # Format date: "Вт, 21 января · 19:00"
+    date_str = format_datetime_local(activity_date, country, city, "%a, %d %B · %H:%M")
 
-    # Format participants
-    if max_participants:
-        participants_str = f"{participants_count}/{max_participants} участников"
-    else:
-        participants_str = f"{participants_count} участников"
+    # Get sport icon
+    sport_icon = get_sport_icon(sport_type)
 
-    message = (
-        f"⏰ Через 2 дня активность!\n\n"
-        f"🏃 {activity_title}\n"
-        f"📅 {date_str}\n\n"
-        f"Записано: {participants_str}"
-    )
+    lines = [
+        "Через 2 дня",
+        "",
+        f"{sport_icon} {activity_title}",
+        date_str,
+        f"📍 {location}",
+    ]
 
-    return message
+    # Add participants if any
+    participants_line = format_participants_line(participant_names or [])
+    if participants_line:
+        lines.append("")
+        lines.append(participants_line)
+
+    return "\n".join(lines)
 
 
 async def send_new_activity_notification_to_user(
@@ -188,10 +259,12 @@ async def send_new_activity_notification_to_user(
     activity_title: str,
     activity_date: datetime,
     location: str,
-    participants_count: int,
-    max_participants: Optional[int],
     entity_name: str,
-    webapp_link: str
+    webapp_link: str,
+    sport_type: str = None,
+    participant_names: List[str] = None,
+    country: str = None,
+    city: str = None
 ) -> bool:
     """
     Send new activity notification to a single user.
@@ -202,10 +275,12 @@ async def send_new_activity_notification_to_user(
         activity_title: Activity title
         activity_date: Activity date and time
         location: Activity location
-        participants_count: Current number of participants
-        max_participants: Maximum participants
         entity_name: Club/Group name
         webapp_link: Link to activity in webapp
+        sport_type: Sport type for icon
+        participant_names: List of participant first names
+        country: Country for timezone conversion
+        city: City for timezone conversion
 
     Returns:
         True if sent successfully, False otherwise
@@ -215,17 +290,23 @@ async def send_new_activity_notification_to_user(
             activity_title=activity_title,
             activity_date=activity_date,
             location=location,
-            participants_count=participants_count,
-            max_participants=max_participants,
             entity_name=entity_name,
-            webapp_link=webapp_link
+            sport_type=sport_type,
+            participant_names=participant_names,
+            country=country,
+            city=city
         )
+
+        # Button text depends on participants
+        button_text = "Присоединиться" if participant_names else "Записаться"
+        keyboard = [[InlineKeyboardButton(button_text, url=webapp_link)]]
+        reply_markup = InlineKeyboardMarkup(keyboard)
 
         await bot.send_message(
             chat_id=user_telegram_id,
             text=message_text,
-            parse_mode="Markdown",
-            disable_web_page_preview=False
+            reply_markup=reply_markup,
+            disable_web_page_preview=True
         )
 
         logger.info(f"Sent new activity notification to user {user_telegram_id}")
@@ -242,7 +323,12 @@ async def send_new_activity_notification_to_group(
     activity_title: str,
     activity_date: datetime,
     location: str,
-    webapp_link: str
+    entity_name: str,
+    webapp_link: str,
+    sport_type: str = None,
+    participant_names: List[str] = None,
+    country: str = None,
+    city: str = None
 ) -> bool:
     """
     Send new activity notification to Telegram group.
@@ -253,28 +339,31 @@ async def send_new_activity_notification_to_group(
         activity_title: Activity title
         activity_date: Activity date and time
         location: Activity location
+        entity_name: Club/Group name
         webapp_link: Link to activity in webapp
+        sport_type: Sport type for icon
+        participant_names: List of participant first names
+        country: Country for timezone conversion
+        city: City for timezone conversion
 
     Returns:
         True if sent successfully, False otherwise
     """
     try:
-        from telegram import InlineKeyboardButton, InlineKeyboardMarkup
-
         message_text = format_new_activity_group_notification(
             activity_title=activity_title,
             activity_date=activity_date,
             location=location,
-            webapp_link=webapp_link
+            entity_name=entity_name,
+            sport_type=sport_type,
+            participant_names=participant_names,
+            country=country,
+            city=city
         )
 
-        # Remove the link from text since we'll use a button
-        message_text = message_text.replace(f"\n\nЗаписаться: {webapp_link}", "")
-
-        # Create inline button for the link
-        keyboard = [[
-            InlineKeyboardButton("Записаться 🔗", url=webapp_link)
-        ]]
+        # Button text depends on participants
+        button_text = "Присоединиться" if participant_names else "Записаться"
+        keyboard = [[InlineKeyboardButton(button_text, url=webapp_link)]]
         reply_markup = InlineKeyboardMarkup(keyboard)
 
         await bot.send_message(
@@ -298,6 +387,8 @@ async def send_activity_reminder_to_user(
     activity_title: str,
     activity_date: datetime,
     location: str,
+    webapp_link: str,
+    sport_type: str = None,
     is_registered: bool = True,
     country: str = None,
     city: str = None
@@ -311,6 +402,8 @@ async def send_activity_reminder_to_user(
         activity_title: Activity title
         activity_date: Activity date and time (UTC)
         location: Activity location
+        webapp_link: Link to activity in webapp
+        sport_type: Sport type for icon
         is_registered: Whether user is registered
         country: Country for timezone conversion
         city: City for timezone conversion
@@ -323,14 +416,21 @@ async def send_activity_reminder_to_user(
             activity_title=activity_title,
             activity_date=activity_date,
             location=location,
+            sport_type=sport_type,
             is_registered=is_registered,
             country=country,
             city=city
         )
 
+        # Button to view details and track
+        keyboard = [[InlineKeyboardButton("Посмотреть детали и трек", url=webapp_link)]]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+
         await bot.send_message(
             chat_id=user_telegram_id,
-            text=message_text
+            text=message_text,
+            reply_markup=reply_markup,
+            disable_web_page_preview=True
         )
 
         logger.info(f"Sent activity reminder to user {user_telegram_id}")
@@ -346,8 +446,10 @@ async def send_activity_reminder_to_group(
     group_chat_id: int,
     activity_title: str,
     activity_date: datetime,
-    participants_count: int,
-    max_participants: Optional[int],
+    location: str,
+    webapp_link: str,
+    sport_type: str = None,
+    participant_names: List[str] = None,
     country: str = None,
     city: str = None
 ) -> bool:
@@ -359,8 +461,10 @@ async def send_activity_reminder_to_group(
         group_chat_id: Telegram group chat ID
         activity_title: Activity title
         activity_date: Activity date and time (UTC)
-        participants_count: Current number of participants
-        max_participants: Maximum participants
+        location: Activity location
+        webapp_link: Link to activity in webapp
+        sport_type: Sport type for icon
+        participant_names: List of participant first names
         country: Country for timezone conversion
         city: City for timezone conversion
 
@@ -371,15 +475,22 @@ async def send_activity_reminder_to_group(
         message_text = format_activity_reminder_group_notification(
             activity_title=activity_title,
             activity_date=activity_date,
-            participants_count=participants_count,
-            max_participants=max_participants,
+            location=location,
+            sport_type=sport_type,
+            participant_names=participant_names,
             country=country,
             city=city
         )
 
+        # Button to join
+        keyboard = [[InlineKeyboardButton("Присоединиться", url=webapp_link)]]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+
         await bot.send_message(
             chat_id=group_chat_id,
-            text=message_text
+            text=message_text,
+            reply_markup=reply_markup,
+            disable_web_page_preview=True
         )
 
         logger.info(f"Sent activity reminder to group {group_chat_id}")

@@ -172,6 +172,16 @@ class ActivityReminderService:
             if user and user.telegram_id:
                 participants.append(user)
 
+        # Get participant names for display
+        participant_names = [p.first_name for p in participants if p.first_name]
+
+        # Build webapp link
+        from config import settings
+        webapp_link = f"https://t.me/{settings.bot_username}?start=activity_{activity.id}"
+
+        # Get sport type as string
+        sport_type = activity.sport_type.value if activity.sport_type else None
+
         # Send reminders to participants
         for participant in participants:
             try:
@@ -181,6 +191,8 @@ class ActivityReminderService:
                     activity_title=activity.title,
                     activity_date=activity.date,
                     location=activity.location or "Не указано",
+                    webapp_link=webapp_link,
+                    sport_type=sport_type,
                     is_registered=True,
                     country=activity.country,
                     city=activity.city
@@ -193,16 +205,15 @@ class ActivityReminderService:
         # Send reminder to Telegram group if linked
         if telegram_group_id:
             try:
-                # Count participants
-                participants_count = len(participants)
-
                 await send_activity_reminder_to_group(
                     bot=self.bot,
                     group_chat_id=telegram_group_id,
                     activity_title=activity.title,
                     activity_date=activity.date,
-                    participants_count=participants_count,
-                    max_participants=activity.max_participants,
+                    location=activity.location or "Не указано",
+                    webapp_link=webapp_link,
+                    sport_type=sport_type,
+                    participant_names=participant_names,
                     country=activity.country,
                     city=activity.city
                 )

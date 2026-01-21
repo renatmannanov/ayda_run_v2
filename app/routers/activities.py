@@ -125,7 +125,9 @@ async def create_activity(
         location=activity.location or "Не указано",
         club_id=activity.club_id,
         group_id=activity.group_id,
-        max_participants=activity.max_participants
+        sport_type=activity.sport_type.value if activity.sport_type else None,
+        country=activity.country,
+        city=activity.city
     ))
 
     # Convert to response
@@ -1285,7 +1287,9 @@ async def _send_new_activity_notifications(
     location: str,
     club_id: Optional[str],
     group_id: Optional[str],
-    max_participants: Optional[int]
+    sport_type: str = None,
+    country: str = None,
+    city: str = None
 ) -> None:
     """
     Send new activity notifications to club/group members.
@@ -1298,7 +1302,9 @@ async def _send_new_activity_notifications(
         location: Activity location
         club_id: Club ID (if club activity)
         group_id: Group ID (if group activity)
-        max_participants: Maximum participants
+        sport_type: Sport type for icon
+        country: Country for timezone conversion
+        city: City for timezone conversion
     """
     try:
         from storage.db import SessionLocal
@@ -1330,8 +1336,9 @@ async def _send_new_activity_notifications(
                 memberships = session.query(Membership).filter(Membership.group_id == group_id).all()
                 members = [session.query(User).filter(User.id == m.user_id).first() for m in memberships]
 
-            # Filter out None values
+            # Filter out None values and get first names for participants line
             members = [m for m in members if m and m.telegram_id]
+            member_names = [m.first_name for m in members if m.first_name]
 
             # Build webapp link (Telegram deep link)
             webapp_link = f"https://t.me/{settings.bot_username}?start=activity_{activity_id}"
@@ -1348,10 +1355,12 @@ async def _send_new_activity_notifications(
                         activity_title=activity_title,
                         activity_date=activity_date,
                         location=location,
-                        participants_count=0,
-                        max_participants=max_participants,
                         entity_name=entity_name,
-                        webapp_link=webapp_link
+                        webapp_link=webapp_link,
+                        sport_type=sport_type,
+                        participant_names=member_names,
+                        country=country,
+                        city=city
                     )
                 except Exception as e:
                     logger.error(f"Failed to send notification to user {member.telegram_id}: {e}")
@@ -1365,7 +1374,12 @@ async def _send_new_activity_notifications(
                         activity_title=activity_title,
                         activity_date=activity_date,
                         location=location,
-                        webapp_link=webapp_link
+                        entity_name=entity_name,
+                        webapp_link=webapp_link,
+                        sport_type=sport_type,
+                        participant_names=member_names,
+                        country=country,
+                        city=city
                     )
                 except Exception as e:
                     logger.error(f"Failed to send notification to group {telegram_group_id}: {e}")

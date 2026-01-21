@@ -81,6 +81,17 @@ RUSSIAN_WEEKDAYS = {
     "Sun": "Вс",
 }
 
+# Russian day of week names in accusative case ("в субботу")
+RUSSIAN_WEEKDAYS_ACCUSATIVE = {
+    0: "в понедельник",
+    1: "во вторник",
+    2: "в среду",
+    3: "в четверг",
+    4: "в пятницу",
+    5: "в субботу",
+    6: "в воскресенье",
+}
+
 
 def _to_russian(text: str) -> str:
     """Convert English month and weekday names to Russian."""
@@ -90,6 +101,25 @@ def _to_russian(text: str) -> str:
     for eng, rus in RUSSIAN_WEEKDAYS.items():
         result = result.replace(eng, rus)
     return result
+
+
+def get_weekday_accusative(dt: datetime, country: str = None, city: str = None) -> str:
+    """
+    Get day of week in Russian accusative case ("в субботу", "в среду").
+
+    Args:
+        dt: UTC datetime
+        country: Country name for timezone lookup
+        city: City name (optional)
+
+    Returns:
+        Day of week in accusative case (e.g., "в субботу")
+    """
+    local_dt = to_local_time(dt, country, city)
+    if local_dt is None:
+        return ""
+    weekday = local_dt.weekday()  # 0 = Monday, 6 = Sunday
+    return RUSSIAN_WEEKDAYS_ACCUSATIVE.get(weekday, "")
 
 
 def utc_now() -> datetime:
