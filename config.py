@@ -116,11 +116,13 @@ class Settings(BaseSettings):
     @field_validator('app_url')
     @classmethod
     def ensure_https(cls, v: Optional[str]) -> Optional[str]:
-        """Ensure app_url has https:// prefix"""
+        """Ensure app_url has https:// prefix (Telegram requires https)"""
         if v is None:
             return None
         v = v.strip()
-        if v and not v.startswith('http://') and not v.startswith('https://'):
+        if v.startswith('http://'):
+            return v.replace('http://', 'https://', 1)
+        if not v.startswith('https://'):
             return f'https://{v}'
         return v
 
