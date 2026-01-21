@@ -19,6 +19,7 @@ Usage:
 
 from datetime import datetime, timezone, timedelta
 from typing import Optional
+import re
 
 # Try to import ZoneInfo, fallback to fixed offset for Moscow if tzdata not available
 try:
@@ -52,6 +53,43 @@ TIMEZONE_OFFSETS = {
     "Asia/Bishkek": timezone(timedelta(hours=6)),
     "Asia/Dubai": timezone(timedelta(hours=4)),
 }
+
+# Russian month names for date formatting
+RUSSIAN_MONTHS = {
+    "January": "января",
+    "February": "февраля",
+    "March": "марта",
+    "April": "апреля",
+    "May": "мая",
+    "June": "июня",
+    "July": "июля",
+    "August": "августа",
+    "September": "сентября",
+    "October": "октября",
+    "November": "ноября",
+    "December": "декабря",
+}
+
+# Russian day of week names (abbreviated)
+RUSSIAN_WEEKDAYS = {
+    "Mon": "Пн",
+    "Tue": "Вт",
+    "Wed": "Ср",
+    "Thu": "Чт",
+    "Fri": "Пт",
+    "Sat": "Сб",
+    "Sun": "Вс",
+}
+
+
+def _to_russian(text: str) -> str:
+    """Convert English month and weekday names to Russian."""
+    result = text
+    for eng, rus in RUSSIAN_MONTHS.items():
+        result = result.replace(eng, rus)
+    for eng, rus in RUSSIAN_WEEKDAYS.items():
+        result = result.replace(eng, rus)
+    return result
 
 
 def utc_now() -> datetime:
@@ -134,12 +172,13 @@ def format_datetime_local(
         fmt: strftime format string
 
     Returns:
-        Formatted datetime string in local time
+        Formatted datetime string in local time (with Russian month/weekday names)
     """
     local_dt = to_local_time(dt, country, city)
     if local_dt is None:
         return ""
-    return local_dt.strftime(fmt)
+    formatted = local_dt.strftime(fmt)
+    return _to_russian(formatted)
 
 
 def ensure_utc(dt: Optional[datetime]) -> Optional[datetime]:

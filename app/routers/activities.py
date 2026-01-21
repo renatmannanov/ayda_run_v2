@@ -17,7 +17,7 @@ from typing import List, Optional
 
 from storage.db import Activity, Participation, User, Membership, JoinRequest, JoinRequestStatus, Club, Group
 from app.core.dependencies import get_db, get_current_user, get_current_user_optional
-from app.core.timezone import utc_now, ensure_utc, is_past, is_future
+from app.core.timezone import utc_now, ensure_utc, is_past, is_future, format_datetime_local
 from permissions import can_create_activity_in_club, can_create_activity_in_group, require_activity_owner, check_activity_creation_limit
 from schemas.common import SportType, Difficulty, ActivityVisibility, ActivityStatus, ParticipationStatus, PaymentStatus
 from schemas.activity import ActivityCreate, ActivityUpdate, ActivityResponse, MarkAttendanceRequest, AddParticipantRequest
@@ -1488,7 +1488,7 @@ def _build_changes_summary(old_values: dict, activity) -> str:
         changes.append(f"• Название: {activity.title}")
 
     if old_values.get('date') != activity.date:
-        date_str = activity.date.strftime("%d %B в %H:%M")
+        date_str = format_datetime_local(activity.date)
         changes.append(f"• Дата: {date_str}")
 
     if old_values.get('location') != activity.location:

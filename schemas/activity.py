@@ -47,6 +47,16 @@ class ActivityCreate(BaseModel):
             raise ValueError('Activity date must be in the future')
         return v_utc
 
+    @field_validator('location', 'title', 'description', mode='before')
+    @classmethod
+    def strip_whitespace(cls, v: Optional[str]) -> Optional[str]:
+        """Strip leading/trailing whitespace from text fields."""
+        if v is None:
+            return None
+        if isinstance(v, str):
+            return v.strip()
+        return v
+
     model_config = ConfigDict(
         json_schema_extra={
             "example": {
@@ -91,6 +101,16 @@ class ActivityUpdate(BaseModel):
         if v_utc <= utc_now():
             raise ValueError('Activity date must be in the future')
         return v_utc
+
+    @field_validator('location', 'title', 'description', mode='before')
+    @classmethod
+    def strip_whitespace(cls, v: Optional[str]) -> Optional[str]:
+        """Strip leading/trailing whitespace from text fields."""
+        if v is None:
+            return None
+        if isinstance(v, str):
+            return v.strip()
+        return v
 
 class ActivityResponse(BaseResponse):
     """Schema for activity response"""
