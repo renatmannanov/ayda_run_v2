@@ -15,7 +15,7 @@ import httpx
 from sqlalchemy.orm import Session, joinedload
 from typing import List, Optional
 
-from storage.db import Activity, Participation, User, Membership, JoinRequest, JoinRequestStatus, Club, Group
+from storage.db import Activity, Participation, User, Membership, JoinRequest, JoinRequestStatus, Club, Group, MembershipStatus
 from app.core.dependencies import get_db, get_current_user, get_current_user_optional
 from app.core.timezone import utc_now, ensure_utc, is_past, is_future, format_datetime_local
 from permissions import can_create_activity_in_club, can_create_activity_in_group, require_activity_owner, check_activity_creation_limit
@@ -435,6 +435,48 @@ async def delete_activity(
 # Participation
 # ============================================================================
 
+def _is_club_member(db: Session, user_id: str, activity: Activity) -> bool:
+    """
+    Check if user is an active member of the club that owns this activity.
+
+    Works for:
+    - Activities directly under a club (activity.club_id)
+    - Activities under a group that belongs to a club (activity.group_id -> group.club_id)
+
+    Args:
+        db: Database session
+        user_id: User ID to check
+        activity: Activity object
+
+    Returns:
+        True if user is an active member of the relevant club
+    """
+    club_id = None
+
+    # Case 1: Activity belongs directly to a club
+    if activity.club_id:
+        club_id = activity.club_id
+
+    # Case 2: Activity belongs to a group that is part of a club
+    elif activity.group_id:
+        group = db.query(Group).filter(Group.id == activity.group_id).first()
+        if group and group.club_id:
+            club_id = group.club_id
+
+    # No club association - not a club member
+    if not club_id:
+        return False
+
+    # Check active membership in the club
+    membership = db.query(Membership).filter(
+        Membership.user_id == user_id,
+        Membership.club_id == club_id,
+        Membership.status == MembershipStatus.ACTIVE
+    ).first()
+
+    return membership is not None
+
+
 @router.post("/{activity_id}/join", status_code=201)
 async def join_activity(
     activity_id: str,
@@ -448,12 +490,16 @@ async def join_activity(
     if not activity:
         raise HTTPException(status_code=404, detail="Activity not found")
 
-    # Check if activity is open
+    # Check if activity is open (club members can join closed activities)
     if not activity.is_open:
-        raise HTTPException(
-            status_code=403,
-            detail="This activity is closed. Please send a join request instead using POST /api/activities/{activity_id}/request-join"
-        )
+        # Club members can join closed activities directly
+        if not _is_club_member(db, current_user.id, activity):
+            raise HTTPException(
+                status_code=403,
+                detail="This activity is closed. Please send a join request instead using POST /api/activities/{activity_id}/request-join"
+            )
+        # Club member joining a closed activity - allow
+        logger.info(f"Club member {current_user.id} joining closed activity {activity_id}")
 
     # Check if already joined
     existing = db.query(Participation).filter(
