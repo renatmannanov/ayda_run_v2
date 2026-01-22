@@ -440,6 +440,17 @@ export const configApi = {
     getBotUsername: async () => {
         const config = await configApi.get()
         return config.bot_username
+    },
+
+    /**
+     * Generate Telegram deep link for sharing
+     * @param {string} type - 'activity', 'club', or 'group'
+     * @param {string} id - entity ID
+     * @returns {Promise<string>} Telegram deep link URL
+     */
+    getShareLink: async (type, id) => {
+        const botUsername = await configApi.getBotUsername()
+        return `https://t.me/${botUsername}/app?startapp=${type}_${id}`
     }
 }
 

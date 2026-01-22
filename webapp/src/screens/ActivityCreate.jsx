@@ -357,8 +357,9 @@ export default function ActivityCreate() {
                     }
 
                     setCreatedActivityId(result.first_activity_id)
-                    // Use direct webapp URL for sharing - works in Telegram Mini App
-                    setShareLink(`${window.location.origin}/activity/${result.first_activity_id}`)
+                    // Use Telegram deep link for sharing
+                    const link = await configApi.getShareLink('activity', result.first_activity_id)
+                    setShareLink(link)
                     setFlowStep('success') // Skip GPX for recurring
                 } else {
                     // Create single activity
@@ -382,8 +383,9 @@ export default function ActivityCreate() {
                     }
 
                     setCreatedActivityId(result.id)
-                    // Use direct webapp URL for sharing - works in Telegram Mini App
-                    setShareLink(`${window.location.origin}/activity/${result.id}`)
+                    // Use Telegram deep link for sharing
+                    const link = await configApi.getShareLink('activity', result.id)
+                    setShareLink(link)
                     // Skip GPX step for yoga and workout
                     if (['yoga', 'workout'].includes(sportType)) {
                         setFlowStep('success')

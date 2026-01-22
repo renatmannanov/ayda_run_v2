@@ -129,8 +129,9 @@ export default function CreateGroup() {
                 navigate(-1)
             } else {
                 const result = await createGroup(payload)
-                // Use direct webapp URL for sharing - works in Telegram Mini App
-                setShareLink(`${window.location.origin}/group/${result.id}`)
+                // Use Telegram deep link for sharing
+                const link = await configApi.getShareLink('group', result.id)
+                setShareLink(link)
                 setCreatedId(result.id)
                 setShowSuccess(true)
             }

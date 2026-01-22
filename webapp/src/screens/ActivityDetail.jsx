@@ -131,8 +131,8 @@ export default function ActivityDetail() {
     }
 
     const handleShare = async () => {
-        // Use direct webapp URL for sharing - works in Telegram Mini App
-        const shareUrl = `${window.location.origin}/activity/${activity.id}`
+        // Use Telegram deep link for sharing
+        const shareUrl = await configApi.getShareLink('activity', activity.id)
         navigator.clipboard.writeText(shareUrl)
         showToast('Ссылка скопирована', 'info')
     }
