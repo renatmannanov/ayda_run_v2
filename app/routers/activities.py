@@ -1397,9 +1397,11 @@ async def _send_new_activity_notifications(
                 memberships = session.query(Membership).filter(Membership.group_id == group_id).all()
                 members = [session.query(User).filter(User.id == m.user_id).first() for m in memberships]
 
-            # Filter out None values and get first names for participants line
+            # Filter out None values
             members = [m for m in members if m and m.telegram_id]
-            member_names = [m.first_name for m in members if m.first_name]
+            # Note: At activity creation time, there are no participants yet (only creator)
+            # So we pass empty list - "Идут:" line will not be shown
+            participant_names = []
 
             # Build webapp link for personal chats (direct URL for WebAppInfo)
             webapp_link = f"{settings.app_url}activity/{activity_id}"
@@ -1421,7 +1423,7 @@ async def _send_new_activity_notifications(
                         entity_name=entity_name,
                         webapp_link=webapp_link,
                         sport_type=sport_type,
-                        participant_names=member_names,
+                        participant_names=participant_names,
                         country=country,
                         city=city
                     )
@@ -1440,7 +1442,7 @@ async def _send_new_activity_notifications(
                         entity_name=entity_name,
                         webapp_link=group_link,
                         sport_type=sport_type,
-                        participant_names=member_names,
+                        participant_names=participant_names,
                         country=country,
                         city=city
                     )
