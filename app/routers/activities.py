@@ -1401,8 +1401,10 @@ async def _send_new_activity_notifications(
             members = [m for m in members if m and m.telegram_id]
             member_names = [m.first_name for m in members if m.first_name]
 
-            # Build webapp link (Telegram deep link)
+            # Build webapp link for personal chats (direct URL for WebAppInfo)
             webapp_link = f"{settings.app_url}activity/{activity_id}"
+            # Build Telegram deep link for group chats (WebAppInfo doesn't work in groups)
+            group_link = f"https://t.me/{settings.bot_username}/app?startapp=activity_{activity_id}"
 
             # Initialize bot
             bot = Bot(token=settings.bot_token)
@@ -1436,7 +1438,7 @@ async def _send_new_activity_notifications(
                         activity_date=activity_date,
                         location=location,
                         entity_name=entity_name,
-                        webapp_link=webapp_link,
+                        webapp_link=group_link,
                         sport_type=sport_type,
                         participant_names=member_names,
                         country=country,

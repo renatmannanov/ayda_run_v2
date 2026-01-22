@@ -362,8 +362,9 @@ async def send_new_activity_notification_to_group(
         )
 
         # Button text depends on participants
+        # Note: WebAppInfo doesn't work in group chats, use url= with Telegram deep link
         button_text = "Присоединиться" if participant_names else "Записаться"
-        keyboard = [[InlineKeyboardButton(button_text, web_app=WebAppInfo(url=webapp_link))]]
+        keyboard = [[InlineKeyboardButton(button_text, url=webapp_link)]]
         reply_markup = InlineKeyboardMarkup(keyboard)
 
         await bot.send_message(
@@ -483,7 +484,8 @@ async def send_activity_reminder_to_group(
         )
 
         # Button to join
-        keyboard = [[InlineKeyboardButton("Присоединиться", web_app=WebAppInfo(url=webapp_link))]]
+        # Note: WebAppInfo doesn't work in group chats, use url= with Telegram deep link
+        keyboard = [[InlineKeyboardButton("Присоединиться", url=webapp_link)]]
         reply_markup = InlineKeyboardMarkup(keyboard)
 
         await bot.send_message(

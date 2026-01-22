@@ -175,9 +175,12 @@ class ActivityReminderService:
         # Get participant names for display
         participant_names = [p.first_name for p in participants if p.first_name]
 
-        # Build webapp link
+        # Build webapp links
         from config import settings
-        webapp_link = f"https://t.me/{settings.bot_username}?start=activity_{activity.id}"
+        # Direct URL for personal chats (WebAppInfo)
+        webapp_link = f"{settings.app_url}activity/{activity.id}"
+        # Telegram deep link for group chats (WebAppInfo doesn't work in groups)
+        group_link = f"https://t.me/{settings.bot_username}/app?startapp=activity_{activity.id}"
 
         # Get sport type as string
         sport_type = activity.sport_type.value if activity.sport_type else None
@@ -211,7 +214,7 @@ class ActivityReminderService:
                     activity_title=activity.title,
                     activity_date=activity.date,
                     location=activity.location or "Не указано",
-                    webapp_link=webapp_link,
+                    webapp_link=group_link,
                     sport_type=sport_type,
                     participant_names=participant_names,
                     country=activity.country,
