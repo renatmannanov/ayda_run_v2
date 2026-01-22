@@ -16,14 +16,14 @@ from app.core.timezone import format_datetime_local, get_weekday_accusative
 
 logger = logging.getLogger(__name__)
 
-# Sport type icons
+# Sport type icons (must match SportType enum in schemas/common.py)
 SPORT_ICONS = {
     'running': '🏃',
     'trail': '⛰️',
-    'cycling': '🚴',
-    'swimming': '🏊',
     'hiking': '🥾',
-    'skiing': '⛷️',
+    'cycling': '🚴',
+    'yoga': '🧘',
+    'workout': '💪',
     'other': '🏅',
 }
 
