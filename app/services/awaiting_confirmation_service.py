@@ -1,17 +1,19 @@
 """
 Awaiting Confirmation Service
 
-Background service that automatically transitions participations to 'awaiting' status
-after activity END time has passed (start time + duration).
+Background service that:
+1. Marks activities as COMPLETED after their end time (start + duration)
+2. Transitions participations to 'awaiting' status for attendance confirmation
 
 Runs every 5 minutes to check for:
-1. Participations with status 'registered' or 'confirmed'
-2. Where activity end time < now (activity.date + duration < now)
+1. Activities with status UPCOMING where end time < now
+2. Participations with status 'registered' or 'confirmed' for ended activities
 3. If duration is not set, defaults to 60 minutes
 
-For each found participation:
-1. Update status to 'awaiting'
-2. Send Telegram notification asking user to confirm attendance
+For each ended activity:
+1. Update activity status to COMPLETED
+2. Update participation statuses to AWAITING
+3. Send Telegram notifications for attendance confirmation
 """
 
 import logging
@@ -23,7 +25,7 @@ from telegram import Bot
 from sqlalchemy.orm import Session
 from sqlalchemy import and_
 
-from storage.db import SessionLocal, Participation, Activity, User, ParticipationStatus
+from storage.db import SessionLocal, Participation, Activity, User, ParticipationStatus, ActivityStatus
 from app.core.timezone import utc_now, ensure_utc_from_db
 from bot.activity_notifications import send_awaiting_confirmation_notification, send_organizer_checkin_notification
 from config import settings
@@ -33,11 +35,14 @@ logger = logging.getLogger(__name__)
 
 class AwaitingConfirmationService:
     """
-    Service to automatically transition participations to 'awaiting' status
-    after activity time has passed.
+    Service to automatically:
+    1. Mark ended activities as COMPLETED
+    2. Transition participations to 'awaiting' status
 
     Runs as a background task and checks every 5 minutes.
     """
+
+    DEFAULT_DURATION_MINUTES = 60  # Default activity duration if not specified
 
     def __init__(self, bot: Bot, check_interval: int = 300):
         """
@@ -88,80 +93,132 @@ class AwaitingConfirmationService:
             # Wait for next check
             await asyncio.sleep(self.check_interval)
 
+    def _find_ended_activities(self, session: Session) -> List[Activity]:
+        """
+        Find all UPCOMING activities that have ended (start + duration < now).
+        Includes demo activities for testing purposes.
+
+        Args:
+            session: Database session
+
+        Returns:
+            List of Activity objects that have ended
+        """
+        now = utc_now()
+
+        # Get all UPCOMING activities (including demo for testing)
+        upcoming_activities = session.query(Activity).filter(
+            Activity.status == ActivityStatus.UPCOMING
+        ).all()
+
+        # Filter by end time in Python (for cross-database compatibility)
+        ended_activities = []
+        for activity in upcoming_activities:
+            duration_minutes = activity.duration if activity.duration else self.DEFAULT_DURATION_MINUTES
+            activity_start_utc = ensure_utc_from_db(activity.date)
+            activity_end_time = activity_start_utc + timedelta(minutes=duration_minutes)
+
+            if activity_end_time < now:
+                ended_activities.append(activity)
+
+        return ended_activities
+
+    def _mark_activities_completed(self, session: Session, activities: List[Activity]) -> List[str]:
+        """
+        Mark activities as COMPLETED.
+
+        Args:
+            session: Database session
+            activities: List of activities to mark as completed
+
+        Returns:
+            List of activity IDs that were marked as completed
+        """
+        activity_ids = []
+        for activity in activities:
+            activity.status = ActivityStatus.COMPLETED
+            activity_ids.append(activity.id)
+            logger.info(f"Marked activity {activity.id} '{activity.title}' as COMPLETED")
+
+        return activity_ids
+
+    def _find_participations_to_update(self, session: Session, activity_ids: List[str]) -> List[Participation]:
+        """
+        Find participations that need to be transitioned to AWAITING.
+        Includes participations for demo activities.
+
+        Args:
+            session: Database session
+            activity_ids: List of activity IDs to find participations for
+
+        Returns:
+            List of Participation objects to update
+        """
+        if not activity_ids:
+            return []
+
+        return session.query(Participation).filter(
+            Participation.activity_id.in_(activity_ids),
+            Participation.status.in_([
+                ParticipationStatus.REGISTERED,
+                ParticipationStatus.CONFIRMED
+            ])
+        ).all()
+
+    async def _process_participations(self, session: Session, participations: List[Participation]):
+        """
+        Transition participations to AWAITING and send notifications.
+
+        Args:
+            session: Database session
+            participations: List of participations to process
+        """
+        if not participations:
+            return
+
+        logger.info(f"Processing {len(participations)} participations")
+
+        notified_organizers = set()
+        for participation in participations:
+            try:
+                await self._transition_to_awaiting(session, participation, notified_organizers)
+            except Exception as e:
+                logger.error(f"Error transitioning participation {participation.id}: {e}", exc_info=True)
+
     async def _check_and_transition_participations(self):
-        """Check for participations to transition and send notifications"""
+        """
+        Main method: find ended activities, mark them COMPLETED,
+        and transition participations to AWAITING.
+        """
         session = SessionLocal()
 
-        # Default duration if not specified (in minutes)
-        DEFAULT_DURATION_MINUTES = 60
-
         try:
-            now = utc_now()  # Use UTC time for consistent comparison
+            # Step 1: Find ended activities
+            ended_activities = self._find_ended_activities(session)
 
-            # Find all participations where:
-            # - status is REGISTERED or CONFIRMED
-            # - activity is not demo data
-            # We'll filter by end time in Python for cross-database compatibility
-            candidate_participations = session.query(Participation).join(
-                Activity, Participation.activity_id == Activity.id
-            ).filter(
-                and_(
-                    Participation.status.in_([
-                        ParticipationStatus.REGISTERED,
-                        ParticipationStatus.CONFIRMED
-                    ]),
-                    Activity.is_demo == False
-                )
-            ).all()
-
-            # Filter participations where activity has ENDED (start + duration < now)
-            participations_to_update = []
-            for participation in candidate_participations:
-                activity = session.query(Activity).filter(
-                    Activity.id == participation.activity_id
-                ).first()
-
-                if not activity:
-                    continue
-
-                # Calculate end time: start + duration (or default 60 min)
-                # Use ensure_utc_from_db to handle naive datetime from database
-                duration_minutes = activity.duration if activity.duration else DEFAULT_DURATION_MINUTES
-                activity_start_utc = ensure_utc_from_db(activity.date)
-                activity_end_time = activity_start_utc + timedelta(minutes=duration_minutes)
-
-                # Only include if activity has ended
-                if activity_end_time < now:
-                    participations_to_update.append(participation)
-
-            if not participations_to_update:
-                logger.debug("No participations to transition to awaiting")
+            if not ended_activities:
+                logger.debug("No activities to complete")
                 return
 
-            logger.info(f"Found {len(participations_to_update)} participations to transition to awaiting")
+            # Step 2: Mark activities as COMPLETED
+            activity_ids = self._mark_activities_completed(session, ended_activities)
 
-            # Group participations by activity for organizer notifications
-            activity_participations = {}
-            for participation in participations_to_update:
-                activity_id = participation.activity_id
-                if activity_id not in activity_participations:
-                    activity_participations[activity_id] = []
-                activity_participations[activity_id].append(participation)
+            # Step 3: Find participations for these activities
+            participations = self._find_participations_to_update(session, activity_ids)
 
-            # Process each participation and send appropriate notifications
-            notified_organizers = set()  # Track which organizers we've notified
+            # Step 4: Process participations and send notifications
+            await self._process_participations(session, participations)
 
-            for participation in participations_to_update:
-                try:
-                    await self._transition_to_awaiting(session, participation, notified_organizers)
-                except Exception as e:
-                    logger.error(f"Error transitioning participation {participation.id}: {e}", exc_info=True)
-
+            # Single commit for transactional integrity
             session.commit()
-            logger.info(f"Successfully transitioned {len(participations_to_update)} participations to awaiting")
+
+            logger.info(
+                f"Completed: {len(ended_activities)} activities marked COMPLETED, "
+                f"{len(participations)} participations transitioned to AWAITING"
+            )
 
         except Exception as e:
-            logger.error(f"Error checking participations: {e}", exc_info=True)
+            logger.error(f"Error in check_and_transition_participations: {e}", exc_info=True)
             session.rollback()
 
         finally:
@@ -184,7 +241,7 @@ class AwaitingConfirmationService:
             participation: Participation to transition
             notified_organizers: Set of activity IDs for which organizer was already notified
         """
-        # Update participation status
+        # Update participation status (always, including demo)
         participation.status = ParticipationStatus.AWAITING
 
         # Get user and activity for notification
@@ -193,6 +250,11 @@ class AwaitingConfirmationService:
 
         if not activity:
             logger.warning(f"Activity {participation.activity_id} not found")
+            return
+
+        # Skip notifications for demo activities (status already updated above)
+        if activity.is_demo:
+            logger.debug(f"Skipping notification for demo activity {activity.id}")
             return
 
         # Check if this is a club/group activity
