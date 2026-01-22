@@ -148,6 +148,7 @@ class ActivityResponse(BaseResponse):
     participants_count: int = 0
     is_joined: bool = False
     is_creator: bool = False
+    is_club_member: bool = False  # True if user is a member of the club this activity belongs to
     participation_status: Optional[ParticipationStatus] = None  # User's participation status (awaiting, attended, missed, etc.)
     can_view_participants: bool = True  # False if closed and not member
     can_download_gpx: bool = True  # False if closed and not member

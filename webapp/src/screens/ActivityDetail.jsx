@@ -105,7 +105,8 @@ export default function ActivityDetail() {
     // Join/Leave handler
     const handleJoin = async () => {
         try {
-            if (activity.isOpen) {
+            // Club members can join directly even for closed activities
+            if (activity.isOpen || activity.isClubMember) {
                 await joinActivity(id)
                 showToast('Записано')
             } else {
@@ -390,8 +391,9 @@ export default function ActivityDetail() {
             return <StatusBadge variant="finished" />
         }
 
-        // Private & not joined & not pending
-        if (!activity?.isOpen && !isJoined && !isPending) {
+        // Private & not joined & not pending & NOT club member
+        // Club members see "Записаться" button instead of "Подать заявку"
+        if (!activity?.isOpen && !activity?.isClubMember && !isJoined && !isPending) {
             return (
                 <button
                     onClick={handleJoin}
@@ -406,8 +408,8 @@ export default function ActivityDetail() {
             )
         }
 
-        // Private & pending
-        if (!activity?.isOpen && isPending) {
+        // Private & pending (only for non-club-members who sent a request)
+        if (!activity?.isOpen && !activity?.isClubMember && isPending) {
             return (
                 <div className="flex items-center justify-between h-12">
                     <button
@@ -427,8 +429,8 @@ export default function ActivityDetail() {
             )
         }
 
-        // Open & not joined
-        if (activity?.isOpen && !isJoined) {
+        // Open OR club member & not joined
+        if ((activity?.isOpen || activity?.isClubMember) && !isJoined) {
             if (isFull) {
                 return <StatusBadge variant="noSeats" />
             }

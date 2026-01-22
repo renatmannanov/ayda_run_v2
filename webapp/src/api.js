@@ -73,6 +73,7 @@ const transformActivity = (a) => !a ? null : ({
     participants: a.participants_count, // Map count to prop expected by UI
     isJoined: a.is_joined,
     isOpen: a.is_open !== undefined ? a.is_open : true, // Default to open for backwards compatibility
+    isClubMember: a.is_club_member || false, // True if user is member of the club this activity belongs to
     participationStatus: a.participation_status, // User's participation status (awaiting, attended, missed, etc.)
     canViewParticipants: a.can_view_participants !== undefined ? a.can_view_participants : true,
     canDownloadGpx: a.can_download_gpx !== undefined ? a.can_download_gpx : true,

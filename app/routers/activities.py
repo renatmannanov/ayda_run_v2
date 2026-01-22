@@ -98,6 +98,12 @@ async def create_activity(
     if not activity_dict.get('city'):
         activity_dict['city'] = current_user.city
 
+    # Convert date to naive UTC for SQLite compatibility
+    # SQLite doesn't handle timezone-aware datetimes correctly - it converts to local time
+    # We need to store naive UTC datetime
+    if activity_dict.get('date') and activity_dict['date'].tzinfo is not None:
+        activity_dict['date'] = activity_dict['date'].replace(tzinfo=None)
+
     activity = Activity(
         **activity_dict,
         creator_id=current_user.id,
@@ -288,6 +294,9 @@ async def get_activity(
             else:
                 response.participation_status = participation.status
 
+        # Check if user is a club member (for closed activities - members can join directly)
+        response.is_club_member = _is_club_member(db, current_user.id, activity)
+
     # Populate names
     if activity.club:
         response.club_name = activity.club.name
@@ -339,6 +348,12 @@ async def update_activity(
 
     # Update fields
     update_data = activity_data.model_dump(exclude_unset=True)
+
+    # Convert date to naive UTC for SQLite compatibility
+    if 'date' in update_data and update_data['date'] is not None:
+        if update_data['date'].tzinfo is not None:
+            update_data['date'] = update_data['date'].replace(tzinfo=None)
+
     for field, value in update_data.items():
         setattr(activity, field, value)
 
