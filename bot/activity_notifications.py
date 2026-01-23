@@ -37,7 +37,7 @@ def get_sport_icon(sport_type: str) -> str:
 
 def format_participants_line(names: List[str]) -> str:
     """
-    Format participants line: 'Идут: Алексей, Мария и ещё 3'
+    Format participants line: 'Идут: Алексей, Мария, Иван, Петр, Анна + 3'
 
     Args:
         names: List of participant first names
@@ -47,12 +47,10 @@ def format_participants_line(names: List[str]) -> str:
     """
     if not names:
         return ""
-    if len(names) == 1:
-        return f"Идут: {names[0]}"
-    if len(names) <= 3:
+    if len(names) <= 5:
         return f"Идут: {', '.join(names)}"
     else:
-        return f"Идут: {', '.join(names[:2])} и ещё {len(names) - 2}"
+        return f"Идут: {', '.join(names[:5])} + {len(names) - 5}"
 
 
 def format_new_activity_notification(
