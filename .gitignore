@@ -30,3 +30,6 @@ dist/
 
 # Documentation (not needed in production)
 docs/
+
+# SMM
+SMM/
