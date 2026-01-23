@@ -275,20 +275,13 @@ export const activitiesApi = {
 
     getGpxDownloadUrl: (activityId) => `${API_BASE}/activities/${activityId}/gpx`,
 
-    // Download GPX file - uses openLink on mobile for reliable download
+    // Download GPX file - uses Web Share API on mobile for "Open with" dialog
     downloadGpx: async (activityId, filename) => {
         const tg = window.Telegram?.WebApp
         const initData = tg?.initData
+        const isMobile = tg && initData && tg.platform !== 'web'
 
-        // On mobile Telegram, use openLink to download in external browser
-        // The blob + <a> click method doesn't work reliably in Telegram WebView
-        if (tg && initData && tg.platform !== 'web') {
-            const downloadUrl = `${window.location.origin}${API_BASE}/activities/${activityId}/gpx?init_data=${encodeURIComponent(initData)}`
-            tg.openLink(downloadUrl)
-            return
-        }
-
-        // Desktop fallback - standard fetch + blob download
+        // Fetch the file
         const headers = getAuthHeaders()
         delete headers['Content-Type']
 
@@ -300,10 +293,31 @@ export const activitiesApi = {
         }
 
         const blob = await response.blob()
+        const gpxFilename = filename || `route.gpx`
+        const file = new File([blob], gpxFilename, { type: 'application/gpx+xml' })
+
+        // On mobile, try Web Share API (shows "Open with" dialog)
+        if (isMobile && navigator.canShare && navigator.canShare({ files: [file] })) {
+            try {
+                await navigator.share({
+                    files: [file],
+                    title: gpxFilename
+                })
+                return // Success - user shared/opened the file
+            } catch (e) {
+                // User cancelled share or it failed - fall through to download
+                if (e.name === 'AbortError') {
+                    return // User cancelled, don't show error
+                }
+                console.warn('Share API failed, falling back to download:', e)
+            }
+        }
+
+        // Fallback: standard download
         const url = window.URL.createObjectURL(blob)
         const a = document.createElement('a')
         a.href = url
-        a.download = filename || `activity_${activityId}.gpx`
+        a.download = gpxFilename
         document.body.appendChild(a)
         a.click()
         window.URL.revokeObjectURL(url)
