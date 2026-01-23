@@ -275,13 +275,27 @@ export const activitiesApi = {
 
     getGpxDownloadUrl: (activityId) => `${API_BASE}/activities/${activityId}/gpx`,
 
-    // Download GPX file - uses Web Share API on mobile for "Open with" dialog
+    // Download GPX file - uses Telegram's native downloadFile API
     downloadGpx: async (activityId, filename) => {
         const tg = window.Telegram?.WebApp
         const initData = tg?.initData
-        const isMobile = tg && initData && tg.platform !== 'web'
+        const gpxFilename = filename || 'route.gpx'
 
-        // Fetch the file
+        // Build download URL with auth token
+        const downloadUrl = `${window.location.origin}${API_BASE}/activities/${activityId}/gpx?init_data=${encodeURIComponent(initData || '')}`
+
+        // Use Telegram's native downloadFile if available (shows native download popup)
+        if (tg?.downloadFile) {
+            tg.downloadFile({
+                url: downloadUrl,
+                file_name: gpxFilename
+            }, (accepted) => {
+                console.log('Download accepted:', accepted)
+            })
+            return
+        }
+
+        // Fallback: fetch and download via blob URL
         const headers = getAuthHeaders()
         delete headers['Content-Type']
 
@@ -293,27 +307,6 @@ export const activitiesApi = {
         }
 
         const blob = await response.blob()
-        const gpxFilename = filename || `route.gpx`
-        const file = new File([blob], gpxFilename, { type: 'application/gpx+xml' })
-
-        // On mobile, try Web Share API (shows "Open with" dialog)
-        if (isMobile && navigator.canShare && navigator.canShare({ files: [file] })) {
-            try {
-                await navigator.share({
-                    files: [file],
-                    title: gpxFilename
-                })
-                return // Success - user shared/opened the file
-            } catch (e) {
-                // User cancelled share or it failed - fall through to download
-                if (e.name === 'AbortError') {
-                    return // User cancelled, don't show error
-                }
-                console.warn('Share API failed, falling back to download:', e)
-            }
-        }
-
-        // Fallback: standard download
         const url = window.URL.createObjectURL(blob)
         const a = document.createElement('a')
         a.href = url

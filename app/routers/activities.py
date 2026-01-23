@@ -1232,7 +1232,8 @@ async def download_gpx(
             iter([response.content]),
             media_type="application/gpx+xml",
             headers={
-                "Content-Disposition": f"attachment; filename=\"route.gpx\"; filename*=UTF-8''{encoded_filename}"
+                "Content-Disposition": f"attachment; filename=\"route.gpx\"; filename*=UTF-8''{encoded_filename}",
+                "Access-Control-Allow-Origin": "https://web.telegram.org"
             }
         )
 
