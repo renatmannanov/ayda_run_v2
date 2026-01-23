@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { ParticipantsSheet, LoadingScreen, ErrorScreen, Button, BottomBar, AttendancePopup } from '../components'
-import { AvatarStack, GPXUploadPopup, RecurringScopeDialog, StatusBadge } from '../components/ui'
+import { AvatarStack, GPXUploadPopup, Linkify, RecurringScopeDialog, StatusBadge } from '../components/ui'
 import {
     useActivity,
     useActivityParticipants,
@@ -626,9 +626,9 @@ export default function ActivityDetail() {
 
                         <div className="flex items-center gap-3">
                             <span className="text-base">📍</span>
-                            <span className="text-sm text-gray-700 break-all">
+                            <Linkify className="text-sm text-gray-700 break-all">
                                 {activity.location}
-                            </span>
+                            </Linkify>
                         </div>
 
                         {distanceText && (
@@ -665,9 +665,9 @@ export default function ActivityDetail() {
                     {/* Description */}
                     {activity.description && (
                         <>
-                            <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-wrap break-words">
+                            <Linkify className="text-sm text-gray-600 leading-relaxed whitespace-pre-wrap break-words block">
                                 {activity.description}
-                            </p>
+                            </Linkify>
                             <div className="border-t border-gray-200 my-4" />
                         </>
                     )}

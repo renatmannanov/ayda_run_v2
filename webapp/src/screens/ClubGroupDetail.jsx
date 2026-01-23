@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { CreateMenu, ParticipantsSheet, MiniActivityCard, LoadingScreen, ErrorScreen, Button, BottomBar } from '../components'
-import { Avatar, AvatarStack } from '../components/ui'
+import { Avatar, AvatarStack, Linkify } from '../components/ui'
 import {
     useClub,
     useGroup,
@@ -358,9 +358,9 @@ export default function ClubGroupDetail({ type = 'club' }) {
                     {item.description && (
                         <>
                             <div className="border-t border-gray-200 my-4" />
-                            <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap break-words">
+                            <Linkify className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap break-words block">
                                 {item.description}
-                            </p>
+                            </Linkify>
                         </>
                     )}
 
