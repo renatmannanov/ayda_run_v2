@@ -2,53 +2,27 @@
 Tests for Telegram Bot Onboarding Flows
 
 Tests cover:
-- Flow 1: Participant onboarding (self-registration)
-- Flow 2A/2B: Club/Group invitations
-- Flow 3: Organizer club creation
+- Flow 1: Participant onboarding (start, consent)
+- Flow 2: Club/Group invitations (start with invitation link)
+- Storage integration tests
+- Input validation tests
 """
 
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 from telegram import Update, User as TelegramUser, Message, Chat, CallbackQuery
 from telegram.ext import ContextTypes
-from sqlalchemy.orm import Session
 
-from storage.db import User, Club, Group, ClubRequest, ClubRequestStatus, UserRole
+from storage.db import Club, Group, ClubRequestStatus
 from storage.user_storage import UserStorage
 from storage.club_storage import ClubStorage
-from storage.group_storage import GroupStorage
 from storage.membership_storage import MembershipStorage
 
-# Import handlers to test
 from bot.onboarding_handler import (
     start_onboarding,
     handle_consent,
-    handle_photo_visibility,
-    handle_sports_selection,
-    handle_role_selection,
-    complete_onboarding,
     AWAITING_CONSENT,
     ASKING_PHOTO_VISIBILITY,
-    SELECTING_SPORTS,
-    SELECTING_ROLE,
-    SHOWING_INTRO,
-)
-
-from bot.invitation_handler import (
-    handle_join_club,
-    handle_join_group,
-)
-
-from bot.organizer_handler import (
-    start_organizer_flow,
-    handle_club_name,
-    handle_club_description,
-    handle_club_sports_selection,
-    handle_club_members_count,
-    handle_club_groups_count,
-    handle_club_telegram_link,
-    handle_club_contact_phone,
-    handle_club_request_confirm,
 )
 
 
@@ -189,54 +163,6 @@ class TestFlow1ParticipantOnboarding:
             # Should edit message with photo visibility selection
             mock_callback_update.callback_query.edit_message_text.assert_called_once()
 
-    @pytest.mark.asyncio
-    @pytest.mark.skip(reason="Handler behavior changed - needs update to match current flow")
-    async def test_handle_sports_selection(self, mock_callback_update, mock_context, db_session_bot):
-        """Test user selects sports"""
-        mock_callback_update.callback_query.data = "sport_running"
-        mock_context.user_data = {"selected_sports": []}
-
-        with patch('storage.db.SessionLocal', return_value=db_session_bot):
-            result = await handle_sports_selection(mock_callback_update, mock_context)
-
-            # Should store selected sport
-            assert "running" in mock_context.user_data.get("selected_sports", [])
-
-    @pytest.mark.asyncio
-    @pytest.mark.skip(reason="Handler behavior changed - needs update to match current flow")
-    async def test_handle_role_selection_participant(self, mock_callback_update, mock_context, db_session_bot):
-        """Test user selects participant role"""
-        mock_callback_update.callback_query.data = "role_participant"
-        mock_context.user_data = {"selected_sports": ["running"]}
-
-        with patch('storage.db.SessionLocal', return_value=db_session_bot):
-            result = await handle_role_selection(mock_callback_update, mock_context)
-
-            # Should move to SHOWING_INTRO
-            assert result == SHOWING_INTRO
-
-    @pytest.mark.asyncio
-    @pytest.mark.skip(reason="Handler behavior changed - needs update to match current flow")
-    async def test_complete_onboarding(self, mock_callback_update, mock_context, db_session_bot):
-        """Test completing onboarding"""
-        mock_callback_update.callback_query.data = "intro_done"
-        mock_context.user_data = {
-            "selected_sports": ["running", "trail"],
-            "selected_role": "participant"
-        }
-
-        with patch('storage.db.SessionLocal', return_value=db_session_bot):
-            result = await complete_onboarding(mock_callback_update, mock_context)
-
-            # Should end conversation
-            from telegram.ext import ConversationHandler
-            assert result == ConversationHandler.END
-
-            # Check user was created and onboarding completed
-            user_storage = UserStorage(db_session_bot)
-            user = user_storage.get_user_by_telegram_id(123456789)
-            assert user is not None
-            assert user.has_completed_onboarding is True
 
 
 # ============================================================================
@@ -261,131 +187,6 @@ class TestFlow2Invitations:
             assert mock_context.user_data["invitation_type"] == "club"
             assert mock_context.user_data["invitation_id"] == test_club.id
 
-    @pytest.mark.asyncio
-    @pytest.mark.skip(reason="Handler behavior changed - needs update to match current flow")
-    async def test_group_invitation_existing_user(self, mock_callback_update, mock_context, db_session_bot, test_group):
-        """Test group invitation for existing user"""
-        # Create existing user
-        user_storage = UserStorage(db_session_bot)
-        user = user_storage.get_or_create_user(
-            telegram_id=123456789,
-            username="testuser",
-            first_name="Test",
-            last_name="User"
-        )
-        user_storage.mark_onboarding_complete(user.id)
-
-        # Simulate existing user clicking invitation
-        mock_callback_update.callback_query.data = "group_join_yes"
-        mock_context.user_data = {"invitation_id": test_group.id}
-
-        with patch('storage.db.SessionLocal', return_value=db_session_bot):
-            await handle_join_group(mock_callback_update, mock_context)
-
-            # Should add user to group
-            membership_storage = MembershipStorage(db_session_bot)
-            assert membership_storage.is_member_of_group(user.id, test_group.id) is True
-
-    @pytest.mark.asyncio
-    @pytest.mark.skip(reason="Handler behavior changed - needs update to match current flow")
-    async def test_club_invitation_auto_join_after_onboarding(
-        self, mock_callback_update, mock_context, db_session_bot, test_club
-    ):
-        """Test auto-joining club after completing onboarding via invitation"""
-        mock_callback_update.callback_query.data = "intro_done"
-        mock_context.user_data = {
-            "selected_sports": ["running"],
-            "selected_role": "participant",
-            "invitation_type": "club",
-            "invitation_id": test_club.id
-        }
-
-        with patch('storage.db.SessionLocal', return_value=db_session_bot):
-            await complete_onboarding(mock_callback_update, mock_context)
-
-            # Check user was added to club
-            user_storage = UserStorage(db_session_bot)
-            user = user_storage.get_user_by_telegram_id(123456789)
-
-            membership_storage = MembershipStorage(db_session_bot)
-            assert membership_storage.is_member_of_club(user.id, test_club.id) is True
-
-
-# ============================================================================
-# Flow 3: Organizer Tests
-# ============================================================================
-
-@pytest.mark.skip(reason="Organizer flow tests need update to match current handlers")
-class TestFlow3Organizer:
-    """Test Flow 3: Organizer club creation flow"""
-
-    @pytest.mark.asyncio
-    async def test_start_organizer_flow(self, mock_callback_update, mock_context, db_session_bot):
-        """Test starting organizer flow"""
-        mock_callback_update.callback_query.data = "role_organizer"
-        mock_context.user_data = {"selected_sports": ["running"]}
-
-        with patch('storage.db.SessionLocal', return_value=db_session_bot):
-            result = await handle_role_selection(mock_callback_update, mock_context)
-
-            # Should present organizer type choice
-            assert mock_callback_update.callback_query.edit_message_text.called
-
-    @pytest.mark.asyncio
-    async def test_club_creation_flow(self, mock_update, mock_context, db_session_bot):
-        """Test full club creation form"""
-        # Create user first
-        user_storage = UserStorage(db_session_bot)
-        user = user_storage.get_or_create_user(
-            telegram_id=123456789,
-            username="testuser",
-            first_name="Test",
-            last_name="User"
-        )
-
-        # Test club name input
-        mock_update.message.text = "Test Running Club"
-
-        with patch('storage.db.SessionLocal', return_value=db_session_bot):
-            result = await handle_club_name(mock_update, mock_context)
-
-            # Should store club name
-            assert mock_context.user_data.get("club_name") == "Test Running Club"
-
-    @pytest.mark.asyncio
-    async def test_club_request_creation(self, mock_callback_update, mock_context, db_session_bot):
-        """Test creating club request"""
-        # Create user
-        user_storage = UserStorage(db_session_bot)
-        user = user_storage.get_or_create_user(
-            telegram_id=123456789,
-            username="testuser",
-            first_name="Test",
-            last_name="User"
-        )
-
-        # Prepare club data
-        mock_callback_update.callback_query.data = "club_request_confirm"
-        mock_context.user_data = {
-            "club_name": "Test Running Club",
-            "club_description": "A test club",
-            "club_sports": ["running", "trail"],
-            "club_members_count": 50,
-            "club_groups_count": 3,
-            "club_telegram": "https://t.me/testclub",
-            "club_contact": "+79991234567"
-        }
-
-        with patch('storage.db.SessionLocal', return_value=db_session_bot):
-            with patch('bot.admin_notifications.send_club_request_notification'):
-                await handle_club_request_confirm(mock_callback_update, mock_context)
-
-                # Check club request was created
-                club_storage = ClubStorage(db_session_bot)
-                requests = club_storage.get_pending_requests()
-                assert len(requests) > 0
-                assert requests[0].name == "Test Running Club"
-                assert requests[0].status == ClubRequestStatus.PENDING
 
 
 # ============================================================================
