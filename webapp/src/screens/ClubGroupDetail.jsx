@@ -358,7 +358,7 @@ export default function ClubGroupDetail({ type = 'club' }) {
                     {item.description && (
                         <>
                             <div className="border-t border-gray-200 my-4" />
-                            <p className="text-sm text-gray-700 leading-relaxed">
+                            <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap break-words">
                                 {item.description}
                             </p>
                         </>

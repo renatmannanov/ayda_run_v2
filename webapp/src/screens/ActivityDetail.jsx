@@ -626,7 +626,7 @@ export default function ActivityDetail() {
 
                         <div className="flex items-center gap-3">
                             <span className="text-base">📍</span>
-                            <span className="text-sm text-gray-700">
+                            <span className="text-sm text-gray-700 break-all">
                                 {activity.location}
                             </span>
                         </div>
@@ -665,7 +665,7 @@ export default function ActivityDetail() {
                     {/* Description */}
                     {activity.description && (
                         <>
-                            <p className="text-sm text-gray-600 leading-relaxed">
+                            <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-wrap break-words">
                                 {activity.description}
                             </p>
                             <div className="border-t border-gray-200 my-4" />
