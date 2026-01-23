@@ -193,7 +193,7 @@ export default function ActivityCard({ activity }) {
 
             {/* Блок 2: Дата, время, место + дистанция */}
             <div className="mb-3">
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-gray-500 truncate">
                     {formatDate(activity.date)}, {formatTime(activity.date)} · {activity.location}
                 </p>
                 {distanceText && (
