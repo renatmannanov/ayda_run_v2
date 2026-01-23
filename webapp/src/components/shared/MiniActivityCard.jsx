@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { formatTime, formatDate } from '../../data/sample_data'
 
 // Mini Status Icon - компактная версия для маленьких карточек
-const MiniStatusIcon = ({ status, isPast, participationStatus }) => {
+const MiniStatusIcon = ({ status, isCompleted, participationStatus }) => {
     const iconClass = "w-5 h-5 rounded-full border-2 flex items-center justify-center"
     const svgClass = "w-2.5 h-2.5"
 
@@ -49,8 +49,8 @@ const MiniStatusIcon = ({ status, isPast, participationStatus }) => {
         )
     }
 
-    // Прошедшая активность без записи - часы (без внешнего круга, т.к. часы уже круглые)
-    if (isPast && status === 'none') {
+    // Завершённая активность без записи - часы (без внешнего круга, т.к. часы уже круглые)
+    if (isCompleted && status === 'none') {
         return (
             <div className="w-5 h-5 flex items-center justify-center">
                 <svg className="w-6 h-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -93,14 +93,14 @@ export default function MiniActivityCard({ activity }) {
         return parts.length > 0 ? ` · ${parts.join(' · ')}` : ''
     }
 
-    // Opacity для прошедших
+    // Opacity для завершённых
     const isConfirmedPast = activity.participationStatus === 'attended' || activity.participationStatus === 'missed'
-    const isPastNotJoined = activity.isPast && !activity.isJoined && !activity.participationStatus
+    const isCompletedNotJoined = activity.isCompleted && !activity.isJoined && !activity.participationStatus
 
     return (
         <div
             onClick={handleCardClick}
-            className={`bg-white border border-gray-200 rounded-xl p-3 cursor-pointer hover:border-gray-300 transition-colors ${isConfirmedPast || isPastNotJoined ? 'opacity-50' : ''}`}
+            className={`bg-white border border-gray-200 rounded-xl p-3 cursor-pointer hover:border-gray-300 transition-colors ${isConfirmedPast || isCompletedNotJoined ? 'opacity-50' : ''}`}
         >
             <div className="flex items-center justify-between">
                 <div className="flex-1 min-w-0 pr-2">
@@ -114,7 +114,7 @@ export default function MiniActivityCard({ activity }) {
                     <span className="text-base">{activity.icon}</span>
                     <MiniStatusIcon
                         status={getStatus()}
-                        isPast={activity.isPast}
+                        isCompleted={activity.isCompleted}
                         participationStatus={activity.participationStatus}
                     />
                 </div>

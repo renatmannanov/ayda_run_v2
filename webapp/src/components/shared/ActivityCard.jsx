@@ -3,9 +3,9 @@ import { useNavigate } from 'react-router-dom'
 import { formatTime, formatDate } from '../../data/sample_data'
 
 // Status Button Component - контурный круг с иконкой
-const StatusButton = ({ status, isPrivate, isPast, isFull, participationStatus }) => {
-    // Прошедшая активность без записи - часы
-    if (isPast && !participationStatus && status === 'none') {
+const StatusButton = ({ status, isPrivate, isCompleted, isFull, participationStatus }) => {
+    // Завершённая активность без записи - часы
+    if (isCompleted && !participationStatus && status === 'none') {
         return (
             <div className="flex items-center gap-1.5">
                 <div className="w-7 h-7 rounded-full border-2 border-gray-300 flex items-center justify-center">
@@ -159,14 +159,14 @@ export default function ActivityCard({ activity }) {
     const organizerText = getOrganizerText()
     const distanceText = getDistanceText()
 
-    // Opacity для завершённых статусов (attended/missed) и прошедших без записи
+    // Opacity для завершённых статусов (attended/missed) и завершённых без записи
     const isConfirmedPast = activity.participationStatus === 'attended' || activity.participationStatus === 'missed'
-    const isPastNotJoined = activity.isPast && !activity.isJoined && !activity.participationStatus
+    const isCompletedNotJoined = activity.isCompleted && !activity.isJoined && !activity.participationStatus
 
     return (
         <div
             onClick={handleCardClick}
-            className={`bg-white border border-gray-200 rounded-xl p-4 mb-3 cursor-pointer hover:border-gray-300 transition-colors ${isConfirmedPast || isPastNotJoined ? 'opacity-50' : ''}`}
+            className={`bg-white border border-gray-200 rounded-xl p-4 mb-3 cursor-pointer hover:border-gray-300 transition-colors ${isConfirmedPast || isCompletedNotJoined ? 'opacity-50' : ''}`}
         >
             {/* Блок 1: Название + организатор */}
             <div className="mb-3">
@@ -211,7 +211,7 @@ export default function ActivityCard({ activity }) {
                 <StatusButton
                     status={getStatus()}
                     isPrivate={!activity.isOpen}
-                    isPast={activity.isPast}
+                    isCompleted={activity.isCompleted}
                     isFull={isFull}
                     participationStatus={activity.participationStatus}
                 />

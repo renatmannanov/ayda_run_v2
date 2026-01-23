@@ -110,11 +110,11 @@ export function DaySection({
             {(!isPastDay || isExpanded) && (
                 <div className="pb-3 space-y-1">
                     {activities.map(activity => {
-                        // Проверяем прошла ли конкретная активность
-                        const activityIsPast = new Date(activity.date) < now
+                        // Проверяем началась ли конкретная активность
+                        const activityStarted = new Date(activity.date) < now
 
-                        // Для прошедших дней ИЛИ прошедших активностей сегодня - MiniActivityCard
-                        if (isPastDay || activityIsPast) {
+                        // Для прошедших дней ИЛИ начавшихся активностей сегодня - MiniActivityCard
+                        if (isPastDay || activityStarted) {
                             return (
                                 <MiniActivityCard
                                     key={activity.id}

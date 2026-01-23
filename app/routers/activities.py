@@ -220,10 +220,10 @@ async def list_activities(
             ).first()
             response.is_joined = participation is not None
             if participation:
-                # Show awaiting status "on the fly" if activity has passed
+                # Show awaiting status "on the fly" if activity has completed
                 # This ensures UI shows correct state even before background service runs
                 if (participation.status in [ParticipationStatus.REGISTERED, ParticipationStatus.CONFIRMED]
-                    and is_past(activity.date)):
+                    and activity.status == ActivityStatus.COMPLETED):
                     response.participation_status = ParticipationStatus.AWAITING
                 else:
                     response.participation_status = participation.status
@@ -286,10 +286,10 @@ async def get_activity(
         response.is_joined = participation is not None
         response.is_creator = activity.creator_id == current_user.id
         if participation:
-            # Show awaiting status "on the fly" if activity has passed
+            # Show awaiting status "on the fly" if activity has completed
             # This ensures UI shows correct state even before background service runs
             if (participation.status in [ParticipationStatus.REGISTERED, ParticipationStatus.CONFIRMED]
-                and is_past(activity.date)):
+                and activity.status == ActivityStatus.COMPLETED):
                 response.participation_status = ParticipationStatus.AWAITING
             else:
                 response.participation_status = participation.status

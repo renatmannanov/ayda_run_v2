@@ -24,7 +24,7 @@ export default function ParticipantsSheet({
     participants = [],
     title = 'Участники',
     maxParticipants = null,
-    isPast = false,
+    isCompleted = false,
     attendedCount = null,
     actionButton = null
 }) {
@@ -45,7 +45,7 @@ export default function ParticipantsSheet({
     }
 
     const getSubtitle = () => {
-        if (isPast && attendedCount !== null) {
+        if (isCompleted && attendedCount !== null) {
             return `${attendedCount}/${participants.length} были`
         }
         if (maxParticipants) {
@@ -96,7 +96,7 @@ export default function ParticipantsSheet({
                             return (
                                 <div
                                     key={participant.id}
-                                    className={`flex items-center py-3 border-b border-gray-100 last:border-0 ${isPast && participant.attended === false ? 'opacity-50' : ''}`}
+                                    className={`flex items-center py-3 border-b border-gray-100 last:border-0 ${isCompleted && participant.attended === false ? 'opacity-50' : ''}`}
                                 >
                                     {/* Avatar */}
                                     <Avatar
@@ -109,7 +109,7 @@ export default function ParticipantsSheet({
 
                                     {/* Name + Sports - left side */}
                                     <div className="flex items-center gap-2 flex-1 min-w-0">
-                                        <span className={`text-sm ${isPast && participant.attended === false
+                                        <span className={`text-sm ${isCompleted && participant.attended === false
                                             ? 'text-gray-400 line-through'
                                             : 'text-gray-700'
                                             }`}>
@@ -133,8 +133,8 @@ export default function ParticipantsSheet({
                                         </span>
                                     )}
 
-                                    {/* Past activity attendance indicator */}
-                                    {isPast && (
+                                    {/* Completed activity attendance indicator */}
+                                    {isCompleted && (
                                         <span className="text-xs text-gray-400 mr-2">
                                             {participant.attended === true && '✓'}
                                             {participant.attended === false && '—'}

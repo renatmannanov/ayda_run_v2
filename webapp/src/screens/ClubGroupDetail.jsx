@@ -85,7 +85,7 @@ export default function ClubGroupDetail({ type = 'club' }) {
     // Combine list (only one will be populated)
     const participants = (isClub ? clubMembers : groupMembers) || []
 
-    const upcomingActivities = activities.filter(a => !a.isPast)
+    const upcomingActivities = activities.filter(a => !a.isCompleted)
 
     const toggleMembership = async () => {
         try {

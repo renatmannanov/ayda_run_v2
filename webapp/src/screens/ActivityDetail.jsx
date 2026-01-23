@@ -89,7 +89,8 @@ export default function ActivityDetail() {
     }, [showAttendance, activity?.clubId, activity?.groupId])
 
     // Derived state
-    const isPast = activity?.isPast
+    const isStarted = activity?.isStarted     // Activity has started (blocks join/edit/delete)
+    const isCompleted = activity?.isCompleted // Activity has ended (from backend, respects duration)
     const isFull = activity ? (activity.maxParticipants !== null && activity.participants >= activity.maxParticipants) : false
     const isJoined = activity?.isJoined
     const isCreator = activity?.isCreator
@@ -98,9 +99,9 @@ export default function ActivityDetail() {
     // Can edit: creator or club/group admin
     const canEdit = isCreator // TODO: add club/group admin check
 
-    // Can mark attendance: organizer + past + club/group activity
+    // Can mark attendance: organizer + completed + club/group activity
     const isClubGroupActivity = activity?.clubId || activity?.groupId
-    const canMarkAttendance = isCreator && isPast && isClubGroupActivity
+    const canMarkAttendance = isCreator && isCompleted && isClubGroupActivity
 
     // Join/Leave handler
     const handleJoin = async () => {
@@ -162,8 +163,8 @@ export default function ActivityDetail() {
 
     // Delete activity handler
     const handleDelete = () => {
-        if (isPast) {
-            showToast('Нельзя удалить прошедшую тренировку', 'error')
+        if (isStarted) {
+            showToast('Нельзя удалить начавшуюся тренировку', 'error')
             return
         }
 
@@ -222,8 +223,8 @@ export default function ActivityDetail() {
 
     // Edit activity handler
     const handleEdit = () => {
-        if (isPast) {
-            showToast('Нельзя редактировать прошедшую тренировку', 'error')
+        if (isStarted) {
+            showToast('Нельзя редактировать начавшуюся тренировку', 'error')
             return
         }
         // For recurring activities, show scope dialog
@@ -386,8 +387,8 @@ export default function ActivityDetail() {
             return <StatusBadge variant="missed" />
         }
 
-        // Past activity without registration
-        if (isPast) {
+        // Completed activity without registration
+        if (isCompleted) {
             return <StatusBadge variant="finished" />
         }
 
@@ -597,7 +598,7 @@ export default function ActivityDetail() {
                                     </span>
                                 )}
                             </div>
-                            {isPast && (
+                            {isCompleted && (
                                 <span className="text-sm text-gray-400">
                                     Прошла · {formatDate(activity.date)}
                                 </span>
@@ -757,9 +758,9 @@ export default function ActivityDetail() {
                                 )}
                                 <button
                                     onClick={handleEdit}
-                                    disabled={isPast}
+                                    disabled={isStarted}
                                     className={`flex items-center gap-2 text-sm py-1 transition-colors ${
-                                        isPast
+                                        isStarted
                                             ? 'text-gray-300 cursor-not-allowed opacity-80'
                                             : 'text-gray-500 hover:text-gray-700'
                                     }`}
@@ -769,9 +770,9 @@ export default function ActivityDetail() {
                                 </button>
                                 <button
                                     onClick={handleDelete}
-                                    disabled={isPast || deleting}
+                                    disabled={isStarted || deleting}
                                     className={`flex items-center gap-2 text-sm py-1 transition-colors ${
-                                        isPast
+                                        isStarted
                                             ? 'text-gray-300 cursor-not-allowed opacity-80'
                                             : 'text-gray-500 hover:text-red-600'
                                     }`}
@@ -791,27 +792,27 @@ export default function ActivityDetail() {
                 onClose={() => setShowParticipants(false)}
                 participants={participants}
                 maxParticipants={activity.maxParticipants}
-                isPast={isPast}
+                isCompleted={isCompleted}
                 attendedCount={attendedCount}
                 actionButton={getActionButton()}
             />
 
             {/* Bottom Bar with Action */}
             {/* Show action bar when:
-                - Future activity (not past)
-                - OR organizer can mark attendance (past + club/group + creator)
+                - Activity not started yet
+                - OR organizer can mark attendance (completed + club/group + creator)
                 - OR personal activity with awaiting status (participant can self-confirm)
-                - OR past activity with attended/missed status (show status)
+                - OR completed activity with attended/missed status (show status)
             */}
             <BottomBar
                 onCreateClick={() => showToast('Перейдите на Главную для создания')}
                 showAction={(
-                    !isPast ||
+                    !isStarted ||
                     canMarkAttendance ||
                     ((!activity?.clubId && !activity?.groupId) && activity?.participationStatus === 'awaiting') ||
                     activity?.participationStatus === 'attended' ||
                     activity?.participationStatus === 'missed' ||
-                    (isPast && !activity?.isJoined) // Show "Активность завершена" for past activities without registration
+                    (isCompleted && !activity?.isJoined) // Show "Активность завершена" for completed activities without registration
                 ) && !showParticipants && !showAttendance}
                 action={getActionButton()}
             />

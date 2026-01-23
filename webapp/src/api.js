@@ -89,7 +89,8 @@ const transformActivity = (a) => !a ? null : ({
     creatorId: a.creator_id,
     creatorName: a.creator_name,
     createdAt: a.created_at,
-    isPast: new Date(a.date) < new Date(),
+    isStarted: new Date(a.date) < new Date(), // Activity has started (for blocking join/edit/delete)
+    isCompleted: a.status === 'completed',     // Activity has ended (from backend, respects duration)
     // Recurring activity info
     recurringTemplateId: a.recurring_template_id,
     recurringSequence: a.recurring_sequence,
