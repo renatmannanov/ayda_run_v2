@@ -1,5 +1,9 @@
 """
-Migration: Add membership sync fields
+LEGACY Migration: Add membership sync fields
+
+NOTE: This migration script is DEPRECATED. It only works with SQLite.
+For PostgreSQL, use Alembic migrations instead:
+    alembic upgrade head
 
 This migration adds new columns for Telegram group member synchronization:
 - Club: bot_is_admin, last_sync_at, telegram_member_count, sync_completed

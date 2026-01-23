@@ -28,8 +28,7 @@ Telegram Mini App для организации спортивных актив�
 - **Vite** - Быстрая сборка
 
 ### Database
-- **SQLite** - Development
-- **PostgreSQL** - Production ready
+- **PostgreSQL** - Development & Production
 
 ## Quick Start
 
@@ -55,8 +54,8 @@ cp .env.example .env
 
 **Основные переменные:**
 ```env
-DEBUG=True                          # Dev mode (использует mock auth)
-DATABASE_URL=sqlite:///./ayda_run.db
+DEBUG=True                                            # Dev mode (использует mock auth)
+DATABASE_URL=postgresql://postgres:password@localhost:5432/ayda
 TELEGRAM_BOT_TOKEN=your_token_here
 CORS_ORIGINS=["http://localhost:5173"]
 RATE_LIMIT_GLOBAL=100/minute
@@ -245,9 +244,8 @@ pytest tests/test_api/test_validation.py -v
 DEBUG=True                                    # Enable dev mode
 LOG_LEVEL=INFO                               # Logging level
 
-# Database
-DATABASE_URL=sqlite:///./ayda_run.db         # SQLite for dev
-# DATABASE_URL=postgresql://user:pass@host/db  # PostgreSQL for production
+# Database (PostgreSQL)
+DATABASE_URL=postgresql://postgres:password@localhost:5432/ayda
 
 # Security
 TELEGRAM_BOT_TOKEN=your_bot_token_here       # From @BotFather

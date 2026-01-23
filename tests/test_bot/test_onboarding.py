@@ -161,7 +161,7 @@ class TestFlow1ParticipantOnboarding:
     @pytest.mark.asyncio
     async def test_start_onboarding_new_user(self, mock_update, mock_context, db_session_bot):
         """Test /start command for a new user"""
-        with patch('bot.onboarding_handler.get_session', return_value=db_session_bot):
+        with patch('storage.db.SessionLocal', return_value=db_session_bot):
             result = await start_onboarding(mock_update, mock_context)
 
             # Should move to AWAITING_CONSENT state
@@ -177,7 +177,7 @@ class TestFlow1ParticipantOnboarding:
         """Test user accepts consent"""
         mock_callback_update.callback_query.data = "consent_accept"
 
-        with patch('bot.onboarding_handler.get_session', return_value=db_session_bot):
+        with patch('storage.db.SessionLocal', return_value=db_session_bot):
             result = await handle_consent(mock_callback_update, mock_context)
 
             # Should move to SELECTING_SPORTS state
@@ -192,7 +192,7 @@ class TestFlow1ParticipantOnboarding:
         mock_callback_update.callback_query.data = "sport_running"
         mock_context.user_data = {"selected_sports": []}
 
-        with patch('bot.onboarding_handler.get_session', return_value=db_session_bot):
+        with patch('storage.db.SessionLocal', return_value=db_session_bot):
             result = await handle_sports_selection(mock_callback_update, mock_context)
 
             # Should store selected sport
@@ -204,7 +204,7 @@ class TestFlow1ParticipantOnboarding:
         mock_callback_update.callback_query.data = "role_participant"
         mock_context.user_data = {"selected_sports": ["running"]}
 
-        with patch('bot.onboarding_handler.get_session', return_value=db_session_bot):
+        with patch('storage.db.SessionLocal', return_value=db_session_bot):
             result = await handle_role_selection(mock_callback_update, mock_context)
 
             # Should move to SHOWING_INTRO
@@ -219,7 +219,7 @@ class TestFlow1ParticipantOnboarding:
             "selected_role": "participant"
         }
 
-        with patch('bot.onboarding_handler.get_session', return_value=db_session_bot):
+        with patch('storage.db.SessionLocal', return_value=db_session_bot):
             result = await complete_onboarding(mock_callback_update, mock_context)
 
             # Should end conversation
@@ -247,7 +247,7 @@ class TestFlow2Invitations:
         mock_update.message.text = f"/start club_{test_club.id}"
         mock_context.args = [f"club_{test_club.id}"]
 
-        with patch('bot.onboarding_handler.get_session', return_value=db_session_bot):
+        with patch('storage.db.SessionLocal', return_value=db_session_bot):
             result = await start_onboarding(mock_update, mock_context)
 
             # Should save invitation data
@@ -272,7 +272,7 @@ class TestFlow2Invitations:
         mock_callback_update.callback_query.data = "group_join_yes"
         mock_context.user_data = {"invitation_id": test_group.id}
 
-        with patch('bot.invitation_handler.get_session', return_value=db_session_bot):
+        with patch('storage.db.SessionLocal', return_value=db_session_bot):
             await handle_join_group(mock_callback_update, mock_context)
 
             # Should add user to group
@@ -292,7 +292,7 @@ class TestFlow2Invitations:
             "invitation_id": test_club.id
         }
 
-        with patch('bot.onboarding_handler.get_session', return_value=db_session_bot):
+        with patch('storage.db.SessionLocal', return_value=db_session_bot):
             await complete_onboarding(mock_callback_update, mock_context)
 
             # Check user was added to club
@@ -316,7 +316,7 @@ class TestFlow3Organizer:
         mock_callback_update.callback_query.data = "role_organizer"
         mock_context.user_data = {"selected_sports": ["running"]}
 
-        with patch('bot.onboarding_handler.get_session', return_value=db_session_bot):
+        with patch('storage.db.SessionLocal', return_value=db_session_bot):
             result = await handle_role_selection(mock_callback_update, mock_context)
 
             # Should present organizer type choice
@@ -337,7 +337,7 @@ class TestFlow3Organizer:
         # Test club name input
         mock_update.message.text = "Test Running Club"
 
-        with patch('bot.organizer_handler.get_session', return_value=db_session_bot):
+        with patch('storage.db.SessionLocal', return_value=db_session_bot):
             result = await handle_club_name(mock_update, mock_context)
 
             # Should store club name
@@ -367,7 +367,7 @@ class TestFlow3Organizer:
             "club_contact": "+79991234567"
         }
 
-        with patch('bot.organizer_handler.get_session', return_value=db_session_bot):
+        with patch('storage.db.SessionLocal', return_value=db_session_bot):
             with patch('bot.admin_notifications.send_club_request_notification'):
                 await handle_club_request_confirm(mock_callback_update, mock_context)
 

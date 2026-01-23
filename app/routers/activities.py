@@ -98,9 +98,8 @@ async def create_activity(
     if not activity_dict.get('city'):
         activity_dict['city'] = current_user.city
 
-    # Convert date to naive UTC for SQLite compatibility
-    # SQLite doesn't handle timezone-aware datetimes correctly - it converts to local time
-    # We need to store naive UTC datetime
+    # Convert date to naive UTC for database storage
+    # Store naive UTC datetime for consistency across database engines
     if activity_dict.get('date') and activity_dict['date'].tzinfo is not None:
         activity_dict['date'] = activity_dict['date'].replace(tzinfo=None)
 
@@ -349,7 +348,7 @@ async def update_activity(
     # Update fields
     update_data = activity_data.model_dump(exclude_unset=True)
 
-    # Convert date to naive UTC for SQLite compatibility
+    # Convert date to naive UTC for database storage
     if 'date' in update_data and update_data['date'] is not None:
         if update_data['date'].tzinfo is not None:
             update_data['date'] = update_data['date'].replace(tzinfo=None)

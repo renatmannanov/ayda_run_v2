@@ -395,6 +395,15 @@ import os
 if os.path.exists("webapp/dist"):
     app.mount("/assets", StaticFiles(directory="webapp/dist/assets"), name="assets")
 
+# ============================================================================
+# Health Check
+# ============================================================================
+
+@app.get("/api/health")
+async def health_check():
+    """Health check endpoint"""
+    return {"status": "ok", "service": "Ayda Run API"}
+
 # SPA fallback - serve index.html for all non-API routes (must be after all API routes)
 @app.get("/{full_path:path}")
 async def spa_fallback(full_path: str):
@@ -411,15 +420,6 @@ async def spa_fallback(full_path: str):
         return FileResponse("webapp/dist/index.html")
     else:
         return {"detail": "Frontend not built"}
-
-# ============================================================================
-# Health Check
-# ============================================================================
-
-@app.get("/api/health")
-async def health_check():
-    """Health check endpoint"""
-    return {"status": "ok", "service": "Ayda Run API"}
 
 # ============================================================================
 # Telegram Bot Webhook

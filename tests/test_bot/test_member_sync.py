@@ -115,7 +115,7 @@ class TestCacheStats:
         """Initial stats should be zero."""
         stats = get_cache_stats()
         assert stats["members_cache_size"] == 0
-        assert stats["clubs_cache_size"] == 0
+        assert stats["entities_cache_size"] == 0
 
     def test_stats_after_adding_members(self):
         """Stats should reflect added members."""
@@ -132,7 +132,7 @@ class TestCacheStats:
         set_club_in_cache(2, "club-2")
 
         stats = get_cache_stats()
-        assert stats["clubs_cache_size"] == 2
+        assert stats["entities_cache_size"] == 2
 
     def test_clear_all_caches(self):
         """Clearing caches should reset stats."""
@@ -141,13 +141,13 @@ class TestCacheStats:
 
         stats = get_cache_stats()
         assert stats["members_cache_size"] > 0
-        assert stats["clubs_cache_size"] > 0
+        assert stats["entities_cache_size"] > 0
 
         clear_all_caches()
 
         stats = get_cache_stats()
         assert stats["members_cache_size"] == 0
-        assert stats["clubs_cache_size"] == 0
+        assert stats["entities_cache_size"] == 0
 
 
 class TestMembershipStatus:

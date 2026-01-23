@@ -344,7 +344,7 @@ TELEGRAM_BOT_TOKEN=...
 BOT_USERNAME=...
 WEB_APP_URL=http://localhost:5173      # Note: not webapp_url
 BASE_URL=...                            # ngrok URL for webhooks
-DATABASE_URL=sqlite:///./app.db
+DATABASE_URL=postgresql://postgres:password@localhost:5432/ayda
 CORS_ORIGINS=["http://localhost:5173"]
 ```
 

@@ -595,7 +595,7 @@ class Feedback(Base):
 
 # ============= DATABASE SETUP =============
 
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./app.db")
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://localhost/ayda")
 
 # Fix for Render/Railway's postgres:// URL (SQLAlchemy requires postgresql://)
 if DATABASE_URL.startswith("postgres://"):

@@ -22,12 +22,12 @@ class Settings(BaseSettings):
     
     # === Database ===
     database_url: str = Field(
-        default="sqlite:///./app.db",
-        description="Database connection URL"
+        default="postgresql://localhost/ayda",
+        description="PostgreSQL database connection URL"
     )
     prod_database_url: Optional[str] = Field(
         None,
-        description="Production database URL (Railway/Render)"
+        description="Production PostgreSQL database URL (Railway/Render)"
     )
     
     # === Optional Integrations ===
