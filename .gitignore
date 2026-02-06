@@ -36,3 +36,5 @@ SMM/
 
 # Internal tools
 internal/
+analytics/
+ayda_checkin/
