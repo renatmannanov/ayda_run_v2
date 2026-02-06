@@ -51,3 +51,39 @@ git cherry-pick <commit-hash>   # перенести коммиты в dev
 - Комментарии в коде: английский
 - Коммит-сообщения: английский
 - Общение с пользователем: русский (если пользователь пишет на русском)
+
+## Quick Reference
+
+| What | Where |
+|------|-------|
+| Models & Enums | `storage/db.py` |
+| API routes | `app/routers/` |
+| Bot handlers | `bot/` |
+| Permissions | `permissions.py` |
+| Auth | `auth.py` |
+| Config | `config.py`, `app_config/constants.py` |
+| Timezone utils | `app/core/timezone.py` |
+
+## Commands
+
+```bash
+# Run API + Bot (production)
+python api_server.py
+
+# Run bot only (polling mode, for testing)
+python main.py
+
+# Run tests
+pytest tests/
+
+# Run tests with coverage
+pytest tests/ --cov=. --cov-report=html
+```
+
+## Key Patterns
+
+- Database: PostgreSQL, SQLAlchemy 2.0, UUID primary keys
+- API: FastAPI + Pydantic v2, dependency injection
+- Bot: python-telegram-bot 20+, ConversationHandler for flows
+- Frontend: React 18 + React Query + Tailwind
+- Timezone: Store naive UTC in DB, convert on output
