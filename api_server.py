@@ -114,12 +114,6 @@ async def lifespan(app: FastAPI):
     bot_app.add_handler(get_admin_stats_handler())
     logger.info("[SUCCESS] Admin stats handler registered")
 
-    # Phase 10: Race card generator handler (/racecard command)
-    # IMPORTANT: Must be registered BEFORE feedback handler (which catches all text)
-    from bot.race_card_handler import get_racecard_handler
-    bot_app.add_handler(get_racecard_handler())
-    logger.info("[SUCCESS] Race card handler registered")
-
     # Phase 9: Feedback handler (text messages in private chat)
     # IMPORTANT: This must be LAST as it catches all unhandled text messages
     from bot.feedback_handler import get_feedback_handler
@@ -134,7 +128,6 @@ async def lifespan(app: FastAPI):
     # Commands for private chats
     private_commands = [
         BotCommand("start", "Начать или вернуться в главное меню"),
-        BotCommand("racecard", "Создать карточку с результатами гонки"),
         BotCommand("requests", "Просмотреть заявки на участие"),
         BotCommand("my_requests", "Мои заявки на участие"),
         BotCommand("sync", "Проверить статус синхронизации"),
