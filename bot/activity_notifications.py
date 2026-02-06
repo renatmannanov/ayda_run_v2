@@ -635,6 +635,49 @@ def format_post_training_notification(
     return message
 
 
+async def send_trainer_link_notification(
+    bot: Bot,
+    trainer_telegram_id: int,
+    participant_name: str,
+    activity_title: str,
+    training_link: str
+) -> bool:
+    """
+    Notify trainer when participant submits training link.
+
+    Real-time notification sent immediately when user sends a link.
+
+    Args:
+        bot: Telegram Bot instance
+        trainer_telegram_id: Trainer's Telegram ID
+        participant_name: Name of participant who submitted link
+        activity_title: Activity title
+        training_link: URL to the training record
+
+    Returns:
+        True if sent successfully, False otherwise
+    """
+    try:
+        message = (
+            f"🔗 {participant_name} прикрепил тренировку\n"
+            f"«{activity_title}»\n"
+            f"{training_link}"
+        )
+
+        await bot.send_message(
+            chat_id=trainer_telegram_id,
+            text=message,
+            disable_web_page_preview=True
+        )
+
+        logger.info(f"Sent trainer link notification to {trainer_telegram_id}")
+        return True
+
+    except TelegramError as e:
+        logger.error(f"Error sending trainer link notification to {trainer_telegram_id}: {e}")
+        return False
+
+
 async def send_post_training_notification(
     bot: Bot,
     user_telegram_id: int,

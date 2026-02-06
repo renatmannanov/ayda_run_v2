@@ -17,6 +17,7 @@ from storage.db import (
     PostTrainingNotification, PostTrainingNotificationStatus, ParticipationStatus
 )
 from bot.validators import extract_url_from_text, validate_training_link
+from bot.activity_notifications import send_trainer_link_notification
 
 logger = logging.getLogger(__name__)
 
@@ -172,6 +173,40 @@ def get_activity_title(activity_id: str) -> str:
         session.close()
 
 
+def get_activity_trainer_info(activity_id: str):
+    """
+    Get trainer (creator) info for an activity.
+
+    Returns:
+        Tuple of (trainer_telegram_id, activity_title) or (None, None) if not found
+    """
+    session = SessionLocal()
+    try:
+        activity = session.query(Activity).filter(Activity.id == activity_id).first()
+        if not activity:
+            return None, None
+
+        trainer = session.query(User).filter(User.id == activity.creator_id).first()
+        if not trainer or not trainer.telegram_id:
+            return None, activity.title
+
+        return trainer.telegram_id, activity.title
+    finally:
+        session.close()
+
+
+def get_user_name(user_id: str) -> str:
+    """Get user display name by user ID."""
+    session = SessionLocal()
+    try:
+        user = session.query(User).filter(User.id == user_id).first()
+        if not user:
+            return "Участник"
+        return user.first_name or user.username or "Участник"
+    finally:
+        session.close()
+
+
 # ============================================================================
 # Message Handler for Training Links
 # ============================================================================
@@ -226,8 +261,24 @@ async def handle_training_link_message(update: Update, context: ContextTypes.DEF
     # Update notification status
     update_notification_status(notification.id, PostTrainingNotificationStatus.LINK_SUBMITTED)
 
-    # Get activity title for nice message
-    activity_title = get_activity_title(notification.activity_id)
+    # Get activity title and trainer info
+    trainer_telegram_id, activity_title = get_activity_trainer_info(notification.activity_id)
+    if not activity_title:
+        activity_title = get_activity_title(notification.activity_id)
+
+    # Notify trainer in real-time
+    if trainer_telegram_id:
+        participant_name = get_user_name(notification.user_id)
+        try:
+            await send_trainer_link_notification(
+                bot=context.bot,
+                trainer_telegram_id=trainer_telegram_id,
+                participant_name=participant_name,
+                activity_title=activity_title,
+                training_link=url
+            )
+        except Exception as e:
+            logger.error(f"Failed to notify trainer: {e}")
 
     await update.message.reply_text(
         f"✅ Ссылка сохранена!\n\n"
@@ -310,6 +361,92 @@ async def handle_post_training_later(update: Update, context: ContextTypes.DEFAU
     logger.info(f"User {update.effective_user.id} will send link later for activity {activity_id}")
 
 
+async def handle_remind_pending(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """
+    Handle trainer clicking 'remind pending' button.
+
+    Sends manual reminder to all participants who haven't submitted links.
+    Callback data format: remind_pending_{activity_id}
+    """
+    from telegram.error import TelegramError
+
+    query = update.callback_query
+    await query.answer("Отправляем напоминания...")
+
+    data = query.data
+    if not data.startswith("remind_pending_"):
+        return
+
+    activity_id = data.replace("remind_pending_", "")
+
+    session = SessionLocal()
+    try:
+        activity = session.query(Activity).filter(Activity.id == activity_id).first()
+        if not activity:
+            await query.edit_message_text(
+                query.message.text + "\n\n❌ Активность не найдена"
+            )
+            return
+
+        # Find pending participants (no link, not missed, not organizer)
+        participations = session.query(Participation).filter(
+            Participation.activity_id == activity_id,
+            Participation.training_link == None,
+            Participation.status != ParticipationStatus.MISSED,
+            Participation.user_id != activity.creator_id
+        ).all()
+
+        if not participations:
+            await query.edit_message_text(
+                query.message.text + "\n\n✅ Все участники уже ответили!"
+            )
+            return
+
+        sent_count = 0
+        for p in participations:
+            user = session.query(User).filter(User.id == p.user_id).first()
+            if not user or not user.telegram_id:
+                continue
+
+            keyboard = [[
+                InlineKeyboardButton(
+                    "Не был(а)",
+                    callback_data=f"post_training_missed_{activity_id}"
+                )
+            ]]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+
+            try:
+                await context.bot.send_message(
+                    chat_id=user.telegram_id,
+                    text=(
+                        f"⏰ Напоминание от тренера\n\n"
+                        f"«{activity.title}»\n\n"
+                        f"Отправь ссылку на тренировку\n"
+                        f"(Strava, Garmin, Coros, Suunto или Polar)"
+                    ),
+                    reply_markup=reply_markup
+                )
+                sent_count += 1
+            except TelegramError as e:
+                logger.error(f"Failed to send manual reminder to {user.telegram_id}: {e}")
+
+        # Update message to show result
+        await query.edit_message_text(
+            query.message.text + f"\n\n✅ Напоминания отправлены ({sent_count})"
+        )
+
+        logger.info(f"Trainer sent {sent_count} manual reminders for activity {activity_id}")
+
+    except Exception as e:
+        logger.error(f"Error handling remind_pending: {e}", exc_info=True)
+        await query.edit_message_text(
+            query.message.text + "\n\n❌ Произошла ошибка"
+        )
+    finally:
+        session.close()
+
+
 # ============================================================================
 # Handler Registration
 # ============================================================================
@@ -325,6 +462,7 @@ def get_post_training_handlers():
         # Callback handlers for buttons
         CallbackQueryHandler(handle_post_training_missed, pattern=r"^post_training_missed_"),
         CallbackQueryHandler(handle_post_training_later, pattern=r"^post_training_later_"),
+        CallbackQueryHandler(handle_remind_pending, pattern=r"^remind_pending_"),
 
         # Message handler for links - should be added with lower priority
         # than other message handlers (like feedback)

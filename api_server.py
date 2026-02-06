@@ -190,9 +190,19 @@ async def lifespan(app: FastAPI):
     await awaiting_confirmation_service.start()
     logger.info("[SUCCESS] Awaiting confirmation service started")
 
+    # Phase 8.1: Start post-training summary service (reminders + trainer summaries)
+    from app.services.post_training_summary_service import get_post_training_summary_service
+    post_training_summary_service = get_post_training_summary_service(bot_app.bot)
+    await post_training_summary_service.start()
+    logger.info("[SUCCESS] Post-training summary service started")
+
     yield
 
     # Shutdown
+    # Stop post-training summary service
+    await post_training_summary_service.stop()
+    logger.info("[SUCCESS] Post-training summary service stopped")
+
     # Stop awaiting confirmation service
     await awaiting_confirmation_service.stop()
     logger.info("[SUCCESS] Awaiting confirmation service stopped")
