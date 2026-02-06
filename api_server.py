@@ -114,6 +114,12 @@ async def lifespan(app: FastAPI):
     bot_app.add_handler(get_admin_stats_handler())
     logger.info("[SUCCESS] Admin stats handler registered")
 
+    # Post-training handler for collecting training links
+    from bot.post_training_handler import get_post_training_handlers
+    for handler in get_post_training_handlers():
+        bot_app.add_handler(handler)
+    logger.info("[SUCCESS] Post-training handlers registered")
+
     # Phase 9: Feedback handler (text messages in private chat)
     # IMPORTANT: This must be LAST as it catches all unhandled text messages
     from bot.feedback_handler import get_feedback_handler

@@ -273,3 +273,65 @@ def validate_strava_link(url: str) -> Tuple[bool, str]:
         return True, cleaned
 
     return False, "Неверный формат ссылки.\n\nПример: https://www.strava.com/athletes/12345"
+
+
+# ============================================================================
+# Training Link Validators (Post-Training Flow)
+# ============================================================================
+
+from typing import Optional
+from urllib.parse import urlparse
+from app_config.constants import ALLOWED_TRAINING_LINK_DOMAINS
+
+# Pattern to extract URLs from text
+URL_PATTERN = re.compile(r'https?://[^\s<>"{}|\\^`\[\]]+')
+
+
+def extract_url_from_text(text: str) -> Optional[str]:
+    """
+    Extract first URL from text.
+
+    Args:
+        text: Text that may contain a URL
+
+    Returns:
+        First URL found, or None if no URL present
+    """
+    if not text:
+        return None
+    match = URL_PATTERN.search(text)
+    return match.group(0) if match else None
+
+
+def validate_training_link(url: str) -> Tuple[bool, Optional[str]]:
+    """
+    Validate training link URL.
+
+    Checks that URL is valid and from an allowed domain
+    (Strava, Garmin, Coros, Suunto, Polar).
+
+    Args:
+        url: URL to validate
+
+    Returns:
+        Tuple of (is_valid, error_message).
+        If valid, error_message is None.
+    """
+    if not url:
+        return False, "Ссылка не указана"
+
+    try:
+        parsed = urlparse(url)
+        if not parsed.scheme or not parsed.netloc:
+            return False, "Это не похоже на ссылку"
+    except Exception:
+        return False, "Не удалось распознать ссылку"
+
+    domain = parsed.netloc.lower()
+
+    # Check if domain is in allowed list
+    if domain not in ALLOWED_TRAINING_LINK_DOMAINS:
+        allowed_services = "Strava, Garmin, Coros, Suunto, Polar"
+        return False, f"Пока принимаем ссылки только от: {allowed_services}"
+
+    return True, None

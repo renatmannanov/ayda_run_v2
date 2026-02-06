@@ -597,6 +597,102 @@ async def send_awaiting_confirmation_notification(
         return False
 
 
+# ============================================================================
+# Post-Training Link Collection Notifications
+# ============================================================================
+
+def format_post_training_notification(
+    activity_title: str,
+    activity_date: datetime,
+    location: str,
+    country: str = None,
+    city: str = None
+) -> str:
+    """
+    Format post-training notification asking for training link.
+
+    Sent after activity has passed to club/group participants.
+
+    Args:
+        activity_title: Activity title
+        activity_date: Activity date and time (UTC)
+        location: Activity location
+        country: Country for timezone conversion
+        city: City for timezone conversion
+
+    Returns:
+        Formatted message text
+    """
+    date_str = format_datetime_local(activity_date, country, city, "%a, %d %b · %H:%M")
+
+    message = (
+        f"✅ Тренировка «{activity_title}» завершена!\n\n"
+        f"{date_str} · {location}\n\n"
+        f"Отправь ссылку на тренировку ответным сообщением\n"
+        f"(Strava, Garmin, Coros, Suunto или Polar)."
+    )
+
+    return message
+
+
+async def send_post_training_notification(
+    bot: Bot,
+    user_telegram_id: int,
+    activity_id: str,
+    activity_title: str,
+    activity_date: datetime,
+    location: str,
+    country: str = None,
+    city: str = None
+) -> bool:
+    """
+    Send post-training notification asking for training link.
+
+    For club/group activities - asks participants to send training link.
+    Includes buttons for "will send later" and "wasn't there".
+
+    Args:
+        bot: Telegram Bot instance
+        user_telegram_id: User's Telegram ID
+        activity_id: Activity ID (for callback data)
+        activity_title: Activity title
+        activity_date: Activity date and time (UTC)
+        location: Activity location
+        country: Country for timezone conversion
+        city: City for timezone conversion
+
+    Returns:
+        True if sent successfully, False otherwise
+    """
+    try:
+        message_text = format_post_training_notification(
+            activity_title=activity_title,
+            activity_date=activity_date,
+            location=location,
+            country=country,
+            city=city
+        )
+
+        keyboard = [[
+            InlineKeyboardButton("Отправлю позже", callback_data=f"post_training_later_{activity_id}"),
+            InlineKeyboardButton("Не был(а)", callback_data=f"post_training_missed_{activity_id}")
+        ]]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+
+        await bot.send_message(
+            chat_id=user_telegram_id,
+            text=message_text,
+            reply_markup=reply_markup
+        )
+
+        logger.info(f"Sent post-training notification to user {user_telegram_id} for activity {activity_id}")
+        return True
+
+    except TelegramError as e:
+        logger.error(f"Error sending post-training notification to user {user_telegram_id}: {e}")
+        return False
+
+
 def format_activity_cancelled_notification(
     activity_title: str,
     activity_date: datetime,

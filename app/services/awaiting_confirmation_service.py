@@ -25,9 +25,17 @@ from telegram import Bot
 from sqlalchemy.orm import Session
 from sqlalchemy import and_
 
-from storage.db import SessionLocal, Participation, Activity, User, ParticipationStatus, ActivityStatus
+from storage.db import (
+    SessionLocal, Participation, Activity, User,
+    ParticipationStatus, ActivityStatus,
+    PostTrainingNotification, PostTrainingNotificationStatus
+)
 from app.core.timezone import utc_now, ensure_utc_from_db
-from bot.activity_notifications import send_awaiting_confirmation_notification, send_organizer_checkin_notification
+from bot.activity_notifications import (
+    send_awaiting_confirmation_notification,
+    send_organizer_checkin_notification,
+    send_post_training_notification
+)
 from config import settings
 
 logger = logging.getLogger(__name__)
@@ -260,18 +268,44 @@ class AwaitingConfirmationService:
         # Check if this is a club/group activity
         is_club_group_activity = activity.club_id or activity.group_id
 
+        if not user or not user.telegram_id:
+            logger.warning(f"User {participation.user_id} not found or has no telegram_id")
+            return
+
         if is_club_group_activity:
-            # For club/group activities: notify organizer (once per activity)
+            # For club/group activities: send post-training notification to each participant
+            # asking for training link
+            try:
+                await send_post_training_notification(
+                    bot=self.bot,
+                    user_telegram_id=user.telegram_id,
+                    activity_id=activity.id,
+                    activity_title=activity.title,
+                    activity_date=activity.date,
+                    location=activity.location or "Не указано",
+                    country=activity.country,
+                    city=activity.city
+                )
+
+                # Create PostTrainingNotification record
+                notification = PostTrainingNotification(
+                    activity_id=activity.id,
+                    user_id=user.id,
+                    status=PostTrainingNotificationStatus.SENT
+                )
+                session.add(notification)
+
+                logger.info(f"Sent post-training notification to user {user.id} for activity {activity.id}")
+            except Exception as e:
+                logger.error(f"Failed to send post-training notification to user {user.id}: {e}")
+
+            # Also notify organizer (once per activity)
             activity_key = str(activity.id)
             if activity_key not in notified_organizers:
                 await self._notify_organizer(session, activity)
                 notified_organizers.add(activity_key)
         else:
-            # For personal activities: notify participant
-            if not user or not user.telegram_id:
-                logger.warning(f"User {participation.user_id} not found or has no telegram_id")
-                return
-
+            # For personal activities: notify participant with confirmation buttons
             try:
                 await send_awaiting_confirmation_notification(
                     bot=self.bot,
