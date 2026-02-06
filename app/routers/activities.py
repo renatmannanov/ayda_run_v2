@@ -679,7 +679,10 @@ async def get_participants(
             photo=user.photo,
             strava_link=user.strava_link,
             show_photo=user.show_photo,
-            is_organizer=(str(user.id) == str(activity.creator_id))
+            is_organizer=(str(user.id) == str(activity.creator_id)),
+            training_link=participation.training_link,
+            training_link_source=participation.training_link_source,
+            strava_activity_data=participation.strava_activity_data
         ))
 
     return result

@@ -160,7 +160,9 @@ const transformMember = (m) => !m ? null : ({
     stravaLink: m.strava_link,
     preferredSports: m.preferred_sports,
     attended: m.attended,
-    isOrganizer: m.is_organizer || m.role === 'admin' || m.role === 'organizer'
+    isOrganizer: m.is_organizer || m.role === 'admin' || m.role === 'organizer',
+    trainingLink: m.training_link, // Post-training link (Strava/Garmin/etc activity)
+    trainingLinkSource: m.training_link_source
 })
 
 

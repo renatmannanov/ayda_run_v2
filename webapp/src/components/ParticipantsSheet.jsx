@@ -2,9 +2,9 @@ import React from 'react'
 import { SPORT_TYPES } from '../constants/sports'
 import { Avatar } from './ui'
 
-// Strava Icon Component
+// Strava Profile Icon Component
 const StravaIcon = ({ url }) => {
-    if (!url) return <div className="w-6" /> // Placeholder for alignment
+    if (!url) return null
     return (
         <a
             href={url}
@@ -14,6 +14,22 @@ const StravaIcon = ({ url }) => {
             className="w-6 h-6 rounded bg-orange-500 flex items-center justify-center text-white text-xs font-bold hover:bg-orange-600 transition-colors flex-shrink-0"
         >
             S
+        </a>
+    )
+}
+
+// Training Link Component (for completed activities)
+const TrainingLink = ({ url }) => {
+    if (!url) return null
+    return (
+        <a
+            href={url}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            className="text-xs text-blue-500 hover:underline flex-shrink-0"
+        >
+            Details
         </a>
     )
 }
@@ -141,8 +157,12 @@ export default function ParticipantsSheet({
                                         </span>
                                     )}
 
-                                    {/* Strava - right aligned */}
-                                    <StravaIcon url={participant.stravaLink} />
+                                    {/* Training link (for completed) or Strava profile */}
+                                    {isCompleted && participant.trainingLink ? (
+                                        <TrainingLink url={participant.trainingLink} />
+                                    ) : (
+                                        <StravaIcon url={participant.stravaLink} />
+                                    )}
                                 </div>
                             )
                         })
