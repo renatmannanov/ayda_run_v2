@@ -2,6 +2,8 @@
 __pycache__/
 *.db
 *.log
+.coverage
+htmlcov/
 .env
 .venv/
 venv/
