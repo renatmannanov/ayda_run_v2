@@ -52,7 +52,7 @@ class AwaitingConfirmationService:
 
     DEFAULT_DURATION_MINUTES = 60  # Default activity duration if not specified
 
-    def __init__(self, bot: Bot, check_interval: int = 300):
+    def __init__(self, bot: Bot, check_interval: int = 30):  # TODO: change back to 300 after testing
         """
         Initialize awaiting confirmation service.
 
@@ -273,33 +273,37 @@ class AwaitingConfirmationService:
             return
 
         if is_club_group_activity:
-            # For club/group activities: send post-training notification to each participant
-            # asking for training link
-            try:
-                await send_post_training_notification(
-                    bot=self.bot,
-                    user_telegram_id=user.telegram_id,
-                    activity_id=activity.id,
-                    activity_title=activity.title,
-                    activity_date=activity.date,
-                    location=activity.location or "Не указано",
-                    country=activity.country,
-                    city=activity.city
-                )
+            # Skip sending "send link" notification to the organizer (they don't need to send their own link)
+            is_organizer = user.id == activity.creator_id
 
-                # Create PostTrainingNotification record
-                notification = PostTrainingNotification(
-                    activity_id=activity.id,
-                    user_id=user.id,
-                    status=PostTrainingNotificationStatus.SENT
-                )
-                session.add(notification)
+            if not is_organizer:
+                # For club/group activities: send post-training notification to each participant
+                # asking for training link
+                try:
+                    await send_post_training_notification(
+                        bot=self.bot,
+                        user_telegram_id=user.telegram_id,
+                        activity_id=activity.id,
+                        activity_title=activity.title,
+                        activity_date=activity.date,
+                        location=activity.location or "Не указано",
+                        country=activity.country,
+                        city=activity.city
+                    )
 
-                logger.info(f"Sent post-training notification to user {user.id} for activity {activity.id}")
-            except Exception as e:
-                logger.error(f"Failed to send post-training notification to user {user.id}: {e}")
+                    # Create PostTrainingNotification record
+                    notification = PostTrainingNotification(
+                        activity_id=activity.id,
+                        user_id=user.id,
+                        status=PostTrainingNotificationStatus.SENT
+                    )
+                    session.add(notification)
 
-            # Also notify organizer (once per activity)
+                    logger.info(f"Sent post-training notification to user {user.id} for activity {activity.id}")
+                except Exception as e:
+                    logger.error(f"Failed to send post-training notification to user {user.id}: {e}")
+
+            # Notify organizer (once per activity)
             activity_key = str(activity.id)
             if activity_key not in notified_organizers:
                 await self._notify_organizer(session, activity)
