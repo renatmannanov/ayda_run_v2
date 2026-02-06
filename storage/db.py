@@ -448,12 +448,57 @@ class Participation(Base):
 
     registered_at = Column(DateTime, default=datetime.utcnow)
 
+    # Training link tracking (post-training flow)
+    training_link = Column(String(500), nullable=True)  # URL to Strava/Garmin/etc
+    training_link_source = Column(String(20), nullable=True)  # "manual" | "strava_auto"
+    strava_activity_id = Column(BigInteger, nullable=True)  # Strava activity ID
+    strava_activity_data = Column(Text, nullable=True)  # JSON with distance, time, etc.
+
     # Relationships
     activity = relationship("Activity", back_populates="participations")
     user = relationship("User", back_populates="participations")
 
     def __repr__(self):
         return f"<Participation(activity_id={self.activity_id}, user_id={self.user_id}, status={self.status})>"
+
+
+class PostTrainingNotificationStatus(str, Enum):
+    """Status of post-training notification"""
+    SENT = "sent"                    # Initial notification sent
+    LINK_SUBMITTED = "link_submitted"  # User submitted training link
+    NOT_ATTENDED = "not_attended"    # User confirmed they didn't attend
+    REMINDER_SENT = "reminder_sent"  # Reminder was sent
+
+
+class PostTrainingNotification(Base):
+    """
+    Post-Training Notification model - tracks notification status for each participant.
+
+    Created when activity ends and notification is sent to participant.
+    Tracks whether user submitted link, confirmed non-attendance, or needs reminder.
+    """
+    __tablename__ = 'post_training_notifications'
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    activity_id = Column(String(36), ForeignKey('activities.id'), nullable=False, index=True)
+    user_id = Column(String(36), ForeignKey('users.id'), nullable=False, index=True)
+
+    # Notification status
+    status = Column(SQLEnum(PostTrainingNotificationStatus), default=PostTrainingNotificationStatus.SENT, nullable=False)
+
+    # Timestamps
+    sent_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    responded_at = Column(DateTime, nullable=True)
+
+    # Reminder tracking
+    reminder_count = Column(Integer, default=0, nullable=False)
+
+    # Relationships
+    activity = relationship("Activity")
+    user = relationship("User")
+
+    def __repr__(self):
+        return f"<PostTrainingNotification(activity_id={self.activity_id}, user_id={self.user_id}, status={self.status})>"
 
 
 class ClubRequest(Base):

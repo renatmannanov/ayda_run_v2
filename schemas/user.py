@@ -79,6 +79,11 @@ class ParticipantResponse(BaseModel):
     show_photo: bool = False  # Show photo instead of initials
     is_organizer: bool = False  # True if creator of the activity
 
+    # Training link data (post-training flow)
+    training_link: Optional[str] = None  # URL to Strava/Garmin/etc
+    training_link_source: Optional[str] = None  # "manual" | "strava_auto"
+    strava_activity_data: Optional[dict] = None  # Parsed JSON with distance, time, etc.
+
     @field_serializer('telegram_id', when_used='always')
     def serialize_telegram_id(self, telegram_id: int | str) -> str:
         """Convert telegram_id to string for JSON safety"""
