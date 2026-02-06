@@ -33,3 +33,6 @@ docs/
 
 # SMM
 SMM/
+
+# Internal tools
+internal/
