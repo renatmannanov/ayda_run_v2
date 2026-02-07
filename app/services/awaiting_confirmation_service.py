@@ -340,29 +340,32 @@ class AwaitingConfirmationService:
             logger.warning(f"Organizer {activity.creator_id} not found or has no telegram_id")
             return
 
-        # Count participants
-        participants_count = session.query(Participation).filter(
-            Participation.activity_id == activity.id
-        ).count()
-
-        # Build webapp link
-        webapp_link = f"{settings.app_url}activity/{activity.id}"
-
-        try:
-            await send_organizer_checkin_notification(
-                bot=self.bot,
-                organizer_telegram_id=organizer.telegram_id,
-                activity_id=activity.id,
-                activity_title=activity.title,
-                activity_date=activity.date,
-                participants_count=participants_count,
-                webapp_link=webapp_link,
-                country=activity.country,
-                city=activity.city
-            )
-            logger.info(f"Sent organizer checkin notification for activity {activity.id}")
-        except Exception as e:
-            logger.error(f"Failed to send organizer checkin notification for activity {activity.id}: {e}")
+        # TODO: Re-enable when attendance marking is needed again
+        # Currently disabled because post-training flow collects links instead
+        # # Count participants
+        # participants_count = session.query(Participation).filter(
+        #     Participation.activity_id == activity.id
+        # ).count()
+        #
+        # # Build webapp link
+        # webapp_link = f"{settings.app_url}activity/{activity.id}"
+        #
+        # try:
+        #     await send_organizer_checkin_notification(
+        #         bot=self.bot,
+        #         organizer_telegram_id=organizer.telegram_id,
+        #         activity_id=activity.id,
+        #         activity_title=activity.title,
+        #         activity_date=activity.date,
+        #         participants_count=participants_count,
+        #         webapp_link=webapp_link,
+        #         country=activity.country,
+        #         city=activity.city
+        #     )
+        #     logger.info(f"Sent organizer checkin notification for activity {activity.id}")
+        # except Exception as e:
+        #     logger.error(f"Failed to send organizer checkin notification for activity {activity.id}: {e}")
+        logger.info(f"Skipping organizer checkin notification for activity {activity.id} (disabled)")
 
 
 # Singleton instance

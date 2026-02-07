@@ -325,25 +325,27 @@ export default function ActivityDetail() {
 
     // Get action button content (used in both bottom bar and popup)
     const getActionButton = () => {
-        // ORGANIZER: Show attendance marking button for past club/group activities
-        // This check comes FIRST - organizer always sees check-in button for club/group activities
-        if (canMarkAttendance) {
-            const markedCount = attendanceData.filter(p => p.attended === true).length
-            return (
-                <button
-                    onClick={() => setShowAttendance(true)}
-                    className="w-full h-12 bg-gray-800 text-white rounded-xl text-sm font-medium hover:bg-gray-700 transition-colors flex items-center justify-center gap-2"
-                >
-                    <span>📋</span>
-                    <span>Отметить посещение</span>
-                    {attendanceData.length > 0 && (
-                        <span className="bg-white/20 px-2 py-0.5 rounded-full text-xs">
-                            {markedCount}/{attendanceData.length}
-                        </span>
-                    )}
-                </button>
-            )
-        }
+        // TODO: Re-enable when attendance marking is needed again
+        // Currently disabled because post-training flow collects links via bot instead
+        // // ORGANIZER: Show attendance marking button for past club/group activities
+        // // This check comes FIRST - organizer always sees check-in button for club/group activities
+        // if (canMarkAttendance) {
+        //     const markedCount = attendanceData.filter(p => p.attended === true).length
+        //     return (
+        //         <button
+        //             onClick={() => setShowAttendance(true)}
+        //             className="w-full h-12 bg-gray-800 text-white rounded-xl text-sm font-medium hover:bg-gray-700 transition-colors flex items-center justify-center gap-2"
+        //         >
+        //             <span>📋</span>
+        //             <span>Отметить посещение</span>
+        //             {attendanceData.length > 0 && (
+        //                 <span className="bg-white/20 px-2 py-0.5 rounded-full text-xs">
+        //                     {markedCount}/{attendanceData.length}
+        //                 </span>
+        //             )}
+        //         </button>
+        //     )
+        // }
 
         // For club/group activities: participants should NOT see self-confirmation buttons
         // Only organizer (handled above) can mark attendance for club/group activities

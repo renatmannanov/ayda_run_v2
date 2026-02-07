@@ -13,16 +13,19 @@ import asyncio
 from datetime import datetime, timedelta
 from typing import List, Optional, Tuple
 
+from urllib.parse import urlparse
+
 from telegram import Bot, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.error import TelegramError
 from sqlalchemy.orm import Session
+from cachetools import TTLCache
 
 from storage.db import (
     SessionLocal, Participation, Activity, User,
     PostTrainingNotification, PostTrainingNotificationStatus,
     ParticipationStatus, ActivityStatus
 )
-from app.core.timezone import utc_now, format_datetime_local
+from app.core.timezone import utc_now, format_datetime_local, ensure_utc_from_db
 from app_config.constants import (
     POST_TRAINING_REMINDER_DELAY_HOURS,
     POST_TRAINING_SUMMARY_DELAY_HOURS,
@@ -41,7 +44,7 @@ class PostTrainingSummaryService:
     Runs as a background task.
     """
 
-    def __init__(self, bot: Bot, check_interval: int = 300):
+    def __init__(self, bot: Bot, check_interval: int = 30):  # TODO: change back to 300 after testing
         """
         Initialize post-training summary service.
 
@@ -53,7 +56,8 @@ class PostTrainingSummaryService:
         self.check_interval = check_interval
         self._task = None
         self._running = False
-        self._sent_summaries = set()  # Track activities for which summary was sent
+        # Track activities for which summary was sent (auto-cleanup after 24h)
+        self._sent_summaries = TTLCache(maxsize=10000, ttl=86400)
 
     async def start(self):
         """Start the service"""
@@ -198,7 +202,8 @@ class PostTrainingSummaryService:
 
                 # Check if 5 hours have passed since activity end
                 duration_minutes = activity.duration or 60
-                activity_end = activity.date + timedelta(minutes=duration_minutes)
+                activity_date_utc = ensure_utc_from_db(activity.date)
+                activity_end = activity_date_utc + timedelta(minutes=duration_minutes)
                 summary_time = activity_end + timedelta(hours=POST_TRAINING_SUMMARY_DELAY_HOURS)
 
                 if now < summary_time:
@@ -206,7 +211,7 @@ class PostTrainingSummaryService:
 
                 try:
                     await self._send_trainer_summary(session, activity)
-                    self._sent_summaries.add(str(activity.id))
+                    self._sent_summaries[str(activity.id)] = True  # TTLCache uses dict interface
                 except Exception as e:
                     logger.error(f"Error sending summary for activity {activity.id}: {e}")
 
@@ -270,7 +275,13 @@ class PostTrainingSummaryService:
         if submitted:
             lines.append(f"Прикрепили ({len(submitted)}/{total}):")
             for name, link in submitted:
-                lines.append(f"✅ {name} 🔗")
+                # Extract domain + path from link for compact display
+                try:
+                    parsed = urlparse(link)
+                    short_link = parsed.netloc + parsed.path
+                except Exception:
+                    short_link = link
+                lines.append(f"{name} {short_link}")
             lines.append("")
 
         if pending:
@@ -292,7 +303,7 @@ class PostTrainingSummaryService:
         if pending:
             buttons.append([
                 InlineKeyboardButton(
-                    "📩 Напомнить неответившим",
+                    "📩 Напомнить",
                     callback_data=f"remind_pending_{activity.id}"
                 )
             ])
@@ -303,7 +314,8 @@ class PostTrainingSummaryService:
             await self.bot.send_message(
                 chat_id=trainer.telegram_id,
                 text=message,
-                reply_markup=reply_markup
+                reply_markup=reply_markup,
+                disable_web_page_preview=True
             )
             logger.info(f"Sent trainer summary for activity {activity.id}")
 
