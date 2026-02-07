@@ -10,8 +10,10 @@ Token refresh strategy: on-demand (not cron job).
 Refresh token if expires in < 5 minutes before making API call.
 Tokens are encrypted at rest using Fernet.
 """
+import asyncio
 import httpx
 import logging
+from collections import deque
 from datetime import datetime, timedelta
 from typing import Optional
 from sqlalchemy.orm import Session
@@ -21,6 +23,47 @@ from storage.db import User
 from app.core.crypto import encrypt_token, decrypt_token
 
 logger = logging.getLogger(__name__)
+
+
+class StravaRateLimiter:
+    """Simple in-memory rate limiter for Strava API."""
+
+    def __init__(self, max_per_15min: int = 90, max_per_day: int = 900):
+        self.max_per_15min = max_per_15min
+        self.max_per_day = max_per_day
+        self.requests_15min: deque = deque()
+        self.requests_day: deque = deque()
+
+    def _cleanup(self):
+        now = datetime.utcnow()
+        cutoff_15min = now - timedelta(minutes=15)
+        cutoff_day = now - timedelta(hours=24)
+
+        while self.requests_15min and self.requests_15min[0] < cutoff_15min:
+            self.requests_15min.popleft()
+        while self.requests_day and self.requests_day[0] < cutoff_day:
+            self.requests_day.popleft()
+
+    async def acquire(self) -> bool:
+        """Try to acquire a slot. Returns False if daily limit hit."""
+        self._cleanup()
+
+        if len(self.requests_day) >= self.max_per_day:
+            return False
+
+        if len(self.requests_15min) >= self.max_per_15min:
+            wait_time = (self.requests_15min[0] + timedelta(minutes=15) - datetime.utcnow()).total_seconds()
+            if wait_time > 0:
+                await asyncio.sleep(min(wait_time + 1, 60))
+            self._cleanup()
+
+        now = datetime.utcnow()
+        self.requests_15min.append(now)
+        self.requests_day.append(now)
+        return True
+
+
+_strava_rate_limiter = StravaRateLimiter()
 
 
 class StravaService:
@@ -166,6 +209,10 @@ class StravaService:
         Returns:
             Activity data dict or None if failed
         """
+        if not await _strava_rate_limiter.acquire():
+            logger.warning("Strava daily rate limit reached")
+            return None
+
         token = await self.get_valid_token(user)
         if not token:
             logger.warning(f"No valid token for user {user.id}")

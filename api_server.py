@@ -203,9 +203,19 @@ async def lifespan(app: FastAPI):
     await post_training_summary_service.start()
     logger.info("[SUCCESS] Post-training summary service started")
 
+    # Phase 9: Start Strava webhook retry service
+    from app.services.strava_webhook_service import get_strava_webhook_retry_service
+    strava_webhook_retry_service = get_strava_webhook_retry_service(bot_app.bot)
+    await strava_webhook_retry_service.start()
+    logger.info("[SUCCESS] Strava webhook retry service started")
+
     yield
 
     # Shutdown
+    # Stop Strava webhook retry service
+    await strava_webhook_retry_service.stop()
+    logger.info("[SUCCESS] Strava webhook retry service stopped")
+
     # Stop post-training summary service
     await post_training_summary_service.stop()
     logger.info("[SUCCESS] Post-training summary service stopped")

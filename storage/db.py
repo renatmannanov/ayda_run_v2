@@ -644,6 +644,43 @@ class Feedback(Base):
         return f"<Feedback(telegram_id={self.telegram_id}, message='{preview}')>"
 
 
+class StravaWebhookEvent(Base):
+    """Log of processed Strava webhook events for idempotency."""
+    __tablename__ = 'strava_webhook_events'
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    strava_activity_id = Column(BigInteger, unique=True, nullable=False, index=True)
+    strava_athlete_id = Column(BigInteger, nullable=False, index=True)
+    processed_at = Column(DateTime, default=datetime.utcnow)
+    result = Column(String(50))  # "matched", "no_match", "already_linked", "error", "pending_retry"
+    retry_count = Column(Integer, default=0, nullable=False)
+    next_retry_at = Column(DateTime, nullable=True)
+
+    def __repr__(self):
+        return f"<StravaWebhookEvent(strava_activity_id={self.strava_activity_id}, result={self.result})>"
+
+
+class PendingStravaMatch(Base):
+    """Temporary storage for pending Strava match confirmations."""
+    __tablename__ = 'pending_strava_matches'
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = Column(String(36), ForeignKey('users.id'), nullable=False, index=True)
+    activity_id = Column(String(36), ForeignKey('activities.id'), nullable=False)
+    strava_activity_id = Column(BigInteger, nullable=False)
+    strava_activity_data = Column(Text, nullable=True)  # JSON cache of Strava activity
+    confidence = Column(String(20), nullable=False)  # "high" | "medium"
+    created_at = Column(DateTime, default=datetime.utcnow)
+    expires_at = Column(DateTime, nullable=True)  # Auto-cleanup after 24h
+
+    # Relationships
+    user = relationship("User", foreign_keys=[user_id])
+    activity = relationship("Activity", foreign_keys=[activity_id])
+
+    def __repr__(self):
+        return f"<PendingStravaMatch(user_id={self.user_id}, activity_id={self.activity_id}, confidence={self.confidence})>"
+
+
 # ============= DATABASE SETUP =============
 
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://localhost/ayda")

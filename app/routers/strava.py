@@ -7,7 +7,7 @@ Endpoints:
 - DELETE /api/strava/disconnect - Disconnect Strava account
 - GET /api/strava/status - Check if Strava is connected
 """
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy.orm import Session
 from urllib.parse import urlencode
@@ -15,7 +15,7 @@ import httpx
 import logging
 
 from config import settings
-from storage.db import User
+from storage.db import User, StravaWebhookEvent
 from app.core.dependencies import get_db, get_current_user
 from app.services.strava_service import StravaService
 
@@ -315,3 +315,87 @@ async def strava_status(
         "connected": current_user.strava_athlete_id is not None,
         "athlete_id": current_user.strava_athlete_id
     }
+
+
+# ============================================================================
+# Strava Webhook
+# ============================================================================
+
+@router.get("/webhook")
+async def verify_webhook(
+    hub_mode: str = Query(alias="hub.mode"),
+    hub_challenge: str = Query(alias="hub.challenge"),
+    hub_verify_token: str = Query(alias="hub.verify_token")
+):
+    """Strava webhook subscription verification."""
+    if hub_verify_token != settings.strava_webhook_verify_token:
+        raise HTTPException(status_code=403, detail="Invalid verify token")
+    return {"hub.challenge": hub_challenge}
+
+
+@router.post("/webhook")
+async def receive_webhook(
+    request: Request,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db)
+):
+    """
+    Receive Strava webhook events.
+
+    Always returns 200 (Strava requirement).
+    Processes activity creation events in background.
+    """
+    try:
+        data = await request.json()
+    except Exception:
+        logger.warning("Strava webhook: invalid payload")
+        return {"status": "invalid_payload"}
+
+    logger.info(f"Strava webhook received: {data}")
+
+    # Only process new activity creation
+    if data.get("aspect_type") != "create" or data.get("object_type") != "activity":
+        return {"status": "ignored"}
+
+    strava_activity_id = data.get("object_id")
+    strava_athlete_id = data.get("owner_id")
+
+    if not strava_activity_id or not strava_athlete_id:
+        return {"status": "missing_data"}
+
+    # Idempotency check
+    existing = db.query(StravaWebhookEvent).filter(
+        StravaWebhookEvent.strava_activity_id == strava_activity_id
+    ).first()
+    if existing:
+        return {"status": "already_processed"}
+
+    # Find user by Strava athlete ID
+    user = db.query(User).filter(User.strava_athlete_id == strava_athlete_id).first()
+    if not user:
+        logger.info(f"Strava webhook: unknown athlete_id {strava_athlete_id}")
+        return {"status": "user_not_found"}
+
+    # Log event for idempotency
+    event = StravaWebhookEvent(
+        strava_activity_id=strava_activity_id,
+        strava_athlete_id=strava_athlete_id,
+        result="processing"
+    )
+    db.add(event)
+    db.commit()
+
+    # Get bot from app state
+    bot = request.app.state.bot_app.bot
+
+    # Process in background
+    from app.services.strava_matching_service import process_strava_activity
+    background_tasks.add_task(
+        process_strava_activity,
+        bot=bot,
+        user_id=user.id,
+        strava_activity_id=strava_activity_id,
+        webhook_event_id=event.id
+    )
+
+    return {"status": "processing"}

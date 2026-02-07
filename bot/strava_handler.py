@@ -5,14 +5,22 @@ Commands:
 - /connect_strava - Show button to connect Strava account
 - /disconnect_strava - Disconnect Strava account
 
-Also handles strava-related callback queries.
+Callback handlers:
+- strava_* - OAuth connect/disconnect flow
+- sc_{id} - Confirm Strava match (high confidence)
+- si_{id} - Check-in via Strava match (medium confidence)
+- sr_{id} - Reject Strava match
 """
+import json
 import logging
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes, CommandHandler, CallbackQueryHandler
 
 from config import settings
-from storage.db import SessionLocal, User
+from storage.db import (
+    SessionLocal, User, Participation, PendingStravaMatch,
+    ParticipationStatus
+)
 
 logger = logging.getLogger(__name__)
 
@@ -246,6 +254,214 @@ async def handle_strava_callback(update: Update, context: ContextTypes.DEFAULT_T
         session.close()
 
 
+async def handle_strava_confirm(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """
+    Handle Strava match confirmation (high confidence).
+
+    Saves Strava link to existing participation.
+    Callback data: sc_{match_id[:8]}
+    """
+    query = update.callback_query
+    await query.answer()
+
+    short_id = query.data.replace("sc_", "")
+
+    session = SessionLocal()
+    try:
+        match = session.query(PendingStravaMatch).filter(
+            PendingStravaMatch.id.like(f"{short_id}%")
+        ).first()
+
+        if not match:
+            await query.edit_message_text("❌ Подтверждение истекло или уже обработано")
+            return
+
+        # Find participation and save link
+        participation = session.query(Participation).filter(
+            Participation.activity_id == match.activity_id,
+            Participation.user_id == match.user_id
+        ).first()
+
+        if not participation:
+            await query.edit_message_text("❌ Запись на тренировку не найдена")
+            session.delete(match)
+            session.commit()
+            return
+
+        # Save Strava data
+        strava_link = f"https://strava.com/activities/{match.strava_activity_id}"
+        participation.training_link = strava_link
+        participation.training_link_source = "strava_auto"
+        participation.strava_activity_id = match.strava_activity_id
+        participation.strava_activity_data = match.strava_activity_data
+        participation.status = ParticipationStatus.ATTENDED
+        participation.attended = True
+
+        # Clean up pending match
+        session.delete(match)
+        session.commit()
+
+        # Get activity title for message
+        activity = match.activity
+        activity_title = activity.title if activity else "Тренировка"
+
+        # Parse distance from cached data
+        strava_data = json.loads(match.strava_activity_data) if match.strava_activity_data else {}
+        distance_km = strava_data.get("distance", 0) / 1000
+
+        await query.edit_message_text(
+            f"✅ Ссылка сохранена!\n\n"
+            f"«{activity_title}» — {distance_km:.1f} км\n"
+            f"[Открыть в Strava]({strava_link})",
+            parse_mode="Markdown"
+        )
+
+        # Notify trainer
+        await _notify_trainer_about_link(context.bot, session, match.activity_id, match.user_id, strava_link)
+
+        logger.info(f"Strava match confirmed: activity={match.activity_id}, user={match.user_id}")
+
+    except Exception as e:
+        logger.error(f"Error handling strava confirm: {e}", exc_info=True)
+        await query.edit_message_text("❌ Произошла ошибка")
+    finally:
+        session.close()
+
+
+async def handle_strava_checkin(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """
+    Handle Strava check-in (medium confidence — user was not registered).
+
+    Creates new participation and saves Strava link.
+    Callback data: si_{match_id[:8]}
+    """
+    query = update.callback_query
+    await query.answer()
+
+    short_id = query.data.replace("si_", "")
+
+    session = SessionLocal()
+    try:
+        match = session.query(PendingStravaMatch).filter(
+            PendingStravaMatch.id.like(f"{short_id}%")
+        ).first()
+
+        if not match:
+            await query.edit_message_text("❌ Подтверждение истекло или уже обработано")
+            return
+
+        # Check if participation already exists
+        existing = session.query(Participation).filter(
+            Participation.activity_id == match.activity_id,
+            Participation.user_id == match.user_id
+        ).first()
+
+        strava_link = f"https://strava.com/activities/{match.strava_activity_id}"
+
+        if existing:
+            # Update existing
+            existing.training_link = strava_link
+            existing.training_link_source = "strava_auto"
+            existing.strava_activity_id = match.strava_activity_id
+            existing.strava_activity_data = match.strava_activity_data
+            existing.status = ParticipationStatus.ATTENDED
+            existing.attended = True
+        else:
+            # Create new participation
+            participation = Participation(
+                activity_id=match.activity_id,
+                user_id=match.user_id,
+                status=ParticipationStatus.ATTENDED,
+                attended=True,
+                training_link=strava_link,
+                training_link_source="strava_auto",
+                strava_activity_id=match.strava_activity_id,
+                strava_activity_data=match.strava_activity_data
+            )
+            session.add(participation)
+
+        # Clean up
+        activity_title = match.activity.title if match.activity else "Тренировка"
+        strava_data = json.loads(match.strava_activity_data) if match.strava_activity_data else {}
+        distance_km = strava_data.get("distance", 0) / 1000
+
+        session.delete(match)
+        session.commit()
+
+        await query.edit_message_text(
+            f"✅ Отмечено и ссылка сохранена!\n\n"
+            f"«{activity_title}» — {distance_km:.1f} км\n"
+            f"[Открыть в Strava]({strava_link})",
+            parse_mode="Markdown"
+        )
+
+        # Notify trainer
+        await _notify_trainer_about_link(context.bot, session, match.activity_id, match.user_id, strava_link)
+
+        logger.info(f"Strava checkin: activity={match.activity_id}, user={match.user_id}")
+
+    except Exception as e:
+        logger.error(f"Error handling strava checkin: {e}", exc_info=True)
+        await query.edit_message_text("❌ Произошла ошибка")
+    finally:
+        session.close()
+
+
+async def handle_strava_reject(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """
+    Handle Strava match rejection.
+
+    Callback data: sr_{match_id[:8]}
+    """
+    query = update.callback_query
+    await query.answer()
+
+    short_id = query.data.replace("sr_", "")
+
+    session = SessionLocal()
+    try:
+        match = session.query(PendingStravaMatch).filter(
+            PendingStravaMatch.id.like(f"{short_id}%")
+        ).first()
+
+        if not match:
+            await query.edit_message_text("❌ Подтверждение истекло или уже обработано")
+            return
+
+        session.delete(match)
+        session.commit()
+
+        await query.edit_message_text("👌 Ок, пропускаем эту тренировку")
+
+        logger.info(f"Strava match rejected: user={match.user_id}")
+
+    except Exception as e:
+        logger.error(f"Error handling strava reject: {e}", exc_info=True)
+        await query.edit_message_text("❌ Произошла ошибка")
+    finally:
+        session.close()
+
+
+async def _notify_trainer_about_link(bot, session, activity_id, user_id, link):
+    """Notify trainer that a participant submitted a Strava link."""
+    try:
+        from bot.post_training_handler import get_activity_trainer_info, get_user_name
+        from bot.activity_notifications import send_trainer_link_notification
+
+        trainer_telegram_id, activity_title = get_activity_trainer_info(activity_id)
+        if trainer_telegram_id:
+            participant_name = get_user_name(user_id)
+            await send_trainer_link_notification(
+                bot=bot,
+                trainer_telegram_id=trainer_telegram_id,
+                participant_name=participant_name,
+                activity_title=activity_title,
+                training_link=link
+            )
+    except Exception as e:
+        logger.error(f"Failed to notify trainer about Strava link: {e}")
+
+
 def get_strava_handlers():
     """
     Get Strava command and callback handlers.
@@ -256,5 +472,10 @@ def get_strava_handlers():
     return [
         CommandHandler("connect_strava", connect_strava_command),
         CommandHandler("disconnect_strava", disconnect_strava_command),
+        # Strava match confirmation callbacks (must be before generic strava_ pattern)
+        CallbackQueryHandler(handle_strava_confirm, pattern=r"^sc_"),
+        CallbackQueryHandler(handle_strava_checkin, pattern=r"^si_"),
+        CallbackQueryHandler(handle_strava_reject, pattern=r"^sr_"),
+        # Generic strava OAuth callbacks
         CallbackQueryHandler(handle_strava_callback, pattern=r"^strava_"),
     ]
