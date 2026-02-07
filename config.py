@@ -85,6 +85,14 @@ class Settings(BaseSettings):
     rate_limit_create: str = Field(default="10/minute", description="Create endpoints limit")
     rate_limit_read: str = Field(default="100/minute", description="Read endpoints limit")
 
+    # === Strava Integration ===
+    strava_client_id: str = Field(default="", alias="STRAVA_CLIENT_ID", description="Strava API Client ID")
+    strava_client_secret: str = Field(default="", alias="STRAVA_CLIENT_SECRET", description="Strava API Client Secret")
+    strava_webhook_verify_token: str = Field(default="", alias="STRAVA_WEBHOOK_VERIFY_TOKEN", description="Strava webhook verification token")
+
+    # === Encryption ===
+    encryption_key: str = Field(default="", alias="ENCRYPTION_KEY", description="Fernet encryption key for token storage")
+
     # === Logging ===
     log_level: str = Field(
         default="INFO",

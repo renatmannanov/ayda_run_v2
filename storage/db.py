@@ -176,6 +176,12 @@ class User(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
+    # Strava integration (OAuth tokens encrypted at rest)
+    strava_athlete_id = Column(BigInteger, unique=True, index=True, nullable=True)
+    strava_access_token = Column(String(500), nullable=True)  # Encrypted
+    strava_refresh_token = Column(String(500), nullable=True)  # Encrypted
+    strava_token_expires_at = Column(DateTime, nullable=True)
+
     # Relationships
     memberships = relationship("Membership", back_populates="user", cascade="all, delete-orphan")
     created_clubs = relationship("Club", back_populates="creator", foreign_keys="Club.creator_id")

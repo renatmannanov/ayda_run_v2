@@ -120,6 +120,12 @@ async def lifespan(app: FastAPI):
         bot_app.add_handler(handler)
     logger.info("[SUCCESS] Post-training handlers registered")
 
+    # Strava integration handlers (/connect_strava, /disconnect_strava)
+    from bot.strava_handler import get_strava_handlers
+    for handler in get_strava_handlers():
+        bot_app.add_handler(handler)
+    logger.info("[SUCCESS] Strava handlers registered")
+
     # Phase 9: Feedback handler (text messages in private chat)
     # IMPORTANT: This must be LAST as it catches all unhandled text messages
     from bot.feedback_handler import get_feedback_handler
@@ -134,6 +140,7 @@ async def lifespan(app: FastAPI):
     # Commands for private chats
     private_commands = [
         BotCommand("start", "Начать или вернуться в главное меню"),
+        BotCommand("connect_strava", "Подключить Strava"),
         BotCommand("requests", "Просмотреть заявки на участие"),
         BotCommand("my_requests", "Мои заявки на участие"),
         BotCommand("sync", "Проверить статус синхронизации"),
@@ -372,7 +379,7 @@ app.add_middleware(LoggingMiddleware)
 # ============================================================================
 # Include Routers
 # ============================================================================
-from app.routers import activities, clubs, groups, users, media, recurring, analytics, config
+from app.routers import activities, clubs, groups, users, media, recurring, analytics, config, strava
 
 app.include_router(activities.router)
 app.include_router(clubs.router)
@@ -382,6 +389,7 @@ app.include_router(media.router)
 app.include_router(recurring.router)
 app.include_router(analytics.router)
 app.include_router(config.router)
+app.include_router(strava.router)
 
 # ============================================================================
 # Static File Serving
