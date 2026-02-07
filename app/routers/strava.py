@@ -7,7 +7,7 @@ Endpoints:
 - DELETE /api/strava/disconnect - Disconnect Strava account
 - GET /api/strava/status - Check if Strava is connected
 """
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy.orm import Session
 from urllib.parse import urlencode
@@ -184,6 +184,7 @@ async def strava_auth(
 
 @router.get("/callback")
 async def strava_callback(
+    request: Request,
     code: str = Query(None),
     state: str = Query(None),
     error: str = Query(None),
@@ -253,7 +254,24 @@ async def strava_callback(
         strava_service = StravaService(db)
         strava_service.save_tokens(user, token_data)
 
+        athlete_name = token_data["athlete"].get("firstname", "")
         logger.info(f"Strava connected for user {user.id}, athlete_id={token_data['athlete']['id']}")
+
+        # Send confirmation message to user via bot
+        try:
+            bot = request.app.state.bot_app.bot
+            await bot.send_message(
+                chat_id=user.telegram_id,
+                text=(
+                    f"✅ *Strava подключена!*\n\n"
+                    f"Привет, {athlete_name}! Теперь твои тренировки будут "
+                    f"автоматически привязываться к активностям Ayda Run.\n\n"
+                    f"Чтобы отключить: /disconnect\\_strava"
+                ),
+                parse_mode="Markdown"
+            )
+        except Exception as e:
+            logger.error(f"Failed to send Strava confirmation message: {e}")
 
         return HTMLResponse(content=CALLBACK_SUCCESS_HTML)
 
