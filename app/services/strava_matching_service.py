@@ -25,7 +25,7 @@ from storage.db import (
     MembershipStatus, ActivityStatus, ParticipationStatus,
     StravaWebhookEvent, PendingStravaMatch
 )
-from app.services.strava_service import StravaService
+from app.services.strava_service import StravaService, StravaAPIError
 from app.core.timezone import ensure_utc_from_db
 
 logger = logging.getLogger(__name__)
@@ -70,11 +70,14 @@ def find_matching_activity(
     time_min = strava_start.replace(tzinfo=None) - timedelta(hours=TIME_WINDOW_HOURS)
     time_max = strava_start.replace(tzinfo=None) + timedelta(hours=TIME_WINDOW_HOURS)
 
+    # Match COMPLETED or UPCOMING activities (webhook can arrive before service marks COMPLETED)
+    allowed_statuses = [ActivityStatus.COMPLETED, ActivityStatus.UPCOMING]
+
     # === High confidence: user has participation ===
     participations = db.query(Participation).join(Activity).filter(
         Participation.user_id == user_id,
         Activity.date.between(time_min, time_max),
-        Activity.status == ActivityStatus.COMPLETED
+        Activity.status.in_(allowed_statuses)
     ).all()
 
     for p in participations:
@@ -96,7 +99,7 @@ def find_matching_activity(
     if group_ids or club_ids:
         query = db.query(Activity).filter(
             Activity.date.between(time_min, time_max),
-            Activity.status == ActivityStatus.COMPLETED
+            Activity.status.in_(allowed_statuses)
         )
 
         from sqlalchemy import or_
@@ -149,12 +152,18 @@ async def process_strava_activity(
 
         # Fetch activity details from Strava API
         strava_service = StravaService(db)
-        strava_activity = await strava_service.get_activity(user, strava_activity_id)
-
-        if strava_activity is None:
+        try:
+            strava_activity = await strava_service.get_activity(user, strava_activity_id)
+        except StravaAPIError as e:
             # API unavailable or rate limited — schedule retry
             _schedule_retry(db, webhook_event_id)
-            logger.warning(f"Strava API unavailable, scheduled retry for activity {strava_activity_id}")
+            logger.warning(f"Strava API error, scheduled retry for activity {strava_activity_id}: {e}")
+            return
+
+        if strava_activity is None:
+            # Activity not found on Strava (404) — no point retrying
+            _update_event_result(db, webhook_event_id, "not_found")
+            logger.info(f"Strava activity {strava_activity_id} not found (404), skipping")
             return
 
         # Find matching Ayda activity
@@ -225,7 +234,7 @@ async def _send_match_confirmation(
     strava_link = f"https://strava.com/activities/{strava_activity['id']}"
     distance_km = strava_activity.get("distance", 0) / 1000
     strava_name = strava_activity.get("name", "")
-    short_id = match.id[:8]
+    match_id = match.id
 
     if match.confidence == "high":
         text = (
@@ -235,8 +244,8 @@ async def _send_match_confirmation(
             f"[Открыть в Strava]({strava_link})"
         )
         keyboard = [[
-            InlineKeyboardButton("✅ Подтвердить", callback_data=f"sc_{short_id}"),
-            InlineKeyboardButton("❌ Другая", callback_data=f"sr_{short_id}")
+            InlineKeyboardButton("✅ Подтвердить", callback_data=f"sc_{match_id}"),
+            InlineKeyboardButton("❌ Другая", callback_data=f"sr_{match_id}")
         ]]
     else:
         text = (
@@ -246,8 +255,8 @@ async def _send_match_confirmation(
             f"[Открыть в Strava]({strava_link})"
         )
         keyboard = [[
-            InlineKeyboardButton("✅ Да, я был(а)", callback_data=f"si_{short_id}"),
-            InlineKeyboardButton("❌ Нет", callback_data=f"sr_{short_id}")
+            InlineKeyboardButton("✅ Да, я был(а)", callback_data=f"si_{match_id}"),
+            InlineKeyboardButton("❌ Нет", callback_data=f"sr_{match_id}")
         ]]
 
     try:

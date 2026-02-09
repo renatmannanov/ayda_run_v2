@@ -62,10 +62,37 @@ class StravaWebhookRetryService:
             await asyncio.sleep(self.check_interval)
 
     async def _retry_pending(self):
-        """Retry failed Strava API calls."""
+        """Retry failed Strava API calls and recover stuck 'processing' events."""
         db = SessionLocal()
         try:
             now = datetime.utcnow()
+
+            # Recover events stuck in "processing" for >10 minutes
+            stuck_cutoff = now - timedelta(minutes=10)
+            stuck = db.query(StravaWebhookEvent).filter(
+                StravaWebhookEvent.result == "processing",
+                StravaWebhookEvent.processed_at < stuck_cutoff
+            ).all()
+            for event in stuck:
+                event.result = "pending_retry"
+                event.retry_count = (event.retry_count or 0)
+                event.next_retry_at = now  # Retry immediately
+                logger.warning(f"Recovered stuck event {event.id} (strava_activity={event.strava_activity_id})")
+            if stuck:
+                db.commit()
+
+            # Mark events that exceeded max retries as failed
+            exhausted = db.query(StravaWebhookEvent).filter(
+                StravaWebhookEvent.result == "pending_retry",
+                StravaWebhookEvent.retry_count >= MAX_RETRY_COUNT
+            ).all()
+            for event in exhausted:
+                event.result = "error"
+                event.processed_at = now
+                logger.warning(f"Event {event.id} exceeded max retries ({MAX_RETRY_COUNT}), marking as error")
+            if exhausted:
+                db.commit()
+
             pending = db.query(StravaWebhookEvent).filter(
                 StravaWebhookEvent.result == "pending_retry",
                 StravaWebhookEvent.next_retry_at < now,

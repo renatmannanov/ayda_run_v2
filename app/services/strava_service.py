@@ -25,6 +25,11 @@ from app.core.crypto import encrypt_token, decrypt_token
 logger = logging.getLogger(__name__)
 
 
+class StravaAPIError(Exception):
+    """Raised when Strava API is unavailable (5xx, timeout, rate limit)."""
+    pass
+
+
 class StravaRateLimiter:
     """Simple in-memory rate limiter for Strava API."""
 
@@ -207,16 +212,19 @@ class StravaService:
             activity_id: Strava activity ID
 
         Returns:
-            Activity data dict or None if failed
+            Activity data dict, or None if activity not found (404)
+
+        Raises:
+            StravaAPIError: If API is unavailable (5xx, timeout, rate limit)
         """
         if not await _strava_rate_limiter.acquire():
             logger.warning("Strava daily rate limit reached")
-            return None
+            raise StravaAPIError("Rate limit reached")
 
         token = await self.get_valid_token(user)
         if not token:
             logger.warning(f"No valid token for user {user.id}")
-            return None
+            raise StravaAPIError(f"No valid token for user {user.id}")
 
         try:
             async with httpx.AsyncClient() as client:
@@ -232,16 +240,18 @@ class StravaService:
 
             if resp.status_code != 200:
                 logger.error(f"Strava get_activity failed: {resp.status_code} {resp.text}")
-                return None
+                raise StravaAPIError(f"Strava API error: {resp.status_code}")
 
             return resp.json()
 
+        except StravaAPIError:
+            raise
         except httpx.TimeoutException:
             logger.error(f"Strava get_activity timeout for activity {activity_id}")
-            return None
+            raise StravaAPIError(f"Timeout fetching activity {activity_id}")
         except Exception as e:
             logger.error(f"Error getting Strava activity {activity_id}: {e}")
-            return None
+            raise StravaAPIError(str(e))
 
     async def get_athlete(self, user: User) -> Optional[dict]:
         """
