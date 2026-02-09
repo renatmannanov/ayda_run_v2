@@ -376,7 +376,7 @@ export default function ActivityDetail() {
 
         // Awaiting confirmation for club/group activities - show waiting message
         if (!isPersonalActivity && activity?.participationStatus === 'awaiting') {
-            return <StatusBadge variant="awaitingOrganizer" />
+            return <StatusBadge variant={isCreator ? "awaitingLinks" : "awaitingLink"} />
         }
 
         // Attended - show green status (for all activity types)
@@ -690,7 +690,21 @@ export default function ActivityDetail() {
                                     : activity.participants
                                 })
                             </p>
-                            {isJoined && (
+                            {/* Status icon next to participant count */}
+                            {activity.participationStatus === 'attended' && (
+                                <svg className="w-3.5 h-3.5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                </svg>
+                            )}
+                            {activity.participationStatus === 'awaiting' && (
+                                <span className="text-xs font-bold text-orange-500">?</span>
+                            )}
+                            {activity.participationStatus === 'missed' && (
+                                <svg className="w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            )}
+                            {isJoined && !['attended', 'awaiting', 'missed'].includes(activity.participationStatus) && (
                                 <svg className="w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                                 </svg>
@@ -715,25 +729,6 @@ export default function ActivityDetail() {
                         </button>
                     </div>
 
-                    {/* User attendance status (past activities) */}
-                    {activity.participationStatus === 'awaiting' && (
-                        <p className="text-sm mt-3 text-orange-500">
-                            Ожидает подтверждения
-                        </p>
-                    )}
-                    {activity.participationStatus === 'attended' && (
-                        <p className="text-sm mt-3 text-green-600 flex items-center gap-1">
-                            <span>Ты был</span>
-                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                            </svg>
-                        </p>
-                    )}
-                    {activity.participationStatus === 'missed' && (
-                        <p className="text-sm mt-3 text-gray-400">
-                            Ты пропустил
-                        </p>
-                    )}
 
                     {/* Creator/Admin actions - moved to bottom */}
                     {canEdit && (
@@ -806,15 +801,15 @@ export default function ActivityDetail() {
             {/* Show action bar when:
                 - Activity not started yet
                 - OR organizer can mark attendance (completed + club/group + creator)
-                - OR personal activity with awaiting status (participant can self-confirm)
-                - OR completed activity with attended/missed status (show status)
+                - OR any activity with awaiting/attended/missed status
+                - OR completed activity without registration
             */}
             <BottomBar
                 onCreateClick={() => showToast('Перейдите на Главную для создания')}
                 showAction={(
                     !isStarted ||
                     canMarkAttendance ||
-                    ((!activity?.clubId && !activity?.groupId) && activity?.participationStatus === 'awaiting') ||
+                    activity?.participationStatus === 'awaiting' ||
                     activity?.participationStatus === 'attended' ||
                     activity?.participationStatus === 'missed' ||
                     (isCompleted && !activity?.isJoined) // Show "Активность завершена" for completed activities without registration
