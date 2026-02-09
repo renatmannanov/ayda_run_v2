@@ -52,12 +52,13 @@ def find_matching_activity(
     Returns:
         Tuple of (Activity or None, confidence: "high"|"medium"|"")
     """
-    strava_start_str = strava_activity.get("start_date_local") or strava_activity.get("start_date")
+    # Use start_date (UTC) for matching — Activity.date in DB is stored as naive UTC
+    strava_start_str = strava_activity.get("start_date") or strava_activity.get("start_date_local")
     if not strava_start_str:
         logger.warning(f"Strava activity {strava_activity.get('id')} has no start_date")
         return None, ""
 
-    # Parse Strava datetime (ISO 8601)
+    # Parse Strava datetime (ISO 8601, e.g. "2026-02-09T08:50:00Z")
     try:
         strava_start = datetime.fromisoformat(strava_start_str.replace("Z", "+00:00"))
     except (ValueError, AttributeError):
@@ -69,6 +70,11 @@ def find_matching_activity(
     # Time window: +-1 hour (as naive UTC for DB comparison)
     time_min = strava_start.replace(tzinfo=None) - timedelta(hours=TIME_WINDOW_HOURS)
     time_max = strava_start.replace(tzinfo=None) + timedelta(hours=TIME_WINDOW_HOURS)
+
+    logger.info(
+        f"Matching strava activity: start_utc={strava_start}, "
+        f"distance={strava_distance_km:.1f}km, window=[{time_min}, {time_max}]"
+    )
 
     # Match COMPLETED or UPCOMING activities (webhook can arrive before service marks COMPLETED)
     allowed_statuses = [ActivityStatus.COMPLETED, ActivityStatus.UPCOMING]
