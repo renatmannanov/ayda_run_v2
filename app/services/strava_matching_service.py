@@ -27,6 +27,7 @@ from storage.db import (
 )
 from app.services.strava_service import StravaService, StravaAPIError
 from app.core.timezone import ensure_utc_from_db
+from bot.activity_notifications import get_sport_icon
 
 logger = logging.getLogger(__name__)
 
@@ -241,29 +242,40 @@ async def _send_match_confirmation(
     distance_km = strava_activity.get("distance", 0) / 1000
     strava_name = strava_activity.get("name", "")
     match_id = match.id
+    sport_icon = get_sport_icon(activity.sport_type)
+
+    # Format Strava date for display
+    strava_date_str = ""
+    strava_date_local = strava_activity.get("start_date_local", "")
+    if strava_date_local:
+        try:
+            strava_dt = datetime.fromisoformat(strava_date_local.replace("Z", "+00:00"))
+            strava_date_str = strava_dt.strftime("%d %b · %H:%M")
+        except (ValueError, AttributeError):
+            pass
+
+    strava_info = f"[{strava_name}]({strava_link})"
+    if strava_date_str:
+        strava_info += f" · {strava_date_str}"
+    strava_info += f" · {distance_km:.1f} км"
 
     if match.confidence == "high":
-        text = (
-            f"🏃 Нашли твою тренировку!\n\n"
-            f"«{strava_name}» — {distance_km:.1f} км\n"
-            f"Совпадает с «{activity.title}»\n\n"
-            f"[Открыть в Strava]({strava_link})"
-        )
-        keyboard = [[
-            InlineKeyboardButton("✅ Подтвердить", callback_data=f"sc_{match_id}"),
-            InlineKeyboardButton("❌ Другая", callback_data=f"sr_{match_id}")
-        ]]
+        confidence_word = "_уверены_"
+        callback_prefix = "sc_"
     else:
-        text = (
-            f"🏃 Похоже, ты был(а) на тренировке!\n\n"
-            f"«{strava_name}» — {distance_km:.1f} км\n"
-            f"Совпадает с «{activity.title}»\n\n"
-            f"[Открыть в Strava]({strava_link})"
-        )
-        keyboard = [[
-            InlineKeyboardButton("✅ Да, я был(а)", callback_data=f"si_{match_id}"),
-            InlineKeyboardButton("❌ Нет", callback_data=f"sr_{match_id}")
-        ]]
+        confidence_word = "_кажется_"
+        callback_prefix = "si_"
+
+    text = (
+        f"Получили твою тренировку от Strava.\n\n"
+        f"🏃 {strava_info}\n"
+        f"Мы {confidence_word}, что она совпадает с тренировкой\n"
+        f"{sport_icon} «{activity.title}»"
+    )
+    keyboard = [[
+        InlineKeyboardButton("✅ Подтвердить", callback_data=f"{callback_prefix}{match_id}"),
+        InlineKeyboardButton("❌ Другая", callback_data=f"sr_{match_id}")
+    ]]
 
     try:
         await bot.send_message(

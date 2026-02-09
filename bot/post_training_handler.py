@@ -9,15 +9,17 @@ Handles post-training flow:
 
 import logging
 from datetime import datetime
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
 from telegram.ext import ContextTypes, CallbackQueryHandler, MessageHandler, filters
 
+from config import settings
 from storage.db import (
     SessionLocal, User, Participation, Activity,
     PostTrainingNotification, PostTrainingNotificationStatus, ParticipationStatus
 )
 from bot.validators import extract_url_from_text, validate_training_link
 from bot.activity_notifications import send_trainer_link_notification
+from app.core.timezone import format_datetime_local
 
 logger = logging.getLogger(__name__)
 
@@ -207,6 +209,23 @@ def get_user_name(user_id: str) -> str:
         session.close()
 
 
+def _get_activity_details(activity_id: str) -> dict | None:
+    """Get activity details (date, location, country, city) for confirmation messages."""
+    session = SessionLocal()
+    try:
+        activity = session.query(Activity).filter(Activity.id == activity_id).first()
+        if not activity:
+            return None
+        return {
+            "date": activity.date,
+            "location": activity.location or "",
+            "country": activity.country,
+            "city": activity.city,
+        }
+    finally:
+        session.close()
+
+
 # ============================================================================
 # Message Handler for Training Links
 # ============================================================================
@@ -261,7 +280,7 @@ async def handle_training_link_message(update: Update, context: ContextTypes.DEF
     # Update notification status
     update_notification_status(notification.id, PostTrainingNotificationStatus.LINK_SUBMITTED)
 
-    # Get activity title and trainer info
+    # Get activity data and trainer info
     trainer_telegram_id, activity_title = get_activity_trainer_info(notification.activity_id)
     if not activity_title:
         activity_title = get_activity_title(notification.activity_id)
@@ -280,11 +299,29 @@ async def handle_training_link_message(update: Update, context: ContextTypes.DEF
         except Exception as e:
             logger.error(f"Failed to notify trainer: {e}")
 
-    await update.message.reply_text(
-        f"✅ Ссылка сохранена!\n\n"
-        f"«{activity_title}»\n\n"
-        f"Тренер получит её в сводке."
-    )
+    # Fetch activity details for confirmation message
+    activity_details = _get_activity_details(notification.activity_id)
+
+    if activity_details:
+        date_str = format_datetime_local(
+            activity_details["date"], activity_details["country"],
+            activity_details["city"], "%d %b · %H:%M"
+        )
+        webapp_link = f"{settings.app_url}activity/{notification.activity_id}"
+        keyboard = [[InlineKeyboardButton("Открыть активность", web_app=WebAppInfo(url=webapp_link))]]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+
+        await update.message.reply_text(
+            f"✅ Ссылка сохранена и отправлена тренеру.\n\n"
+            f"«{activity_title}» · {date_str} · {activity_details['location']}\n\n"
+            f"Тренировки других участников ты сможешь посмотреть на странице активности.",
+            reply_markup=reply_markup
+        )
+    else:
+        await update.message.reply_text(
+            f"✅ Ссылка сохранена и отправлена тренеру.\n\n"
+            f"«{activity_title}»"
+        )
 
     logger.info(f"User {user_telegram_id} submitted training link for activity {notification.activity_id}")
 
@@ -325,9 +362,7 @@ async def handle_post_training_missed(update: Update, context: ContextTypes.DEFA
     activity_title = get_activity_title(activity_id)
 
     await query.edit_message_text(
-        f"📝 Отмечено: не был(а)\n\n"
-        f"«{activity_title}»\n\n"
-        f"В следующий раз обязательно получится! 💪"
+        f"📝 Ок, отметили, что тебя не было на тренировке «{activity_title}»"
     )
 
     logger.info(f"User {telegram_user.id} marked as missed for activity {activity_id}")
@@ -352,10 +387,9 @@ async def handle_post_training_later(update: Update, context: ContextTypes.DEFAU
 
     # Just acknowledge - keep waiting for link
     await query.edit_message_text(
-        f"👍 Хорошо!\n\n"
-        f"«{activity_title}»\n\n"
-        f"Отправь ссылку на тренировку, когда будет готова.\n"
-        f"(Strava, Garmin, Coros, Suunto или Polar)"
+        "👍 Хорошо!\n\n"
+        "Отправь ссылку на тренировку, когда она будет готова.\n"
+        "Тренер может напомнить тебе об этом через несколько часов."
     )
 
     logger.info(f"User {update.effective_user.id} will send link later for activity {activity_id}")
@@ -420,10 +454,11 @@ async def handle_remind_pending(update: Update, context: ContextTypes.DEFAULT_TY
                 await context.bot.send_message(
                     chat_id=user.telegram_id,
                     text=(
-                        f"⏰ Напоминание от тренера\n\n"
-                        f"«{activity.title}»\n\n"
-                        f"Отправь ссылку на тренировку\n"
-                        f"(Strava, Garmin, Coros, Suunto или Polar)"
+                        f"⏰ Напоминание от тренера!\n\n"
+                        f"Мы отправили тренеру сводку по тренировке «{activity.title}», "
+                        f"но твоих данных там не было.\n"
+                        f"Кажется, лучше не заставлять тренера ждать 😉\n"
+                        f"Или подключи уже Strava 🤷 /connect_strava"
                     ),
                     reply_markup=reply_markup
                 )

@@ -263,10 +263,10 @@ async def strava_callback(
             await bot.send_message(
                 chat_id=user.telegram_id,
                 text=(
-                    f"✅ *Strava подключена!*\n\n"
-                    f"Привет, {athlete_name}! Теперь твои тренировки будут "
-                    f"автоматически привязываться к активностям Ayda Run.\n\n"
-                    f"Чтобы отключить: /disconnect\\_strava"
+                    "✅ *Strava подключена!*\n\n"
+                    "Теперь твои тренировки будут автоматически привязываться "
+                    "к активностям Ayda Run и отправляться тренеру.\n\n"
+                    "Чтобы отключить: /disconnect\\_strava"
                 ),
                 parse_mode="Markdown"
             )

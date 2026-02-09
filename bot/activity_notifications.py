@@ -626,10 +626,12 @@ def format_post_training_notification(
     date_str = format_datetime_local(activity_date, country, city, "%a, %d %b · %H:%M")
 
     message = (
-        f"✅ Тренировка «{activity_title}» завершена!\n\n"
+        f"✅ Тренировка «{activity_title}» завершена.\n\n"
         f"{date_str} · {location}\n\n"
-        f"Отправь ссылку на тренировку ответным сообщением\n"
-        f"(Strava, Garmin, Coros, Suunto или Polar)."
+        f"Отправь ссылку на тренировку ответным сообщением "
+        f"(Strava, Garmin, Coros, Suunto, Polar).\n"
+        f"И мы перешлём её твоему тренеру для анализа.\n\n"
+        f"Или подключи Strava /connect_strava, чтобы синкать и отправлять автоматически."
     )
 
     return message
@@ -659,8 +661,7 @@ async def send_trainer_link_notification(
     """
     try:
         message = (
-            f"🔗 {participant_name} прикрепил тренировку\n"
-            f"«{activity_title}»\n"
+            f"⚪ {participant_name} отправил ссылку на тренировку «{activity_title}»\n"
             f"{training_link}"
         )
 

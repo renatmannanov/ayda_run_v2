@@ -170,9 +170,9 @@ class PostTrainingSummaryService:
         reply_markup = InlineKeyboardMarkup(keyboard)
 
         message = (
-            f"⏰ Напоминание: отправь ссылку на тренировку\n\n"
-            f"«{activity.title}»\n\n"
-            f"Strava, Garmin, Coros, Suunto или Polar."
+            f"⏰ Напоминание: отправь ссылку на тренировку «{activity.title}»\n\n"
+            f"Тогда тренер сможет её проанализировать и предоставить тебе обратную связь.\n"
+            f"А чтобы всё было автоматически, подключи Strava /connect_strava"
         )
 
         try:
@@ -280,9 +280,12 @@ class PostTrainingSummaryService:
             "%d %B"
         )
 
+        location = activity.location or ""
+        location_part = f" · {location}" if location else ""
+
         lines = [
-            f"📋 Сводка: {activity.title}",
-            f"{date_str}",
+            f"📋 Собранные данные по тренировке «{activity.title}»",
+            f"{date_str}{location_part}",
             ""
         ]
 
@@ -295,7 +298,7 @@ class PostTrainingSummaryService:
                     short_link = parsed.netloc + parsed.path
                 except Exception:
                     short_link = link
-                lines.append(f"{name} {short_link}")
+                lines.append(f"⚪ {name} {short_link}")
             lines.append("")
 
         if pending:

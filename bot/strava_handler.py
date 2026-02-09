@@ -13,7 +13,7 @@ Callback handlers:
 """
 import json
 import logging
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
 from telegram.ext import ContextTypes, CommandHandler, CallbackQueryHandler
 
 from config import settings
@@ -21,6 +21,7 @@ from storage.db import (
     SessionLocal, User, Participation, PendingStravaMatch,
     ParticipationStatus, PostTrainingNotification, PostTrainingNotificationStatus
 )
+from app.core.timezone import format_datetime_local
 
 logger = logging.getLogger(__name__)
 
@@ -62,11 +63,10 @@ async def connect_strava_command(update: Update, context: ContextTypes.DEFAULT_T
             reply_markup = InlineKeyboardMarkup(keyboard)
 
             await update.message.reply_text(
-                "✅ *Strava подключена*\n\n"
-                "Твои тренировки будут автоматически привязываться к активностям Ayda Run.\n\n"
-                f"Athlete ID: `{user.strava_athlete_id}`",
-                reply_markup=reply_markup,
-                parse_mode="Markdown"
+                "✅ Strava подключена!\n\n"
+                "Твои тренировки будут автоматически привязываться "
+                "к активностям Ayda Run и отправляться тренеру.",
+                reply_markup=reply_markup
             )
             return
 
@@ -90,10 +90,10 @@ async def connect_strava_command(update: Update, context: ContextTypes.DEFAULT_T
             "После подключения твои тренировки будут автоматически "
             "привязываться к активностям в Ayda Run.\n\n"
             "Это позволит:\n"
-            "• Автоматически отмечать посещение тренировок\n"
-            "• Прикреплять ссылки на Strava активности\n"
-            "• Видеть статистику твоих тренировок\n\n"
-            "Нажми кнопку ниже:",
+            "• Собирать аналитику тренировок твоего клуба\n"
+            "• Отмечать посещение тренировки\n"
+            "• Отправлять данные тренеру сразу после её окончания\n\n"
+            "Нажимай 👌",
             reply_markup=reply_markup,
             parse_mode="Markdown"
         )
@@ -151,7 +151,7 @@ async def disconnect_strava_command(update: Update, context: ContextTypes.DEFAUL
 
         await update.message.reply_text(
             "⚠️ *Отключить Strava?*\n\n"
-            "Автоматическая привязка тренировок перестанет работать.",
+            "Автоматическая синхронизация и отправка тренировок тренеру перестанет работать 😔",
             reply_markup=reply_markup,
             parse_mode="Markdown"
         )
@@ -282,9 +282,13 @@ async def handle_strava_confirm(update: Update, context: ContextTypes.DEFAULT_TY
         match_strava_activity_id = match.strava_activity_id
         match_strava_activity_data = match.strava_activity_data
 
-        # Get activity title before deleting
+        # Get activity data before deleting
         activity = match.activity
         activity_title = activity.title if activity else "Тренировка"
+        activity_location = activity.location if activity else ""
+        activity_date = activity.date if activity else None
+        activity_country = activity.country if activity else None
+        activity_city = activity.city if activity else None
 
         # Delete match immediately to prevent double-click
         session.delete(match)
@@ -315,15 +319,27 @@ async def handle_strava_confirm(update: Update, context: ContextTypes.DEFAULT_TY
 
         session.commit()
 
-        # Parse distance from cached data
-        strava_data = json.loads(match_strava_activity_data) if match_strava_activity_data else {}
-        distance_km = strava_data.get("distance", 0) / 1000
+        # Build confirmation message with activity details
+        date_str = ""
+        if activity_date:
+            date_str = format_datetime_local(activity_date, activity_country, activity_city, "%d %b · %H:%M")
+
+        detail_parts = [f"«{activity_title}»"]
+        if date_str:
+            detail_parts.append(date_str)
+        if activity_location:
+            detail_parts.append(activity_location)
+        detail_line = " · ".join(detail_parts)
+
+        webapp_link = f"{settings.app_url}activity/{match_activity_id}"
+        keyboard = [[InlineKeyboardButton("Открыть активность", web_app=WebAppInfo(url=webapp_link))]]
+        reply_markup = InlineKeyboardMarkup(keyboard)
 
         await query.edit_message_text(
-            f"✅ Ссылка сохранена!\n\n"
-            f"«{activity_title}» — {distance_km:.1f} км\n"
-            f"[Открыть в Strava]({strava_link})",
-            parse_mode="Markdown"
+            f"✅ Ссылка сохранена и отправлена тренеру.\n\n"
+            f"{detail_line}\n\n"
+            f"Тренировки других участников ты сможешь посмотреть на странице активности.",
+            reply_markup=reply_markup
         )
 
         # Notify trainer
@@ -369,8 +385,13 @@ async def handle_strava_checkin(update: Update, context: ContextTypes.DEFAULT_TY
         match_strava_activity_id = match.strava_activity_id
         match_strava_activity_data = match.strava_activity_data
 
-        # Get activity title before deleting
-        activity_title = match.activity.title if match.activity else "Тренировка"
+        # Get activity data before deleting
+        activity = match.activity
+        activity_title = activity.title if activity else "Тренировка"
+        activity_location = activity.location if activity else ""
+        activity_date = activity.date if activity else None
+        activity_country = activity.country if activity else None
+        activity_city = activity.city if activity else None
 
         # Delete match immediately to prevent double-click
         session.delete(match)
@@ -411,14 +432,27 @@ async def handle_strava_checkin(update: Update, context: ContextTypes.DEFAULT_TY
 
         session.commit()
 
-        strava_data = json.loads(match_strava_activity_data) if match_strava_activity_data else {}
-        distance_km = strava_data.get("distance", 0) / 1000
+        # Build confirmation message with activity details
+        date_str = ""
+        if activity_date:
+            date_str = format_datetime_local(activity_date, activity_country, activity_city, "%d %b · %H:%M")
+
+        detail_parts = [f"«{activity_title}»"]
+        if date_str:
+            detail_parts.append(date_str)
+        if activity_location:
+            detail_parts.append(activity_location)
+        detail_line = " · ".join(detail_parts)
+
+        webapp_link = f"{settings.app_url}activity/{match_activity_id}"
+        keyboard = [[InlineKeyboardButton("Открыть активность", web_app=WebAppInfo(url=webapp_link))]]
+        reply_markup = InlineKeyboardMarkup(keyboard)
 
         await query.edit_message_text(
-            f"✅ Отмечено и ссылка сохранена!\n\n"
-            f"«{activity_title}» — {distance_km:.1f} км\n"
-            f"[Открыть в Strava]({strava_link})",
-            parse_mode="Markdown"
+            f"✅ Ссылка сохранена и отправлена тренеру.\n\n"
+            f"{detail_line}\n\n"
+            f"Тренировки других участников ты сможешь посмотреть на странице активности.",
+            reply_markup=reply_markup
         )
 
         # Notify trainer
