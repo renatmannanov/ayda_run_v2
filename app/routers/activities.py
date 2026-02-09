@@ -151,7 +151,7 @@ async def list_activities(
     sport_types: Optional[str] = Query(None, description="Comma-separated sport types (e.g., running,trail,yoga)"),
     difficulty: Optional[Difficulty] = Query(None),
     visibility: Optional[ActivityVisibility] = Query(None),
-    status: ActivityStatus = Query(ActivityStatus.UPCOMING),
+    status: Optional[str] = Query("upcoming", description="Comma-separated statuses (e.g., upcoming,completed)"),
     limit: int = Query(50, le=100),
     offset: int = Query(0, ge=0),
     current_user: Optional[User] = Depends(get_current_user_optional),
@@ -181,7 +181,11 @@ async def list_activities(
     if visibility:
         query = query.filter(Activity.visibility == visibility)
     if status:
-        query = query.filter(Activity.status == status)
+        status_list = [ActivityStatus(s.strip()) for s in status.split(',') if s.strip()]
+        if len(status_list) == 1:
+            query = query.filter(Activity.status == status_list[0])
+        elif status_list:
+            query = query.filter(Activity.status.in_(status_list))
 
     # Visibility filtering (simplified for MVP - only PUBLIC and INVITE_ONLY)
     if not current_user:

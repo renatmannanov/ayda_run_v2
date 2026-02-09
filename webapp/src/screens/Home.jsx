@@ -88,9 +88,9 @@ export default function Home() {
     const myGroups = useMemo(() => (groups || []).filter(g => g.isMember), [groups])
 
 
-    // Build API filters (only sport_types is supported by API)
+    // Build API filters
     const apiFilters = useMemo(() => {
-        const filters = {}
+        const filters = { status: 'upcoming,completed' }
         if (selectedSports.length > 0) {
             filters.sport_types = selectedSports.join(',')
         }
