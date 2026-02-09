@@ -2,34 +2,39 @@ import React from 'react'
 import { SPORT_TYPES } from '../constants/sports'
 import { Avatar } from './ui'
 
-// Strava Profile Icon Component
-const StravaIcon = ({ url }) => {
-    if (!url) return null
-    return (
-        <a
-            href={url}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={(e) => e.stopPropagation()}
-            className="w-6 h-6 rounded bg-orange-500 flex items-center justify-center text-white text-xs font-bold hover:bg-orange-600 transition-colors flex-shrink-0"
-        >
-            S
-        </a>
-    )
+// Domain-to-platform name mapping
+const PLATFORM_NAMES = {
+    'strava.com': 'Strava',
+    'www.strava.com': 'Strava',
+    'connect.garmin.com': 'Garmin',
+    'training.coros.com': 'Coros',
+    'suuntoapp.com': 'Suunto',
+    'www.suuntoapp.com': 'Suunto',
+    'flow.polar.com': 'Polar',
+}
+
+const getPlatformName = (url) => {
+    try {
+        const hostname = new URL(url).hostname
+        return PLATFORM_NAMES[hostname] || 'Link'
+    } catch {
+        return 'Link'
+    }
 }
 
 // Training Link Component (for completed activities)
 const TrainingLink = ({ url }) => {
     if (!url) return null
+    const name = getPlatformName(url)
     return (
         <a
             href={url}
             target="_blank"
             rel="noopener noreferrer"
             onClick={(e) => e.stopPropagation()}
-            className="text-xs text-blue-500 hover:underline flex-shrink-0"
+            className="text-xs text-orange-500 hover:text-orange-600 flex-shrink-0"
         >
-            Details
+            {name} ↗
         </a>
     )
 }
@@ -123,9 +128,9 @@ export default function ParticipantsSheet({
                                         showPhoto={participant.showPhoto}
                                     />
 
-                                    {/* Name + Sports - left side */}
+                                    {/* Name + Sports + Org badge - left side */}
                                     <div className="flex items-center gap-2 flex-1 min-w-0">
-                                        <span className={`text-sm ${isCompleted && participant.attended === false
+                                        <span className={`text-sm truncate ${isCompleted && participant.attended === false
                                             ? 'text-gray-400 line-through'
                                             : 'text-gray-700'
                                             }`}>
@@ -140,28 +145,26 @@ export default function ParticipantsSheet({
                                                 ))}
                                             </div>
                                         )}
+
+                                        {/* Organizer label */}
+                                        {participant.isOrganizer && (
+                                            <span className="text-sm text-gray-400 flex-shrink-0">
+                                                · Орг
+                                            </span>
+                                        )}
                                     </div>
 
-                                    {/* Organizer badge - right side near Strava */}
-                                    {participant.isOrganizer && (
-                                        <span className="text-xs text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded mr-2 flex-shrink-0">
-                                            Орг
-                                        </span>
+                                    {/* Training link (for completed activities) */}
+                                    {isCompleted && participant.trainingLink && (
+                                        <TrainingLink url={participant.trainingLink} />
                                     )}
 
-                                    {/* Completed activity attendance indicator */}
+                                    {/* Attendance indicator */}
                                     {isCompleted && (
-                                        <span className="text-xs text-gray-400 mr-2">
+                                        <span className="text-xs text-gray-400 ml-2 flex-shrink-0">
                                             {participant.attended === true && '✓'}
                                             {participant.attended === false && '—'}
                                         </span>
-                                    )}
-
-                                    {/* Training link (for completed) or Strava profile */}
-                                    {isCompleted && participant.trainingLink ? (
-                                        <TrainingLink url={participant.trainingLink} />
-                                    ) : (
-                                        <StravaIcon url={participant.stravaLink} />
                                     )}
                                 </div>
                             )
