@@ -277,31 +277,38 @@ class AwaitingConfirmationService:
             is_organizer = user.id == activity.creator_id
 
             if not is_organizer:
-                # For club/group activities: send post-training notification to each participant
-                # asking for training link
-                try:
-                    await send_post_training_notification(
-                        bot=self.bot,
-                        user_telegram_id=user.telegram_id,
-                        activity_id=activity.id,
-                        activity_title=activity.title,
-                        activity_date=activity.date,
-                        location=activity.location or "Не указано",
-                        country=activity.country,
-                        city=activity.city
+                # Skip "send link" notification if user has Strava connected —
+                # Strava webhook will auto-link the activity
+                if user.strava_athlete_id:
+                    logger.info(
+                        f"Skipping post-training notification for user {user.id} "
+                        f"(Strava connected, waiting for webhook)"
                     )
+                else:
+                    # Send post-training notification asking for training link
+                    try:
+                        await send_post_training_notification(
+                            bot=self.bot,
+                            user_telegram_id=user.telegram_id,
+                            activity_id=activity.id,
+                            activity_title=activity.title,
+                            activity_date=activity.date,
+                            location=activity.location or "Не указано",
+                            country=activity.country,
+                            city=activity.city
+                        )
 
-                    # Create PostTrainingNotification record
-                    notification = PostTrainingNotification(
-                        activity_id=activity.id,
-                        user_id=user.id,
-                        status=PostTrainingNotificationStatus.SENT
-                    )
-                    session.add(notification)
+                        # Create PostTrainingNotification record
+                        notification = PostTrainingNotification(
+                            activity_id=activity.id,
+                            user_id=user.id,
+                            status=PostTrainingNotificationStatus.SENT
+                        )
+                        session.add(notification)
 
-                    logger.info(f"Sent post-training notification to user {user.id} for activity {activity.id}")
-                except Exception as e:
-                    logger.error(f"Failed to send post-training notification to user {user.id}: {e}")
+                        logger.info(f"Sent post-training notification to user {user.id} for activity {activity.id}")
+                    except Exception as e:
+                        logger.error(f"Failed to send post-training notification to user {user.id}: {e}")
 
             # Notify organizer (once per activity)
             activity_key = str(activity.id)

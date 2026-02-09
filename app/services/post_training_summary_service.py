@@ -146,6 +146,20 @@ class PostTrainingSummaryService:
             logger.warning(f"Missing data for notification {notification.id}")
             return
 
+        # Skip reminder if link was already submitted (e.g. via Strava auto-link)
+        participation = session.query(Participation).filter(
+            Participation.activity_id == notification.activity_id,
+            Participation.user_id == notification.user_id
+        ).first()
+        if participation and participation.training_link:
+            notification.status = PostTrainingNotificationStatus.LINK_SUBMITTED
+            notification.responded_at = datetime.utcnow()
+            logger.info(
+                f"Skipping reminder for user {user.id} — link already submitted "
+                f"(source: {participation.training_link_source})"
+            )
+            return
+
         # Build keyboard with "missed" button
         keyboard = [[
             InlineKeyboardButton(

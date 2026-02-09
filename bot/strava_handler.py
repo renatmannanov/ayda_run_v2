@@ -19,7 +19,7 @@ from telegram.ext import ContextTypes, CommandHandler, CallbackQueryHandler
 from config import settings
 from storage.db import (
     SessionLocal, User, Participation, PendingStravaMatch,
-    ParticipationStatus
+    ParticipationStatus, PostTrainingNotification, PostTrainingNotificationStatus
 )
 
 logger = logging.getLogger(__name__)
@@ -310,6 +310,9 @@ async def handle_strava_confirm(update: Update, context: ContextTypes.DEFAULT_TY
         participation.status = ParticipationStatus.ATTENDED
         participation.attended = True
 
+        # Close PostTrainingNotification if exists (prevent reminder for already-linked)
+        _close_post_training_notification(session, match_activity_id, match_user_id)
+
         session.commit()
 
         # Parse distance from cached data
@@ -403,6 +406,9 @@ async def handle_strava_checkin(update: Update, context: ContextTypes.DEFAULT_TY
             )
             session.add(participation)
 
+        # Close PostTrainingNotification if exists (prevent reminder for already-linked)
+        _close_post_training_notification(session, match_activity_id, match_user_id)
+
         session.commit()
 
         strava_data = json.loads(match_strava_activity_data) if match_strava_activity_data else {}
@@ -467,6 +473,23 @@ async def handle_strava_reject(update: Update, context: ContextTypes.DEFAULT_TYP
             pass
     finally:
         session.close()
+
+
+def _close_post_training_notification(session, activity_id, user_id):
+    """Mark PostTrainingNotification as LINK_SUBMITTED when Strava auto-links."""
+    from datetime import datetime
+    notification = session.query(PostTrainingNotification).filter(
+        PostTrainingNotification.activity_id == activity_id,
+        PostTrainingNotification.user_id == user_id,
+        PostTrainingNotification.status.in_([
+            PostTrainingNotificationStatus.SENT,
+            PostTrainingNotificationStatus.REMINDER_SENT
+        ])
+    ).first()
+    if notification:
+        notification.status = PostTrainingNotificationStatus.LINK_SUBMITTED
+        notification.responded_at = datetime.utcnow()
+        logger.info(f"Closed post-training notification for user {user_id}, activity {activity_id}")
 
 
 async def _notify_trainer_about_link(bot, session, activity_id, user_id, link):
