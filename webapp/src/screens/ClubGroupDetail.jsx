@@ -227,7 +227,11 @@ export default function ClubGroupDetail({ type = 'club' }) {
         >
             <div className="flex items-center gap-1.5">
                 <span className="text-sm text-gray-800 truncate max-w-[120px]">{group.name}</span>
-                {group.telegramChatId && <span className="text-green-500 text-xs">✓</span>}
+                {group.telegramChatId && (
+                    <svg className="w-3 h-3 text-green-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                )}
             </div>
             <p className="text-xs text-gray-500">{group.members} чел</p>
         </button>

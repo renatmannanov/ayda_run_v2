@@ -161,9 +161,13 @@ export default function ParticipantsSheet({
 
                                     {/* Attendance indicator */}
                                     {isCompleted && (
-                                        <span className="text-xs text-gray-400 ml-2 flex-shrink-0">
-                                            {participant.attended === true && '✓'}
-                                            {participant.attended === false && '—'}
+                                        <span className="ml-2 flex-shrink-0">
+                                            {participant.attended === true && (
+                                                <svg className="w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                                </svg>
+                                            )}
+                                            {participant.attended === false && <span className="text-xs text-gray-400">—</span>}
                                         </span>
                                     )}
                                 </div>

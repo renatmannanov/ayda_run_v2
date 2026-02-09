@@ -722,8 +722,11 @@ export default function ActivityDetail() {
                         </p>
                     )}
                     {activity.participationStatus === 'attended' && (
-                        <p className="text-sm mt-3 text-green-600">
-                            Ты был ✓
+                        <p className="text-sm mt-3 text-green-600 flex items-center gap-1">
+                            <span>Ты был</span>
+                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                            </svg>
                         </p>
                     )}
                     {activity.participationStatus === 'missed' && (

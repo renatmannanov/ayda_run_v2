@@ -41,7 +41,9 @@ export default function GroupCard({ group, showJoinButton = false, onJoin }) {
                                 )}
                             </h3>
                             {group.isMember && !showJoinButton && (
-                                <span className="text-green-600 text-sm flex-shrink-0">✓</span>
+                                <svg className="w-3.5 h-3.5 text-green-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                </svg>
                             )}
                         </div>
                         <p className="text-sm text-gray-500 mt-1 truncate">
