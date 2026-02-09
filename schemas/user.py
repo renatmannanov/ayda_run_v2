@@ -1,4 +1,5 @@
-from pydantic import BaseModel, field_serializer, ConfigDict
+import json
+from pydantic import BaseModel, field_serializer, field_validator, ConfigDict
 from typing import Optional, List
 from datetime import datetime
 from .common import ParticipationStatus, serialize_datetime_utc
@@ -83,6 +84,13 @@ class ParticipantResponse(BaseModel):
     training_link: Optional[str] = None  # URL to Strava/Garmin/etc
     training_link_source: Optional[str] = None  # "manual" | "strava_auto"
     strava_activity_data: Optional[dict] = None  # Parsed JSON with distance, time, etc.
+
+    @field_validator('strava_activity_data', mode='before')
+    @classmethod
+    def parse_strava_data(cls, v):
+        if isinstance(v, str):
+            return json.loads(v)
+        return v
 
     @field_serializer('telegram_id', when_used='always')
     def serialize_telegram_id(self, telegram_id: int | str) -> str:
