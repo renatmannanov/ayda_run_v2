@@ -238,6 +238,29 @@ class StravaService:
                 logger.warning(f"Strava activity {activity_id} not found")
                 return None
 
+            # Retry once with force refresh on 401
+            if resp.status_code == 401:
+                logger.warning(f"Strava 401 for user {user.id}, forcing token refresh")
+                success = await self._refresh_token(user)
+                if not success:
+                    raise StravaAPIError(f"Token refresh failed for user {user.id}")
+
+                token = self.get_decrypted_access_token(user)
+                async with httpx.AsyncClient() as client:
+                    resp = await client.get(
+                        f"{self.BASE_URL}/activities/{activity_id}",
+                        headers={"Authorization": f"Bearer {token}"},
+                        timeout=30.0
+                    )
+
+                if resp.status_code == 404:
+                    return None
+                if resp.status_code != 200:
+                    logger.error(f"Strava get_activity failed after refresh: {resp.status_code} {resp.text}")
+                    raise StravaAPIError(f"Strava API error: {resp.status_code}")
+
+                return resp.json()
+
             if resp.status_code != 200:
                 logger.error(f"Strava get_activity failed: {resp.status_code} {resp.text}")
                 raise StravaAPIError(f"Strava API error: {resp.status_code}")
