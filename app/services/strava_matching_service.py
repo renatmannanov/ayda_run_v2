@@ -277,16 +277,16 @@ async def _send_match_confirmation(
     activity_info = " · ".join(activity_parts)
 
     if match.confidence == "high":
-        confidence_word = "_уверены_"
+        match_text = "Мы нашли совпадение с тренировкой:"
         callback_prefix = "sc_"
     else:
-        confidence_word = "_кажется_"
+        match_text = "Возможно, это совпадает с тренировкой:"
         callback_prefix = "si_"
 
     text = (
         f"Получили твою тренировку от Strava.\n\n"
-        f"🔸 {strava_info}\n"
-        f"Мы {confidence_word}, что она совпадает с тренировкой\n"
+        f"🔸 {strava_info}\n\n"
+        f"{match_text}\n"
         f"{sport_icon} {activity_info}"
     )
     keyboard = [[
