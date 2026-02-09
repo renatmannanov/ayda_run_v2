@@ -26,7 +26,7 @@ from storage.db import (
     StravaWebhookEvent, PendingStravaMatch
 )
 from app.services.strava_service import StravaService, StravaAPIError
-from app.core.timezone import ensure_utc_from_db
+from app.core.timezone import ensure_utc_from_db, format_datetime_local
 from bot.activity_notifications import get_sport_icon
 
 logger = logging.getLogger(__name__)
@@ -254,10 +254,25 @@ async def _send_match_confirmation(
         except (ValueError, AttributeError):
             pass
 
-    strava_info = f"[{strava_name}]({strava_link})"
+    # Build Strava activity line: 🔸 «Name» · date · distance
+    strava_parts = [f"[{strava_name}]({strava_link})"]
     if strava_date_str:
-        strava_info += f" · {strava_date_str}"
-    strava_info += f" · {distance_km:.1f} км"
+        strava_parts.append(strava_date_str)
+    strava_parts.append(f"{distance_km:.1f} км")
+    strava_info = " · ".join(strava_parts)
+
+    # Build our activity line: icon «Title» · date · location
+    activity_date_str = ""
+    if activity.date:
+        activity_date_str = format_datetime_local(
+            activity.date, activity.country, activity.city, "%d %b · %H:%M"
+        )
+    activity_parts = [f"«{activity.title}»"]
+    if activity_date_str:
+        activity_parts.append(activity_date_str)
+    if activity.location:
+        activity_parts.append(activity.location)
+    activity_info = " · ".join(activity_parts)
 
     if match.confidence == "high":
         confidence_word = "_уверены_"
@@ -268,9 +283,9 @@ async def _send_match_confirmation(
 
     text = (
         f"Получили твою тренировку от Strava.\n\n"
-        f"🏃 {strava_info}\n"
+        f"🔸 {strava_info}\n"
         f"Мы {confidence_word}, что она совпадает с тренировкой\n"
-        f"{sport_icon} «{activity.title}»"
+        f"{sport_icon} {activity_info}"
     )
     keyboard = [[
         InlineKeyboardButton("✅ Подтвердить", callback_data=f"{callback_prefix}{match_id}"),

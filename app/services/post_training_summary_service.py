@@ -171,7 +171,7 @@ class PostTrainingSummaryService:
 
         message = (
             f"⏰ Напоминание: отправь ссылку на тренировку «{activity.title}»\n\n"
-            f"Тогда тренер сможет её проанализировать и предоставить тебе обратную связь.\n"
+            f"Тогда тренер сможет её проанализировать и предоставить тебе обратную связь.\n\n"
             f"А чтобы всё было автоматически, подключи Strava /connect_strava"
         )
 
@@ -298,19 +298,17 @@ class PostTrainingSummaryService:
                     short_link = parsed.netloc + parsed.path
                 except Exception:
                     short_link = link
-                lines.append(f"⚪ {name} {short_link}")
+                lines.append(f"▪️ {name} {short_link}")
             lines.append("")
 
         if pending:
             lines.append(f"Не ответили ({len(pending)}/{total}):")
-            for name in pending:
-                lines.append(f"⏳ {name}")
+            lines.append(f"⏳ {', '.join(pending)}")
             lines.append("")
 
         if missed:
             lines.append("Не были:")
-            for name in missed:
-                lines.append(f"❌ {name}")
+            lines.append(f"❌ {', '.join(missed)}")
             lines.append("")
 
         message = "\n".join(lines)
