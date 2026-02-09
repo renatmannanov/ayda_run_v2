@@ -189,6 +189,10 @@ class User(Base):
     created_activities = relationship("Activity", back_populates="creator", foreign_keys="Activity.creator_id")
     participations = relationship("Participation", back_populates="user", cascade="all, delete-orphan")
 
+    @property
+    def strava_connected(self):
+        return self.strava_athlete_id is not None
+
     def __repr__(self):
         return f"<User(telegram_id={self.telegram_id}, username={self.username})>"
 

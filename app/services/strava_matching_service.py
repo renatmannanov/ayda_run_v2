@@ -88,6 +88,8 @@ def find_matching_activity(
     ).all()
 
     for p in participations:
+        if p.training_link:
+            continue  # Already linked, try next
         activity = p.activity
         if activity.distance and strava_distance_km > 0:
             if abs(activity.distance - strava_distance_km) > DISTANCE_TOLERANCE_KM:

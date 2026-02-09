@@ -6,6 +6,7 @@ Endpoints:
 - GET /api/strava/callback - Handle OAuth callback (returns HTML page that closes)
 - DELETE /api/strava/disconnect - Disconnect Strava account
 - GET /api/strava/status - Check if Strava is connected
+- GET /api/strava/auth/url - Get OAuth URL for webapp
 """
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
@@ -79,6 +80,10 @@ CALLBACK_SUCCESS_HTML = """
         <p>&#x41C;&#x43E;&#x436;&#x435;&#x442;&#x435; &#x437;&#x430;&#x43A;&#x440;&#x44B;&#x442;&#x44C; &#x44D;&#x442;&#x43E; &#x43E;&#x43A;&#x43D;&#x43E;</p>
     </div>
     <script>
+        // Notify opener (webapp) that Strava is connected
+        if (window.opener) {
+            window.opener.postMessage('strava-connected', '*');
+        }
         // Close window after 3 seconds
         setTimeout(function() {
             window.close();
@@ -139,6 +144,26 @@ CALLBACK_ERROR_HTML = """
 </body>
 </html>
 """
+
+
+@router.get("/auth/url")
+async def strava_auth_url(
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Return Strava OAuth URL for the current authenticated user (webapp).
+
+    The webapp opens this URL in a popup window for OAuth flow.
+    """
+    base_url = (settings.base_url or "").rstrip("/")
+    if not base_url:
+        raise HTTPException(status_code=500, detail="BASE_URL not configured")
+
+    if current_user.strava_athlete_id:
+        raise HTTPException(status_code=400, detail="Strava already connected")
+
+    auth_url = f"{base_url}/api/strava/auth?user_id={current_user.id}"
+    return {"url": auth_url}
 
 
 @router.get("/auth")

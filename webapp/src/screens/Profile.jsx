@@ -108,10 +108,10 @@ export default function Profile() {
                                 </div>
                             )}
 
-                            {/* Strava Link */}
+                            {/* Strava Status */}
                             <div className="mt-2">
                                 <StravaLink
-                                    url={user.stravaLink}
+                                    connected={user.stravaConnected}
                                     onAdd={() => navigate('/settings')}
                                 />
                             </div>

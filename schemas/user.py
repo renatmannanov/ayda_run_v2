@@ -26,6 +26,7 @@ class UserResponse(BaseModel):
     # Profile
     photo: Optional[str] = None  # Telegram avatar file_id
     strava_link: Optional[str] = None  # URL to Strava profile
+    strava_connected: bool = False  # Whether Strava OAuth is connected
     is_premium: bool = False
     show_photo: bool = True  # Show photo instead of initials
 

@@ -1,47 +1,35 @@
 import React from 'react'
 
 /**
- * Strava link display component
- * Shows link if connected, or "Add Strava" button if not
+ * Strava connection status component
+ * Shows connected badge or "Connect Strava" button
  *
  * @param {Object} props
- * @param {string|null} props.url - Strava profile URL
- * @param {function} props.onAdd - Callback when "Add" button is clicked
+ * @param {boolean} props.connected - Whether Strava OAuth is connected
+ * @param {function} props.onAdd - Callback when "Connect" button is clicked
  */
-export default function StravaLink({ url, onAdd }) {
-    if (url) {
-        // Format URL for display
-        const displayUrl = url.replace(/^https?:\/\//, '')
-
+export default function StravaLink({ connected, onAdd }) {
+    if (connected) {
         return (
-            <a
-                href={url.startsWith('http') ? url : `https://${url}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 text-sm text-gray-500 hover:text-orange-500 transition-colors"
-            >
+            <div className="flex items-center gap-2 text-sm text-gray-500">
                 <span className="w-5 h-5 rounded bg-orange-500 text-white text-xs font-bold flex items-center justify-center flex-shrink-0">
                     S
                 </span>
-                <span className="truncate max-w-[180px]">{displayUrl}</span>
+                <span>Strava</span>
                 <svg
-                    className="w-4 h-4 flex-shrink-0"
+                    className="w-4 h-4 text-green-500 flex-shrink-0"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
-                    strokeWidth={2}
+                    strokeWidth={2.5}
                 >
-                    <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-                    />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                 </svg>
-            </a>
+            </div>
         )
     }
 
-    // Show "Add Strava" button
+    // Show "Connect Strava" button
     return (
         <button
             onClick={onAdd}
@@ -50,7 +38,7 @@ export default function StravaLink({ url, onAdd }) {
             <span className="w-5 h-5 rounded bg-orange-100 text-orange-500 text-xs font-bold flex items-center justify-center flex-shrink-0">
                 S
             </span>
-            <span>Добавить Strava</span>
+            <span>Подключить Strava</span>
             <svg
                 className="w-4 h-4"
                 fill="none"

@@ -52,6 +52,7 @@ const transformUser = (u) => !u ? null : ({
     preferredSports: u.preferred_sports,
     photo: u.photo,
     stravaLink: u.strava_link,
+    stravaConnected: !!u.strava_connected,
     showPhoto: !!u.show_photo,  // default false, handle both boolean and integer (1/0)
 })
 
@@ -202,6 +203,9 @@ export const usersApi = {
             show_photo: data.showPhoto,
         })
     }).then(transformUser),
+
+    stravaAuthUrl: () => apiFetch('/strava/auth/url'),
+    stravaDisconnect: () => apiFetch('/strava/disconnect', { method: 'DELETE' }),
 }
 
 // ============================================================================
