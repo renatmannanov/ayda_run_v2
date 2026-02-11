@@ -19,7 +19,7 @@ For each ended activity:
 import logging
 import asyncio
 from datetime import datetime, timedelta
-from typing import List, Tuple
+from typing import List, Optional, Callable
 
 from telegram import Bot
 from sqlalchemy.orm import Session
@@ -173,30 +173,13 @@ class AwaitingConfirmationService:
             ])
         ).all()
 
-    async def _process_participations(self, session: Session, participations: List[Participation]):
-        """
-        Transition participations to AWAITING and send notifications.
-
-        Args:
-            session: Database session
-            participations: List of participations to process
-        """
-        if not participations:
-            return
-
-        logger.info(f"Processing {len(participations)} participations")
-
-        notified_organizers = set()
-        for participation in participations:
-            try:
-                await self._transition_to_awaiting(session, participation, notified_organizers)
-            except Exception as e:
-                logger.error(f"Error transitioning participation {participation.id}: {e}", exc_info=True)
-
     async def _check_and_transition_participations(self):
         """
         Main method: find ended activities, mark them COMPLETED,
         and transition participations to AWAITING.
+
+        Important: DB changes are committed BEFORE sending Telegram notifications
+        to prevent spam loops (if commit fails, notifications won't be sent).
         """
         session = SessionLocal()
 
@@ -214,16 +197,42 @@ class AwaitingConfirmationService:
             # Step 3: Find participations for these activities
             participations = self._find_participations_to_update(session, activity_ids)
 
-            # Step 4: Process participations and send notifications
-            await self._process_participations(session, participations)
+            if not participations:
+                session.commit()
+                logger.info(f"Completed: {len(ended_activities)} activities marked COMPLETED, 0 participations")
+                return
 
-            # Single commit for transactional integrity
+            logger.info(f"Processing {len(participations)} participations")
+
+            # Step 4: Prepare all DB changes (status transitions + notification records)
+            # Collect notification tasks to send AFTER successful commit
+            pending_notifications = []
+            notified_organizers = set()
+
+            for participation in participations:
+                try:
+                    notification_task = await self._prepare_participation_transition(
+                        session, participation, notified_organizers
+                    )
+                    if notification_task:
+                        pending_notifications.append(notification_task)
+                except Exception as e:
+                    logger.error(f"Error preparing participation {participation.id}: {e}", exc_info=True)
+
+            # Step 5: Commit all DB changes FIRST
             session.commit()
 
             logger.info(
-                f"Completed: {len(ended_activities)} activities marked COMPLETED, "
+                f"Committed: {len(ended_activities)} activities marked COMPLETED, "
                 f"{len(participations)} participations transitioned to AWAITING"
             )
+
+            # Step 6: Send Telegram notifications AFTER successful commit
+            for task in pending_notifications:
+                try:
+                    await task()
+                except Exception as e:
+                    logger.error(f"Error sending notification: {e}", exc_info=True)
 
         except Exception as e:
             logger.error(f"Error in check_and_transition_participations: {e}", exc_info=True)
@@ -232,22 +241,28 @@ class AwaitingConfirmationService:
         finally:
             session.close()
 
-    async def _transition_to_awaiting(
+    async def _prepare_participation_transition(
         self,
         session: Session,
         participation: Participation,
         notified_organizers: set
     ):
         """
-        Transition a single participation to awaiting and send notification.
+        Prepare DB changes for a single participation transition.
+        Returns a coroutine callable that sends Telegram notifications,
+        or None if no notification is needed.
 
-        For club/group activities: sends notification only to organizer (once per activity)
-        For personal activities: sends notification to participant
+        DB changes (status update, notification records) are added to session
+        but NOT committed — the caller commits after all participations are prepared.
+        Telegram messages are sent only after successful commit.
 
         Args:
             session: Database session
             participation: Participation to transition
             notified_organizers: Set of activity IDs for which organizer was already notified
+
+        Returns:
+            Async callable to send notification, or None
         """
         # Update participation status (always, including demo)
         participation.status = ParticipationStatus.AWAITING
@@ -258,79 +273,115 @@ class AwaitingConfirmationService:
 
         if not activity:
             logger.warning(f"Activity {participation.activity_id} not found")
-            return
+            return None
 
         # Skip notifications for demo activities (status already updated above)
         if activity.is_demo:
             logger.debug(f"Skipping notification for demo activity {activity.id}")
-            return
+            return None
 
         # Check if this is a club/group activity
         is_club_group_activity = activity.club_id or activity.group_id
 
         if not user or not user.telegram_id:
             logger.warning(f"User {participation.user_id} not found or has no telegram_id")
-            return
+            return None
 
         if is_club_group_activity:
-            # Skip sending "send link" notification to the organizer (they don't need to send their own link)
             is_organizer = user.id == activity.creator_id
 
-            if not is_organizer:
-                # Skip "send link" notification if user has Strava connected —
-                # Strava webhook will auto-link the activity
-                if user.strava_athlete_id:
-                    logger.info(
-                        f"Skipping post-training notification for user {user.id} "
-                        f"(Strava connected, waiting for webhook)"
-                    )
-                else:
-                    # Send post-training notification asking for training link
+            # Capture values for the deferred notification closure
+            user_id = user.id
+            user_telegram_id = user.telegram_id
+            user_strava = user.strava_athlete_id
+            activity_id = activity.id
+            activity_title = activity.title
+            activity_date = activity.date
+            activity_location = activity.location or "Не указано"
+            activity_country = activity.country
+            activity_city = activity.city
+            activity_key = str(activity.id)
+
+            if not is_organizer and not user_strava:
+                # Create PostTrainingNotification record in DB (before commit)
+                notification = PostTrainingNotification(
+                    activity_id=activity_id,
+                    user_id=user_id,
+                    status=PostTrainingNotificationStatus.SENT
+                )
+                session.add(notification)
+
+            if user_strava and not is_organizer:
+                logger.info(
+                    f"Skipping post-training notification for user {user_id} "
+                    f"(Strava connected, waiting for webhook)"
+                )
+
+            # Track organizer notification
+            should_notify_organizer = activity_key not in notified_organizers
+            if should_notify_organizer:
+                notified_organizers.add(activity_key)
+
+            # Return deferred notification sender
+            async def send_notifications():
+                if not is_organizer and not user_strava:
                     try:
                         await send_post_training_notification(
                             bot=self.bot,
-                            user_telegram_id=user.telegram_id,
-                            activity_id=activity.id,
-                            activity_title=activity.title,
-                            activity_date=activity.date,
-                            location=activity.location or "Не указано",
-                            country=activity.country,
-                            city=activity.city
+                            user_telegram_id=user_telegram_id,
+                            activity_id=activity_id,
+                            activity_title=activity_title,
+                            activity_date=activity_date,
+                            location=activity_location,
+                            country=activity_country,
+                            city=activity_city
                         )
-
-                        # Create PostTrainingNotification record
-                        notification = PostTrainingNotification(
-                            activity_id=activity.id,
-                            user_id=user.id,
-                            status=PostTrainingNotificationStatus.SENT
-                        )
-                        session.add(notification)
-
-                        logger.info(f"Sent post-training notification to user {user.id} for activity {activity.id}")
+                        logger.info(f"Sent post-training notification to user {user_id} for activity {activity_id}")
                     except Exception as e:
-                        logger.error(f"Failed to send post-training notification to user {user.id}: {e}")
+                        logger.error(f"Failed to send post-training notification to user {user_id}: {e}")
 
-            # Notify organizer (once per activity)
-            activity_key = str(activity.id)
-            if activity_key not in notified_organizers:
-                await self._notify_organizer(session, activity)
-                notified_organizers.add(activity_key)
+                if should_notify_organizer:
+                    # Re-open session for organizer lookup (original session may be closed)
+                    organizer_session = SessionLocal()
+                    try:
+                        organizer_activity = organizer_session.query(Activity).filter(
+                            Activity.id == activity_id
+                        ).first()
+                        if organizer_activity:
+                            await self._notify_organizer(organizer_session, organizer_activity)
+                    finally:
+                        organizer_session.close()
+
+            return send_notifications
+
         else:
-            # For personal activities: notify participant with confirmation buttons
-            try:
-                await send_awaiting_confirmation_notification(
-                    bot=self.bot,
-                    user_telegram_id=user.telegram_id,
-                    activity_id=activity.id,
-                    activity_title=activity.title,
-                    activity_date=activity.date,
-                    location=activity.location or "Не указано",
-                    country=activity.country,
-                    city=activity.city
-                )
-                logger.info(f"Sent awaiting confirmation notification to user {user.id} for activity {activity.id}")
-            except Exception as e:
-                logger.error(f"Failed to send awaiting confirmation notification to user {user.id}: {e}")
+            # Personal activity — capture values for deferred notification
+            user_id = user.id
+            user_telegram_id = user.telegram_id
+            activity_id = activity.id
+            activity_title = activity.title
+            activity_date = activity.date
+            activity_location = activity.location or "Не указано"
+            activity_country = activity.country
+            activity_city = activity.city
+
+            async def send_personal_notification():
+                try:
+                    await send_awaiting_confirmation_notification(
+                        bot=self.bot,
+                        user_telegram_id=user_telegram_id,
+                        activity_id=activity_id,
+                        activity_title=activity_title,
+                        activity_date=activity_date,
+                        location=activity_location,
+                        country=activity_country,
+                        city=activity_city
+                    )
+                    logger.info(f"Sent awaiting confirmation notification to user {user_id} for activity {activity_id}")
+                except Exception as e:
+                    logger.error(f"Failed to send awaiting confirmation notification to user {user_id}: {e}")
+
+            return send_personal_notification
 
     async def _notify_organizer(self, session: Session, activity: Activity):
         """
