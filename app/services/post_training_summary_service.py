@@ -11,15 +11,13 @@ Uses PostTrainingNotification table to track notification states.
 import logging
 import asyncio
 from datetime import datetime, timedelta
-from typing import List, Optional, Tuple
+from typing import Optional
 
 from urllib.parse import urlparse
 
 from telegram import Bot, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.error import TelegramError
 from sqlalchemy.orm import Session
-from cachetools import TTLCache
-
 from storage.db import (
     SessionLocal, Participation, Activity, User,
     PostTrainingNotification, PostTrainingNotificationStatus,
@@ -56,8 +54,6 @@ class PostTrainingSummaryService:
         self.check_interval = check_interval
         self._task = None
         self._running = False
-        # Track activities for which summary was sent (auto-cleanup after 24h)
-        self._sent_summaries = TTLCache(maxsize=10000, ttl=86400)
 
     async def start(self):
         """Start the service"""
@@ -100,7 +96,10 @@ class PostTrainingSummaryService:
     # =========================================================================
 
     async def _process_pending_reminders(self):
-        """Send reminders to participants who haven't responded after 3 hours."""
+        """Send reminders to participants who haven't responded after 3 hours.
+
+        Pattern: update DB status first, commit, then send Telegram messages.
+        """
         session = SessionLocal()
         try:
             cutoff = utc_now() - timedelta(hours=POST_TRAINING_REMINDER_DELAY_HOURS)
@@ -117,13 +116,25 @@ class PostTrainingSummaryService:
 
             logger.info(f"Processing {len(notifications)} pending reminders")
 
+            # Step 1: Prepare DB changes and collect notification tasks
+            pending_sends = []
             for notification in notifications:
                 try:
-                    await self._send_participant_reminder(session, notification)
+                    send_task = self._prepare_participant_reminder(session, notification)
+                    if send_task:
+                        pending_sends.append(send_task)
                 except Exception as e:
-                    logger.error(f"Error sending reminder for notification {notification.id}: {e}")
+                    logger.error(f"Error preparing reminder for notification {notification.id}: {e}")
 
+            # Step 2: Commit DB changes FIRST
             session.commit()
+
+            # Step 3: Send Telegram messages AFTER successful commit
+            for send_task in pending_sends:
+                try:
+                    await send_task()
+                except Exception as e:
+                    logger.error(f"Error sending reminder: {e}")
 
         except Exception as e:
             logger.error(f"Error processing pending reminders: {e}", exc_info=True)
@@ -131,12 +142,16 @@ class PostTrainingSummaryService:
         finally:
             session.close()
 
-    async def _send_participant_reminder(
+    def _prepare_participant_reminder(
         self,
         session: Session,
         notification: PostTrainingNotification
     ):
-        """Send reminder to a single participant."""
+        """Prepare DB changes for reminder and return a send task.
+
+        Returns an async callable to send the Telegram message, or None.
+        DB status is updated before commit; message sent after commit.
+        """
         user = session.query(User).filter(User.id == notification.user_id).first()
         activity = session.query(Activity).filter(
             Activity.id == notification.activity_id
@@ -144,7 +159,7 @@ class PostTrainingSummaryService:
 
         if not user or not user.telegram_id or not activity:
             logger.warning(f"Missing data for notification {notification.id}")
-            return
+            return None
 
         # Skip reminder if link was already submitted (e.g. via Strava auto-link)
         participation = session.query(Participation).filter(
@@ -158,63 +173,73 @@ class PostTrainingSummaryService:
                 f"Skipping reminder for user {user.id} — link already submitted "
                 f"(source: {participation.training_link_source})"
             )
-            return
+            return None
 
-        # Build keyboard with "missed" button
-        keyboard = [[
-            InlineKeyboardButton(
-                "Не был(а)",
-                callback_data=f"post_training_missed_{activity.id}"
+        # Update DB status BEFORE commit (will be committed by caller)
+        notification.status = PostTrainingNotificationStatus.REMINDER_SENT
+        notification.reminder_count += 1
+
+        # Capture values for deferred send
+        user_id = user.id
+        user_telegram_id = user.telegram_id
+        activity_id = activity.id
+        activity_title = activity.title
+
+        async def send():
+            keyboard = [[
+                InlineKeyboardButton(
+                    "Не был(а)",
+                    callback_data=f"post_training_missed_{activity_id}"
+                )
+            ]]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+
+            message = (
+                f"⏰ Напоминание: отправь ссылку на тренировку «{activity_title}»\n\n"
+                f"Тогда тренер сможет её проанализировать и предоставить тебе обратную связь.\n\n"
+                f"А чтобы всё было автоматически, подключи Strava /connect_strava"
             )
-        ]]
-        reply_markup = InlineKeyboardMarkup(keyboard)
 
-        message = (
-            f"⏰ Напоминание: отправь ссылку на тренировку «{activity.title}»\n\n"
-            f"Тогда тренер сможет её проанализировать и предоставить тебе обратную связь.\n\n"
-            f"А чтобы всё было автоматически, подключи Strava /connect_strava"
-        )
+            try:
+                await self.bot.send_message(
+                    chat_id=user_telegram_id,
+                    text=message,
+                    reply_markup=reply_markup
+                )
+                logger.info(f"Sent reminder to user {user_id} for activity {activity_id}")
+            except TelegramError as e:
+                logger.error(f"Failed to send reminder to user {user_telegram_id}: {e}")
 
-        try:
-            await self.bot.send_message(
-                chat_id=user.telegram_id,
-                text=message,
-                reply_markup=reply_markup
-            )
-
-            # Update notification
-            notification.status = PostTrainingNotificationStatus.REMINDER_SENT
-            notification.reminder_count += 1
-
-            logger.info(f"Sent reminder to user {user.id} for activity {activity.id}")
-
-        except TelegramError as e:
-            logger.error(f"Failed to send reminder to user {user.telegram_id}: {e}")
+        return send
 
     # =========================================================================
     # Trainer Summary (5h after activity end)
     # =========================================================================
 
     async def _process_trainer_summaries(self):
-        """Send summaries to trainers 5 hours after activity end."""
+        """Send summaries to trainers 5 hours after activity end.
+
+        Uses activity.summary_sent_at DB field to track sent summaries
+        (survives restarts, unlike in-memory cache).
+        Pattern: mark as sent in DB, commit, then send message.
+        """
         session = SessionLocal()
         try:
             now = utc_now()
 
-            # Find completed club/group activities
+            # Find completed club/group activities where summary hasn't been sent yet
             activities = session.query(Activity).filter(
                 Activity.status == ActivityStatus.COMPLETED,
-                Activity.is_demo == False
+                Activity.is_demo == False,
+                Activity.summary_sent_at == None
             ).filter(
                 (Activity.club_id != None) | (Activity.group_id != None)
             ).all()
 
+            # Step 1: Collect activities ready for summary and prepare send tasks
+            pending_sends = []
             for activity in activities:
-                # Skip if already sent summary
-                if str(activity.id) in self._sent_summaries:
-                    continue
-
-                # Check if 5 hours have passed since activity end
+                # Check if enough time has passed since activity end
                 duration_minutes = activity.duration or 60
                 activity_date_utc = ensure_utc_from_db(activity.date)
                 activity_end = activity_date_utc + timedelta(minutes=duration_minutes)
@@ -223,24 +248,42 @@ class PostTrainingSummaryService:
                 if now < summary_time:
                     continue
 
+                send_task = self._prepare_trainer_summary(session, activity)
+                if send_task:
+                    # Mark as sent in DB BEFORE commit
+                    activity.summary_sent_at = datetime.utcnow()
+                    pending_sends.append(send_task)
+
+            if not pending_sends:
+                return
+
+            # Step 2: Commit DB changes FIRST
+            session.commit()
+
+            # Step 3: Send Telegram messages AFTER successful commit
+            for send_task in pending_sends:
                 try:
-                    await self._send_trainer_summary(session, activity)
-                    self._sent_summaries[str(activity.id)] = True  # TTLCache uses dict interface
+                    await send_task()
                 except Exception as e:
-                    logger.error(f"Error sending summary for activity {activity.id}: {e}")
+                    logger.error(f"Error sending trainer summary: {e}")
 
         except Exception as e:
             logger.error(f"Error processing trainer summaries: {e}", exc_info=True)
+            session.rollback()
         finally:
             session.close()
 
-    async def _send_trainer_summary(self, session: Session, activity: Activity):
-        """Send summary to trainer for a single activity."""
+    def _prepare_trainer_summary(self, session: Session, activity: Activity):
+        """Prepare trainer summary data and return an async send task.
+
+        Returns an async callable to send the Telegram message, or None.
+        Does NOT modify DB — caller handles marking summary_sent_at.
+        """
         # Get trainer (creator)
         trainer = session.query(User).filter(User.id == activity.creator_id).first()
         if not trainer or not trainer.telegram_id:
             logger.warning(f"Trainer not found for activity {activity.id}")
-            return
+            return None
 
         # Get all participations (excluding trainer)
         participations = session.query(Participation).filter(
@@ -250,7 +293,7 @@ class PostTrainingSummaryService:
 
         if not participations:
             logger.info(f"No participants for activity {activity.id}, skipping summary")
-            return
+            return None
 
         # Categorize participants
         submitted = []
@@ -292,7 +335,6 @@ class PostTrainingSummaryService:
         if submitted:
             lines.append(f"Прикрепили ({len(submitted)}/{total}):")
             for name, link in submitted:
-                # Extract domain + path from link for compact display
                 try:
                     parsed = urlparse(link)
                     short_link = parsed.netloc + parsed.path
@@ -313,29 +355,35 @@ class PostTrainingSummaryService:
 
         message = "\n".join(lines)
 
-        # Build keyboard
-        buttons = []
-        if pending:
-            buttons.append([
-                InlineKeyboardButton(
-                    "📩 Напомнить",
-                    callback_data=f"remind_pending_{activity.id}"
+        # Capture values for deferred send
+        trainer_telegram_id = trainer.telegram_id
+        activity_id = activity.id
+        has_pending = bool(pending)
+
+        async def send():
+            buttons = []
+            if has_pending:
+                buttons.append([
+                    InlineKeyboardButton(
+                        "📩 Напомнить",
+                        callback_data=f"remind_pending_{activity_id}"
+                    )
+                ])
+
+            reply_markup = InlineKeyboardMarkup(buttons) if buttons else None
+
+            try:
+                await self.bot.send_message(
+                    chat_id=trainer_telegram_id,
+                    text=message,
+                    reply_markup=reply_markup,
+                    disable_web_page_preview=True
                 )
-            ])
+                logger.info(f"Sent trainer summary for activity {activity_id}")
+            except TelegramError as e:
+                logger.error(f"Failed to send trainer summary to {trainer_telegram_id}: {e}")
 
-        reply_markup = InlineKeyboardMarkup(buttons) if buttons else None
-
-        try:
-            await self.bot.send_message(
-                chat_id=trainer.telegram_id,
-                text=message,
-                reply_markup=reply_markup,
-                disable_web_page_preview=True
-            )
-            logger.info(f"Sent trainer summary for activity {activity.id}")
-
-        except TelegramError as e:
-            logger.error(f"Failed to send trainer summary to {trainer.telegram_id}: {e}")
+        return send
 
 
 # ============================================================================

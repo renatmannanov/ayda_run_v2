@@ -427,6 +427,9 @@ class Activity(Base):
 
     created_at = Column(DateTime, default=datetime.utcnow)
 
+    # Trainer summary tracking (prevents re-sending on restart)
+    summary_sent_at = Column(DateTime, nullable=True)
+
     # Relationships
     club = relationship("Club", back_populates="activities")
     group = relationship("Group", back_populates="activities")
