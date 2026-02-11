@@ -203,6 +203,12 @@ async def lifespan(app: FastAPI):
     await post_training_summary_service.start()
     logger.info("[SUCCESS] Post-training summary service started")
 
+    # Log Strava config status
+    import os
+    logger.info(f"[CONFIG] Strava client_id={'SET' if settings.strava_client_id else 'EMPTY'}, "
+                f"env STRAVA_CLIENT_ID={'SET' if os.environ.get('STRAVA_CLIENT_ID') else 'MISSING'}, "
+                f"env strava_client_id={'SET' if os.environ.get('strava_client_id') else 'MISSING'}")
+
     # Phase 9: Start Strava webhook retry service
     from app.services.strava_webhook_service import get_strava_webhook_retry_service
     strava_webhook_retry_service = get_strava_webhook_retry_service(bot_app.bot)
