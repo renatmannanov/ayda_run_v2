@@ -202,7 +202,7 @@ async def strava_auth(
     })
 
     strava_auth_url = f"https://www.strava.com/oauth/authorize?{params}"
-    logger.info(f"Redirecting user {user_id} to Strava OAuth")
+    logger.info(f"Redirecting user {user_id} to Strava OAuth (client_id={'SET' if settings.strava_client_id else 'EMPTY'})")
 
     return RedirectResponse(url=strava_auth_url, status_code=302)
 
