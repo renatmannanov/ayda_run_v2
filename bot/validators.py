@@ -281,7 +281,7 @@ def validate_strava_link(url: str) -> Tuple[bool, str]:
 
 from typing import Optional
 from urllib.parse import urlparse
-from app_config.constants import ALLOWED_TRAINING_LINK_DOMAINS
+from app_config.constants import ALLOWED_TRAINING_LINK_KEYWORDS
 
 # Pattern to extract URLs from text
 URL_PATTERN = re.compile(r'https?://[^\s<>"{}|\\^`\[\]]+')
@@ -329,8 +329,8 @@ def validate_training_link(url: str) -> Tuple[bool, Optional[str]]:
 
     domain = parsed.netloc.lower()
 
-    # Check if domain is in allowed list
-    if domain not in ALLOWED_TRAINING_LINK_DOMAINS:
+    # Check if domain contains any allowed service keyword
+    if not any(keyword in domain for keyword in ALLOWED_TRAINING_LINK_KEYWORDS):
         allowed_services = "Strava, Garmin, Coros, Suunto, Polar"
         return False, f"Пока принимаем ссылки только от: {allowed_services}"
 

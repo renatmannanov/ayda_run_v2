@@ -50,10 +50,4 @@ POST_TRAINING_REMINDER_DELAY_HOURS = 3
 POST_TRAINING_SUMMARY_DELAY_HOURS = 5
 POST_TRAINING_MAX_REMINDERS = 1
 
-ALLOWED_TRAINING_LINK_DOMAINS = [
-    "strava.com", "www.strava.com",
-    "connect.garmin.com",
-    "training.coros.com",
-    "suuntoapp.com", "www.suuntoapp.com",
-    "flow.polar.com",
-]
+ALLOWED_TRAINING_LINK_KEYWORDS = ["strava", "garmin", "coros", "suunto", "polar"]
