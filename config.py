@@ -137,6 +137,19 @@ class Settings(BaseSettings):
             v = f'{v}/'
         return v
 
+    @field_validator('base_url')
+    @classmethod
+    def ensure_base_url_https(cls, v: Optional[str]) -> Optional[str]:
+        """Ensure base_url has https:// prefix (no trailing slash)"""
+        if v is None:
+            return None
+        v = v.strip()
+        if v.startswith('http://'):
+            v = v.replace('http://', 'https://', 1)
+        elif not v.startswith('https://'):
+            v = f'https://{v}'
+        return v
+
     @field_validator('database_url')
     @classmethod
     def fix_postgres_url(cls, v: str) -> str:
