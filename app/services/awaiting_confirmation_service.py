@@ -52,7 +52,7 @@ class AwaitingConfirmationService:
 
     DEFAULT_DURATION_MINUTES = 60  # Default activity duration if not specified
 
-    def __init__(self, bot: Bot, check_interval: int = 30):  # TODO: change back to 300 after testing
+    def __init__(self, bot: Bot, check_interval: int = 300):
         """
         Initialize awaiting confirmation service.
 

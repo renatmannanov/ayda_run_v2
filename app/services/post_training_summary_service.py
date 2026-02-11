@@ -42,7 +42,7 @@ class PostTrainingSummaryService:
     Runs as a background task.
     """
 
-    def __init__(self, bot: Bot, check_interval: int = 30):  # TODO: change back to 300 after testing
+    def __init__(self, bot: Bot, check_interval: int = 300):
         """
         Initialize post-training summary service.
 
@@ -249,12 +249,14 @@ class PostTrainingSummaryService:
                     continue
 
                 send_task = self._prepare_trainer_summary(session, activity)
+                # Mark as sent regardless (prevents re-checking activities with no participants)
+                activity.summary_sent_at = datetime.utcnow()
                 if send_task:
-                    # Mark as sent in DB BEFORE commit
-                    activity.summary_sent_at = datetime.utcnow()
                     pending_sends.append(send_task)
 
             if not pending_sends:
+                # Still commit to persist summary_sent_at for skipped activities
+                session.commit()
                 return
 
             # Step 2: Commit DB changes FIRST
