@@ -102,7 +102,8 @@ class PostTrainingSummaryService:
         """
         session = SessionLocal()
         try:
-            cutoff = utc_now() - timedelta(hours=POST_TRAINING_REMINDER_DELAY_HOURS)
+            # sent_at is stored as naive UTC, so cutoff must also be naive
+            cutoff = datetime.utcnow() - timedelta(hours=POST_TRAINING_REMINDER_DELAY_HOURS)
 
             # Find notifications that were sent but not responded to
             notifications = session.query(PostTrainingNotification).filter(
