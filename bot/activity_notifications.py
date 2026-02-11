@@ -630,8 +630,9 @@ def format_post_training_notification(
         f"{date_str} · {location}\n\n"
         f"Отправь ссылку на тренировку ответным сообщением "
         f"(Strava, Garmin, Coros, Suunto, Polar). "
-        f"И мы перешлём её твоему тренеру для анализа.\n\n"
-        f"Или подключи Strava /connect_strava, чтобы синкать и отправлять автоматически."
+        f"И мы перешлём её твоему тренеру для анализа."
+        # TODO: uncomment when Strava API quota is approved
+        # f"\n\nИли подключи Strava /connect_strava, чтобы синкать и отправлять автоматически."
     )
 
     return message
