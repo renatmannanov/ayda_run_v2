@@ -13,6 +13,7 @@ from fastapi import APIRouter, HTTPException, Depends, Query, UploadFile, File, 
 from fastapi.responses import StreamingResponse
 import httpx
 from sqlalchemy.orm import Session, joinedload
+from sqlalchemy import func
 from typing import List, Optional
 
 from storage.db import Activity, Participation, User, Membership, JoinRequest, JoinRequestStatus, Club, Group, MembershipStatus
@@ -201,45 +202,61 @@ async def list_activities(
     # Pagination
     activities = query.offset(offset).limit(limit).all()
 
-    # Convert to response with participant counts
+    # Batch load participant counts (1 query instead of N)
+    activity_ids = [a.id for a in activities]
+
+    active_statuses = [
+        ParticipationStatus.REGISTERED,
+        ParticipationStatus.CONFIRMED,
+        ParticipationStatus.AWAITING,
+        ParticipationStatus.ATTENDED
+    ]
+
+    counts_map = {}
+    if activity_ids:
+        counts_rows = db.query(
+            Participation.activity_id,
+            func.count(Participation.id)
+        ).filter(
+            Participation.activity_id.in_(activity_ids),
+            Participation.status.in_(active_statuses)
+        ).group_by(Participation.activity_id).all()
+
+        counts_map = {str(row[0]): row[1] for row in counts_rows}
+
+    # Batch load current user's participations (1 query instead of N)
+    user_participations_map = {}
+    if current_user and activity_ids:
+        user_parts = db.query(Participation).filter(
+            Participation.activity_id.in_(activity_ids),
+            Participation.user_id == current_user.id
+        ).all()
+
+        user_participations_map = {str(p.activity_id): p for p in user_parts}
+
+    # Convert to response (no extra DB queries in this loop)
     result = []
-    logger.debug(f"Processing {len(activities)} activities")
     for activity in activities:
         response = ActivityResponse.model_validate(activity)
-        response.participants_count = db.query(Participation).filter(
-            Participation.activity_id == activity.id,
-            Participation.status.in_([
-                ParticipationStatus.REGISTERED,
-                ParticipationStatus.CONFIRMED,
-                ParticipationStatus.AWAITING,
-                ParticipationStatus.ATTENDED
-            ])
-        ).count()
+        response.participants_count = counts_map.get(str(activity.id), 0)
 
         if current_user:
-            participation = db.query(Participation).filter(
-                Participation.activity_id == activity.id,
-                Participation.user_id == current_user.id
-            ).first()
+            participation = user_participations_map.get(str(activity.id))
             response.is_joined = participation is not None
             if participation:
                 # Show awaiting status "on the fly" if activity has completed
-                # This ensures UI shows correct state even before background service runs
                 if (participation.status in [ParticipationStatus.REGISTERED, ParticipationStatus.CONFIRMED]
                     and activity.status == ActivityStatus.COMPLETED):
                     response.participation_status = ParticipationStatus.AWAITING
                 else:
                     response.participation_status = participation.status
 
-        # Populate names (eager loaded now)
+        # Populate names (eager loaded)
         if activity.club:
             response.club_name = activity.club.name
-            logger.debug(f"Activity {activity.id}: Set club_name='{activity.club.name}'")
         if activity.group:
             response.group_name = activity.group.name
-            logger.debug(f"Activity {activity.id}: Set group_name='{activity.group.name}'")
         if activity.creator:
-            # Build display name from first_name + last_name
             creator = activity.creator
             response.creator_name = f"{creator.first_name or ''} {creator.last_name or ''}".strip() or creator.username or "Аноним"
 
