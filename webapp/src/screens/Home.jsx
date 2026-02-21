@@ -31,6 +31,7 @@ export default function Home() {
 
     const [showCreateMenu, setShowCreateMenu] = useState(false)
     const [currentWeekIndex, setCurrentWeekIndex] = useState(null)
+    const [userNavigated, setUserNavigated] = useState(false)
     const [expandedDays, setExpandedDays] = useState({})
 
     // Filter state
@@ -148,6 +149,7 @@ export default function Home() {
     useEffect(() => {
         if (mode !== prevMode) {
             setPrevMode(mode)
+            setUserNavigated(false)
             // Reset to current week on mode change
             if (allWeeks.length > 0) {
                 const currentWeekIdx = allWeeks.findIndex(w => w.weekNumber === 0)
@@ -156,16 +158,16 @@ export default function Home() {
         }
     }, [mode, prevMode, allWeeks])
 
-    // Set initial week index or fix invalid index
+    // Navigate to current week when data loads or changes (unless user navigated manually)
     useEffect(() => {
         if (allWeeks.length > 0) {
             const isInvalidIndex = currentWeekIndex === null || currentWeekIndex >= allWeeks.length
-            if (isInvalidIndex) {
+            if (isInvalidIndex || !userNavigated) {
                 const currentWeekIdx = allWeeks.findIndex(w => w.weekNumber === 0)
                 setCurrentWeekIndex(currentWeekIdx >= 0 ? currentWeekIdx : 0)
             }
         }
-    }, [allWeeks, currentWeekIndex])
+    }, [allWeeks])
 
     // Get currently displayed week - use safe fallback to avoid flicker
     const displayedWeek = useMemo(() => {
@@ -173,7 +175,7 @@ export default function Home() {
         if (currentWeekIndex !== null && allWeeks[currentWeekIndex]) {
             return allWeeks[currentWeekIndex]
         }
-        // Fallback: find current week to avoid showing "empty"
+        // Fallback: find current week
         const currentWeekIdx = allWeeks.findIndex(w => w.weekNumber === 0)
         return allWeeks[currentWeekIdx >= 0 ? currentWeekIdx : 0] || null
     }, [allWeeks, currentWeekIndex])
@@ -181,12 +183,14 @@ export default function Home() {
     // Navigation handlers
     const goToPreviousWeek = () => {
         if (currentWeekIndex > 0) {
+            setUserNavigated(true)
             setCurrentWeekIndex(currentWeekIndex - 1)
         }
     }
 
     const goToNextWeek = () => {
         if (currentWeekIndex < allWeeks.length - 1) {
+            setUserNavigated(true)
             setCurrentWeekIndex(currentWeekIndex + 1)
         }
     }
@@ -202,6 +206,7 @@ export default function Home() {
     // Go to current week
     const goToCurrentWeek = () => {
         if (currentWeekIdx >= 0) {
+            setUserNavigated(false)
             setCurrentWeekIndex(currentWeekIdx)
         }
     }

@@ -31,6 +31,16 @@ export function groupActivitiesByWeekAndDay(activities) {
         weekMap[weekNum].days[dayOfWeek].push(activity)
     })
 
+    // Ensure current week (weekNumber 0) always exists
+    if (!weekMap[0]) {
+        weekMap[0] = {
+            weekNumber: 0,
+            weekStart: getWeekStart(today),
+            weekEnd: getWeekEnd(today),
+            days: {}
+        }
+    }
+
     // Sort activities within each day by time
     Object.values(weekMap).forEach(week => {
         Object.values(week.days).forEach(dayActivities => {
