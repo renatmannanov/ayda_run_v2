@@ -198,8 +198,7 @@ class PostTrainingSummaryService:
             message = (
                 f"⏰ Напоминание: отправь ссылку на тренировку «{activity_title}»\n\n"
                 f"Тогда тренер сможет её проанализировать и предоставить тебе обратную связь."
-                # TODO: uncomment when Strava API quota is approved
-                # f"\n\nА чтобы всё было автоматически, подключи Strava /connect_strava"
+                f"\n\nА чтобы всё было автоматически, подключи Strava /connect_strava"
             )
 
             try:

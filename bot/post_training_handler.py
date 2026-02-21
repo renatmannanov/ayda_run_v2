@@ -458,8 +458,7 @@ async def handle_remind_pending(update: Update, context: ContextTypes.DEFAULT_TY
                         f"Мы отправили тренеру сводку по тренировке «{activity.title}», "
                         f"но твоих данных там не было.\n"
                         f"Кажется, лучше не заставлять тренера ждать 😉"
-                        # TODO: uncomment when Strava API quota is approved
-                        # f"\n\nИли подключи уже Strava 🤷 /connect_strava"
+                        f"\n\nИли подключи уже Strava 🤷 /connect_strava"
                     ),
                     reply_markup=reply_markup
                 )

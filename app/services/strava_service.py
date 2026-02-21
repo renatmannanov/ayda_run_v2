@@ -33,7 +33,7 @@ class StravaAPIError(Exception):
 class StravaRateLimiter:
     """Simple in-memory rate limiter for Strava API."""
 
-    def __init__(self, max_per_15min: int = 90, max_per_day: int = 900):
+    def __init__(self, max_per_15min: int = 250, max_per_day: int = 2500):
         self.max_per_15min = max_per_15min
         self.max_per_day = max_per_day
         self.requests_15min: deque = deque()
