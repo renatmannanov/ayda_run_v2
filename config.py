@@ -95,6 +95,7 @@ class Settings(BaseSettings):
 
     # === Cross-Service Integration ===
     cross_service_api_key: Optional[str] = Field(default=None, alias="CROSS_SERVICE_API_KEY", description="Shared API key for internal service-to-service calls")
+    gpx_predictor_api_url: Optional[str] = Field(default=None, alias="GPX_PREDICTOR_API_URL", description="gpx_predictor API URL for cross-service calls")
 
     # === Logging ===
     log_level: str = Field(

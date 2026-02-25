@@ -12,6 +12,7 @@ from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, R
 from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy.orm import Session
 from urllib.parse import urlencode
+import asyncio
 import httpx
 import logging
 
@@ -23,6 +24,22 @@ from app.services.strava_service import StravaService
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/strava", tags=["strava"])
+
+
+async def _notify_gpx_predictor_strava_connected(telegram_id: int, athlete_id: int):
+    """Fire-and-forget notification to gpx_predictor about new Strava connection."""
+    try:
+        async with httpx.AsyncClient() as client:
+            resp = await client.post(
+                f"{settings.gpx_predictor_api_url}/api/v1/internal/strava/connected",
+                json={"telegram_id": telegram_id, "athlete_id": athlete_id},
+                headers={"X-API-Key": settings.cross_service_api_key},
+                timeout=10.0,
+            )
+            resp.raise_for_status()
+            logger.info("Notified gpx_predictor about Strava connection for telegram_id=%s", telegram_id)
+    except Exception as e:
+        logger.warning("Failed to notify gpx_predictor: %s", e)
 
 
 # HTML template for OAuth callback (closes window + shows success)
@@ -297,6 +314,13 @@ async def strava_callback(
             )
         except Exception as e:
             logger.error(f"Failed to send Strava confirmation message: {e}")
+
+        # Notify gpx_predictor to trigger sync & profiling (fire-and-forget)
+        if settings.cross_service_api_key and settings.gpx_predictor_api_url:
+            asyncio.create_task(_notify_gpx_predictor_strava_connected(
+                telegram_id=user.telegram_id,
+                athlete_id=token_data["athlete"]["id"],
+            ))
 
         return HTMLResponse(content=CALLBACK_SUCCESS_HTML)
 
