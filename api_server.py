@@ -389,7 +389,7 @@ app.add_middleware(LoggingMiddleware)
 # ============================================================================
 # Include Routers
 # ============================================================================
-from app.routers import activities, clubs, groups, users, media, recurring, analytics, config, strava
+from app.routers import activities, clubs, groups, users, media, recurring, analytics, config, strava, internal_api
 
 app.include_router(activities.router)
 app.include_router(clubs.router)
@@ -400,6 +400,7 @@ app.include_router(recurring.router)
 app.include_router(analytics.router)
 app.include_router(config.router)
 app.include_router(strava.router)
+app.include_router(internal_api.router)
 
 # ============================================================================
 # Static File Serving

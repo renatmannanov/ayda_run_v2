@@ -93,6 +93,9 @@ class Settings(BaseSettings):
     # === Encryption ===
     encryption_key: str = Field(default="", alias="ENCRYPTION_KEY", description="Fernet encryption key for token storage")
 
+    # === Cross-Service Integration ===
+    cross_service_api_key: Optional[str] = Field(default=None, alias="CROSS_SERVICE_API_KEY", description="Shared API key for internal service-to-service calls")
+
     # === Logging ===
     log_level: str = Field(
         default="INFO",
