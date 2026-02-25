@@ -2,10 +2,12 @@
 Internal API for cross-service communication.
 
 Protected by shared API key (X-API-Key header).
-Used by gpx_predictor to fetch Strava tokens.
+Used by gpx_predictor to fetch Strava tokens and OAuth URLs.
 """
 
 import logging
+from urllib.parse import urlencode
+
 from fastapi import APIRouter, Depends, Header, HTTPException, Query
 from sqlalchemy.orm import Session
 
@@ -56,4 +58,50 @@ async def get_strava_token(
         "access_token": access_token,
         "athlete_id": user.strava_athlete_id,
         "scope": "read,activity:read_all",
+    }
+
+
+@router.get("/strava/auth")
+async def get_strava_auth_url(
+    telegram_id: int = Query(..., description="User's Telegram ID"),
+    db: Session = Depends(get_db),
+    _api_key: str = Depends(verify_api_key),
+):
+    """
+    Generate a Strava OAuth URL for an external service user.
+
+    Lazy-creates the user by telegram_id if they don't exist in ayda_run.
+    Returns the OAuth URL even if Strava is already connected (allows re-auth).
+    """
+    base_url = (settings.base_url or "").rstrip("/")
+    if not base_url:
+        raise HTTPException(status_code=503, detail="BASE_URL not configured")
+
+    if not settings.strava_client_id:
+        raise HTTPException(status_code=503, detail="Strava integration not configured")
+
+    # Lazy create user by telegram_id
+    user = db.query(User).filter(User.telegram_id == telegram_id).first()
+    if not user:
+        user = User(telegram_id=telegram_id)
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+        logger.info("Created user for external OAuth: telegram_id=%s, user_id=%s", telegram_id, user.id)
+
+    # Generate Strava OAuth URL (same callback as native ayda_run flow)
+    callback_url = f"{base_url}/api/strava/callback"
+    params = urlencode({
+        "client_id": settings.strava_client_id,
+        "redirect_uri": callback_url,
+        "response_type": "code",
+        "scope": "read,activity:read_all",
+        "state": user.id,
+    })
+
+    auth_url = f"https://www.strava.com/oauth/authorize?{params}"
+
+    return {
+        "auth_url": auth_url,
+        "already_connected": user.strava_athlete_id is not None,
     }
